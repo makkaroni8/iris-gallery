@@ -1615,7 +1615,15 @@ internal fun GalleryScaffold(
                         "formats" -> {
                             var formatFilter by remember { mutableStateOf(MediaFormatFilter.ALL) }
                             val allVideos = remember(images) { images.filter { it.isVideo } }
-                            val allRaw = remember(images) { images.filter { it.isRaw } }
+                            val allRaw = remember(images) {
+                                images.flatMap { img ->
+                                    when {
+                                        img.isRaw -> listOf(img)
+                                        img.rawPeer != null -> listOf(img.rawPeer.copy(rawPeer = img))
+                                        else -> emptyList()
+                                    }
+                                }
+                            }
                             val allGifs = remember(images) { images.filter { it.isGif } }
                             val allPanos = remember(images) { images.filter { it.isPanorama } }
                             val allMotion = remember(images) { images.filter { it.isMotionPhoto } }
@@ -1734,6 +1742,7 @@ internal fun GalleryScaffold(
                             gridSpacing = settings.gridSpacing,
                             timelineDateFormat = settings.timelineDateFormat,
                             customTimelineDateFormat = settings.customTimelineDateFormat,
+                            groupRawPhotos = settings.groupRawPhotos,
                             favorites = favorites,
                             onOpenMedia = { media, folderMediaList ->
                                 viewerImages = folderMediaList

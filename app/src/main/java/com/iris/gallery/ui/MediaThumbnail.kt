@@ -476,7 +476,7 @@ fun MediaThumbnail(
             }
         } else if (!image.isVideo && showFormatBadge) {
             val badge = when {
-                image.isRaw -> "RAW"
+                image.isRaw || image.rawPeer != null -> "RAW"
                 image.isGif -> "GIF"
                 image.isSvg -> "SVG"
                 image.isPanorama -> "PANO"

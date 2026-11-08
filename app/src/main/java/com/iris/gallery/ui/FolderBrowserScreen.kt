@@ -78,6 +78,7 @@ import com.iris.gallery.R
 import com.iris.gallery.data.CornerStyle
 import com.iris.gallery.data.GridSpacing
 import com.iris.gallery.data.MediaImage
+import com.iris.gallery.data.groupRawPhotos
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import java.io.File
@@ -101,6 +102,7 @@ fun FolderBrowserScreen(
     gridSpacing: GridSpacing = GridSpacing.STANDARD,
     timelineDateFormat: com.iris.gallery.data.TimelineDateFormat = com.iris.gallery.data.TimelineDateFormat.SYSTEM_DEFAULT,
     customTimelineDateFormat: String = "d. MMMM yyyy",
+    groupRawPhotos: Boolean = true,
     favorites: Set<Long> = emptySet(),
     onOpenMedia: (MediaImage, List<MediaImage>) -> Unit,
     onBack: () -> Unit,
@@ -137,7 +139,9 @@ fun FolderBrowserScreen(
     }
 
     val directories = remember(folderItems) { folderItems.filter { it.isDirectory } }
-    val mediaFiles = remember(folderItems) { folderItems.mapNotNull { it.mediaImage } }
+    val mediaFiles = remember(folderItems, groupRawPhotos) {
+        folderItems.mapNotNull { it.mediaImage }.groupRawPhotos(groupRawPhotos)
+    }
 
     Scaffold(
         topBar = {

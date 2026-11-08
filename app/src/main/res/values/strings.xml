@@ -832,4 +832,12 @@
     <string name="dialog_overwrite_original_title">Overwrite original</string>
     <string name="dialog_overwrite_original_desc">Replace original file instead of saving a copy</string>
     <string name="toast_edited_overwritten">Original image replaced</string>
+
+    <!-- RAW + Original Photo Grouping -->
+    <string name="settings_group_raw_photos_title">Group RAW &amp; standard photos</string>
+    <string name="settings_group_raw_photos_desc">Combine matching RAW (e.g. .DNG) and standard (JPEG/HEIC) photos into a single entry</string>
+    <string name="action_view_raw_version">View RAW version</string>
+    <string name="action_view_original_version">View standard photo</string>
+    <string name="toast_switched_to_raw">Viewing RAW version (%1$s)</string>
+    <string name="toast_switched_to_original">Viewing standard photo (%1$s)</string>
 </resources>

@@ -158,8 +158,11 @@ import com.iris.gallery.data.PreferredEditor
 import com.iris.gallery.data.DeleteMode
 import com.iris.gallery.data.ViewerHeaderStyle
 import com.iris.gallery.data.SecureSharingMode
+import com.iris.gallery.data.findRawOrOriginalPeer
+import com.iris.gallery.data.isRaw
 import androidx.exifinterface.media.ExifInterface
 import androidx.compose.material.icons.outlined.Image
+import androidx.compose.material.icons.outlined.RawOn
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
@@ -321,7 +324,14 @@ internal fun PhotoViewer(
     var viewerAlbumAction by remember { mutableStateOf<AlbumAction?>(null) }
     var showSecureSharingHintDialog by remember { mutableStateOf(false) }
     var showSecureSharingModePicker by remember { mutableStateOf(false) }
-    val current = images.getOrNull(pagerState.currentPage.coerceIn(0, (images.size - 1).coerceAtLeast(0))) ?: return
+    val pageItem = images.getOrNull(pagerState.currentPage.coerceIn(0, (images.size - 1).coerceAtLeast(0))) ?: return
+    val resolvedPeer by produceState<MediaImage?>(initialValue = pageItem.rawPeer, pageItem.id, pageItem.rawPeer, images) {
+        value = pageItem.rawPeer ?: withContext(Dispatchers.IO) {
+            pageItem.findRawOrOriginalPeer(images)
+        }
+    }
+    var isViewingRawPeer by remember(pageItem.id) { mutableStateOf(false) }
+    val current = if (isViewingRawPeer && resolvedPeer != null) resolvedPeer!! else pageItem
     val doShare: (MediaImage) -> Unit = { media ->
         coroutineScope.launch {
             val uris = prepareShareUris(context, listOf(media), secureSharingMode)
@@ -640,15 +650,17 @@ internal fun PhotoViewer(
           HorizontalPager(
             state = pagerState,
             beyondViewportPageCount = 1,
-            userScrollEnabled = zoomedImageId != current.id && !isDismissing,
+            userScrollEnabled = zoomedImageId != pageItem.id && !isDismissing,
             pageSpacing = 16.dp,
           ) { page ->
-            val media = images[page]
+            val pageMedia = images[page]
+            val isCurrent = page == pagerState.currentPage
+            val media = if (isCurrent) current else pageMedia
             if (media.isVideo) {
                 VideoPage(
                     media = media,
                     engine = videoEngine,
-                    active = page == pagerState.currentPage,
+                    active = isCurrent,
                     controlsVisible = controlsVisible,
                     autoPlay = autoPlay,
                     loop = loop,
@@ -682,11 +694,10 @@ internal fun PhotoViewer(
                             }
                         }
                     },
-                    onZoomChanged = { zoomed -> zoomedImageId = if (zoomed) media.id else null },
+                    onZoomChanged = { zoomed -> zoomedImageId = if (zoomed) pageMedia.id else null },
                     onMuteToggled = onSetVideoMuted,
                 )
             } else {
-                val isCurrent = page == pagerState.currentPage
                 ZoomablePhoto(
                     image = media,
                     active = isCurrent,
@@ -735,7 +746,7 @@ internal fun PhotoViewer(
                         }
                     },
                     onZoomChanged = { zoomed ->
-                        zoomedImageId = if (zoomed) media.id else null
+                        zoomedImageId = if (zoomed) pageMedia.id else null
                     },
                 )
             }
@@ -814,7 +825,7 @@ internal fun PhotoViewer(
                 }
             }
             IconButton(onClick = { showInfo = true }) { Icon(Icons.Outlined.Info, stringResource(R.string.details_title), tint = Color.White) }
-            if (!isLocked && !isInTrash && current.id > 0) {
+            if (!isLocked && !isInTrash && (pageItem.id > 0 || resolvedPeer != null)) {
                 Box {
                     IconButton(onClick = { viewerMenuExpanded = true }) {
                         Icon(Icons.Outlined.MoreVert, stringResource(R.string.action_more), tint = Color.White)
@@ -823,30 +834,66 @@ internal fun PhotoViewer(
                         expanded = viewerMenuExpanded,
                         onDismissRequest = { viewerMenuExpanded = false }
                     ) {
-                        DropdownMenuItem(
-                            text = { Text(stringResource(R.string.action_move_to_album)) },
-                            leadingIcon = { Icon(Icons.Outlined.DriveFileMove, null) },
-                            onClick = {
-                                viewerMenuExpanded = false
-                                viewerAlbumAction = AlbumAction.MOVE
-                            }
-                        )
-                        DropdownMenuItem(
-                            text = { Text(stringResource(R.string.action_copy_to_album)) },
-                            leadingIcon = { Icon(Icons.Outlined.ContentCopy, null) },
-                            onClick = {
-                                viewerMenuExpanded = false
-                                viewerAlbumAction = AlbumAction.COPY
-                            }
-                        )
-                        DropdownMenuItem(
-                            text = { Text(stringResource(R.string.action_rename)) },
-                            leadingIcon = { Icon(Icons.Outlined.Edit, null) },
-                            onClick = {
-                                viewerMenuExpanded = false
-                                showRenameDialog = true
-                            }
-                        )
+                        if (!pageItem.isVideo && resolvedPeer != null) {
+                            val showingRaw = current.isRaw
+                            DropdownMenuItem(
+                                text = {
+                                    Text(
+                                        stringResource(
+                                            if (showingRaw) R.string.action_view_original_version
+                                            else R.string.action_view_raw_version
+                                        )
+                                    )
+                                },
+                                leadingIcon = {
+                                    Icon(
+                                        if (showingRaw) Icons.Outlined.Image else Icons.Outlined.RawOn,
+                                        contentDescription = null
+                                    )
+                                },
+                                onClick = {
+                                    viewerMenuExpanded = false
+                                    val nextState = !isViewingRawPeer
+                                    isViewingRawPeer = nextState
+                                    val targetMedia = if (nextState && resolvedPeer != null) resolvedPeer!! else pageItem
+                                    Toast.makeText(
+                                        context,
+                                        context.getString(
+                                            if (targetMedia.isRaw) R.string.toast_switched_to_raw
+                                            else R.string.toast_switched_to_original,
+                                            targetMedia.name
+                                        ),
+                                        Toast.LENGTH_SHORT
+                                    ).show()
+                                }
+                            )
+                        }
+                        if (current.id > 0) {
+                            DropdownMenuItem(
+                                text = { Text(stringResource(R.string.action_move_to_album)) },
+                                leadingIcon = { Icon(Icons.Outlined.DriveFileMove, null) },
+                                onClick = {
+                                    viewerMenuExpanded = false
+                                    viewerAlbumAction = AlbumAction.MOVE
+                                }
+                            )
+                            DropdownMenuItem(
+                                text = { Text(stringResource(R.string.action_copy_to_album)) },
+                                leadingIcon = { Icon(Icons.Outlined.ContentCopy, null) },
+                                onClick = {
+                                    viewerMenuExpanded = false
+                                    viewerAlbumAction = AlbumAction.COPY
+                                }
+                            )
+                            DropdownMenuItem(
+                                text = { Text(stringResource(R.string.action_rename)) },
+                                leadingIcon = { Icon(Icons.Outlined.Edit, null) },
+                                onClick = {
+                                    viewerMenuExpanded = false
+                                    showRenameDialog = true
+                                }
+                            )
+                        }
                         if (!current.isVideo) {
                             DropdownMenuItem(
                                 text = { Text(stringResource(R.string.action_copy_image)) },
@@ -1295,7 +1342,7 @@ internal fun PhotoViewer(
                 shape = RoundedCornerShape(32.dp),
                 tonalElevation = 8.dp,
             ) {
-              val isFav = current.id in favorites
+              val isFav = pageItem.id in favorites || current.id in favorites
               val favScale by animateFloatAsState(
                   targetValue = if (isFav) 1.25f else 1.0f,
                   animationSpec = spring(dampingRatio = Spring.DampingRatioMediumBouncy, stiffness = Spring.StiffnessMediumLow),
@@ -1336,14 +1383,14 @@ internal fun PhotoViewer(
                             doShare(current)
                         }
                     }
-                    if (current.id > 0) {
+                    if (pageItem.id > 0) {
                         ViewerIconButton(
                             icon = if (isFav) Icons.Filled.Favorite else Icons.Outlined.FavoriteBorder,
                             label = if (isFav) stringResource(R.string.action_favorited) else stringResource(R.string.action_favorite),
                             tint = if (isFav) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurface,
                             scaleEffect = favScale,
                             modifier = Modifier.weight(1f),
-                        ) { onToggleFavorite(current.id) }
+                        ) { onToggleFavorite(pageItem.id) }
                     }
                     ViewerIconButton(
                         icon = Icons.Outlined.Edit,

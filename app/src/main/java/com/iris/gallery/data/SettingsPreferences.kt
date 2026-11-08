@@ -141,6 +141,7 @@ data class SettingsState(
     val smartYearHiding: Boolean = true,
     val showVideoDurationBadge: Boolean = true,
     val showMediaFormatBadge: Boolean = true,
+    val groupRawPhotos: Boolean = true,
     val showAlbumCount: Boolean = true,
     val autoPlayVideo: Boolean = true,
     val loopVideo: Boolean = true,
@@ -219,6 +220,7 @@ class SettingsPreferences(context: Context) {
     fun setSmartYearHiding(smart: Boolean) = update { copy(smartYearHiding = smart) }
     fun setShowVideoDurationBadge(show: Boolean) = update { copy(showVideoDurationBadge = show) }
     fun setShowMediaFormatBadge(show: Boolean) = update { copy(showMediaFormatBadge = show) }
+    fun setGroupRawPhotos(enabled: Boolean) = update { copy(groupRawPhotos = enabled) }
     fun setShowAlbumCount(show: Boolean) = update { copy(showAlbumCount = show) }
     fun setAutoPlayVideo(autoPlay: Boolean) = update { copy(autoPlayVideo = autoPlay) }
     fun setLoopVideo(loop: Boolean) = update { copy(loopVideo = loop) }
@@ -414,6 +416,7 @@ class SettingsPreferences(context: Context) {
             smartYearHiding = prefs.getBoolean("smart_year_hiding", true),
             showVideoDurationBadge = prefs.getBoolean("show_video_duration_badge", true),
             showMediaFormatBadge = prefs.getBoolean("show_media_format_badge", true),
+            groupRawPhotos = prefs.getBoolean("group_raw_photos", true),
             showAlbumCount = prefs.getBoolean("show_album_count", true),
             autoPlayVideo = prefs.getBoolean("auto_play_video", true),
             loopVideo = prefs.getBoolean("loop_video", true),
@@ -478,6 +481,7 @@ class SettingsPreferences(context: Context) {
             .putBoolean("smart_year_hiding", state.smartYearHiding)
             .putBoolean("show_video_duration_badge", state.showVideoDurationBadge)
             .putBoolean("show_media_format_badge", state.showMediaFormatBadge)
+            .putBoolean("group_raw_photos", state.groupRawPhotos)
             .putBoolean("show_album_count", state.showAlbumCount)
             .putBoolean("auto_play_video", state.autoPlayVideo)
             .putBoolean("loop_video", state.loopVideo)

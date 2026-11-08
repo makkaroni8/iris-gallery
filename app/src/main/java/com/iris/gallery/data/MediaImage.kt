@@ -27,7 +27,125 @@ data class MediaImage(
     val description: String = "",
     val dateModified: Long = 0L,
     val dateAdded: Long = 0L,
+    val rawPeer: MediaImage? = null,
 )
+
+private val RAW_PAIR_SUFFIX_REGEX = Regex("""(?i)(\.(RAW-\d+|MP|COVER|ORIGINAL)|_(RAW|MP|COVER|ORIGINAL))+$""")
+
+fun MediaImage.rawGroupingStem(): String {
+    val withoutExt = name.substringBeforeLast('.', name)
+    return withoutExt.replace(RAW_PAIR_SUFFIX_REGEX, "").lowercase()
+}
+
+fun List<MediaImage>.groupRawPhotos(groupTogether: Boolean): List<MediaImage> {
+    if (isEmpty()) return this
+    // Collect candidate photos (non-video) and group by folder/bucket + normalized stem
+    val photos = filter { !it.isVideo }
+    if (photos.size < 2) return this
+
+    val rawById = HashMap<Long, MediaImage>()
+    val standardById = HashMap<Long, MediaImage>()
+    val hiddenRawIds = HashSet<Long>()
+
+    fun pairGroup(group: List<MediaImage>) {
+        if (group.size < 2) return
+        val raws = group.filter { it.isRaw }
+        val standards = group.filterNot { it.isRaw }
+        if (raws.isNotEmpty() && standards.isNotEmpty()) {
+            val primaryStandard = standards.first()
+            val primaryRaw = raws.first()
+            rawById[primaryStandard.id] = primaryRaw
+            standardById[primaryRaw.id] = primaryStandard
+            if (groupTogether) {
+                raws.forEach { hiddenRawIds.add(it.id) }
+            }
+        }
+    }
+
+    // 1. Pair within same bucket (or parent folder path if bucketId == 0L)
+    photos.groupBy { img ->
+        val folderKey = if (img.bucketId != 0L) img.bucketId.toString() else img.path.substringBeforeLast('/', "")
+        "$folderKey|${img.rawGroupingStem()}"
+    }.values.forEach { pairGroup(it) }
+
+    // 2. Fallback for explicit Google Camera .RAW-01 / .RAW-02 files across buckets if unpaired
+    val unpairedExplicitRawTag = photos.filter { img ->
+        img.id !in rawById && img.id !in standardById && img.name.contains(".RAW-", ignoreCase = true)
+    }
+    if (unpairedExplicitRawTag.size >= 2) {
+        unpairedExplicitRawTag.groupBy { it.rawGroupingStem() }.values.forEach { pairGroup(it) }
+    }
+
+    if (rawById.isEmpty() && standardById.isEmpty()) return this
+
+    val result = ArrayList<MediaImage>(size)
+    for (item in this) {
+        if (groupTogether && item.id in hiddenRawIds) continue
+        val peer = rawById[item.id] ?: standardById[item.id]
+        if (peer != null) {
+            val linkedPeer = peer.copy(rawPeer = item.copy(rawPeer = null))
+            result.add(item.copy(rawPeer = linkedPeer))
+        } else {
+            result.add(item)
+        }
+    }
+    return result
+}
+
+fun MediaImage.findRawOrOriginalPeer(candidates: List<MediaImage> = emptyList()): MediaImage? {
+    if (isVideo) return null
+    rawPeer?.let { return it }
+    val targetStem = rawGroupingStem()
+    val wantRaw = !isRaw
+    val fromCandidates = candidates.firstOrNull { other ->
+        other.id != id && !other.isVideo && other.isRaw == wantRaw &&
+            (other.bucketId == bucketId || other.name.contains(".RAW-", ignoreCase = true)) &&
+            other.rawGroupingStem() == targetStem
+    }
+    if (fromCandidates != null) return fromCandidates
+
+    if (path.isNotBlank()) {
+        val file = File(path)
+        val parent = file.parentFile
+        if (parent != null && parent.exists() && parent.canRead()) {
+            val sibling = parent.listFiles()?.firstOrNull { f ->
+                if (!f.isFile || f.absolutePath == file.absolutePath) return@firstOrNull false
+                val lower = f.name.lowercase()
+                val fIsRaw = lower.endsWith(".dng") || lower.endsWith(".raw") ||
+                    lower.endsWith(".cr2") || lower.endsWith(".cr3") ||
+                    lower.endsWith(".arw") || lower.endsWith(".nef") ||
+                    lower.endsWith(".raf") || lower.endsWith(".orf") ||
+                    lower.endsWith(".rw2") || lower.endsWith(".pef") ||
+                    lower.endsWith(".srw")
+                if (fIsRaw != wantRaw) return@firstOrNull false
+                val fStem = f.name.substringBeforeLast('.', f.name).replace(RAW_PAIR_SUFFIX_REGEX, "").lowercase()
+                fStem == targetStem
+            }
+            if (sibling != null) {
+                val ext = sibling.extension.lowercase()
+                val mime = if (wantRaw) "image/x-adobe-dng" else "image/jpeg"
+                return MediaImage(
+                    id = sibling.absolutePath.hashCode().toLong(),
+                    uri = Uri.fromFile(sibling),
+                    name = sibling.name,
+                    dateTaken = sibling.lastModified().takeIf { it > 0L } ?: dateTaken,
+                    width = width,
+                    height = height,
+                    path = sibling.absolutePath,
+                    bucketId = bucketId,
+                    bucketName = bucketName,
+                    isVideo = false,
+                    durationMs = 0L,
+                    mimeType = if (ext == "dng") "image/x-adobe-dng" else mime,
+                    sizeBytes = sibling.length(),
+                    dateModified = sibling.lastModified() / 1000L,
+                    rawPeer = this,
+                )
+            }
+        }
+    }
+    return null
+}
 
 val MediaImage.isScreenshot: Boolean
     get() = bucketName.contains("screenshot", ignoreCase = true) ||

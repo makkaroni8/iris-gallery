@@ -506,4 +506,12 @@
     <string name="search_videos_placeholder">Videos suchen…</string>
     <string name="empty_search_files">Keine Dateien gefunden für "%1$s"</string>
     <string name="action_search">Suchen</string>
+
+    <!-- RAW + Original Photo Grouping -->
+    <string name="settings_group_raw_photos_title">RAW- &amp; Originalfotos zusammenfassen</string>
+    <string name="settings_group_raw_photos_desc">Zusammengehörige RAW- (z. B. .DNG) und Standardfotos (JPEG/HEIC) als ein einzelnes Bild anzeigen</string>
+    <string name="action_view_raw_version">RAW-Version anzeigen</string>
+    <string name="action_view_original_version">Originalfoto anzeigen</string>
+    <string name="toast_switched_to_raw">RAW-Version wird angezeigt (%1$s)</string>
+    <string name="toast_switched_to_original">Originalfoto wird angezeigt (%1$s)</string>
 </resources>

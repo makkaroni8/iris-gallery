@@ -916,6 +916,15 @@ fun SettingsScreen(
                     HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.4f))
 
                     SettingsSwitchRow(
+                        title = stringResource(R.string.settings_group_raw_photos_title),
+                        subtitle = stringResource(R.string.settings_group_raw_photos_desc),
+                        checked = settings.groupRawPhotos,
+                        onCheckedChange = { preferences.setGroupRawPhotos(it) }
+                    )
+
+                    HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.4f))
+
+                    SettingsSwitchRow(
                         title = stringResource(R.string.settings_album_count_title),
                         subtitle = stringResource(R.string.settings_album_count_desc),
                         checked = settings.showAlbumCount,

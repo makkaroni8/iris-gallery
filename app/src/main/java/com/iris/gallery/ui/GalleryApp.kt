@@ -70,6 +70,7 @@ import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
 import androidx.compose.ui.res.stringResource
 import com.iris.gallery.data.MediaImage
+import com.iris.gallery.data.groupRawPhotos
 import com.iris.gallery.data.ExifEditRequest
 import com.iris.gallery.data.saveExifToMedia
 import com.iris.gallery.data.resolveMediaUri
@@ -538,7 +539,7 @@ internal fun GalleryApp(
                     }
                 )
             } else {
-                val visibleMedia = remember(state.images, requestedType, libraryState.lockedMedia, libraryState.excludedFolders) {
+                val visibleMedia = remember(state.images, requestedType, libraryState.lockedMedia, libraryState.excludedFolders, settings.groupRawPhotos) {
                     val requested = when {
                         requestedType?.startsWith("image/") == true -> state.images.filterNot { it.isVideo }
                         requestedType?.startsWith("video/") == true -> state.images.filter { it.isVideo }
@@ -546,6 +547,7 @@ internal fun GalleryApp(
                     }
                     requested.filterNot { it.id in libraryState.lockedMedia }
                         .filterNot { img -> isPathExcluded(img.path, libraryState.excludedFolders) }
+                        .groupRawPhotos(settings.groupRawPhotos)
                 }
                 val allLockedMedia = remember(vaultMedia, state.images, libraryState.lockedMedia) {
                     val galleryLocked = state.images.filter { it.id in libraryState.lockedMedia }
