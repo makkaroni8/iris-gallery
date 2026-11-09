@@ -52,7 +52,7 @@ fun launchExternalEditor(context: Context, image: MediaImage) {
         androidx.core.content.FileProvider.getUriForFile(
             context,
             "${context.packageName}.fileprovider",
-            java.io.File(image.path)
+            java.io.File(image.path),
         )
     } else {
         image.uri
@@ -106,14 +106,16 @@ fun launchExternalEditor(context: Context, image: MediaImage) {
     )
 
     fun isAllowedEditor(pkg: String): Boolean {
-        return pkg != context.packageName &&
-            pkg !in shareBlacklist &&
-            !shareBlacklist.any { bl -> pkg == bl || pkg.startsWith("$bl.") }
+        return (pkg != context.packageName) &&
+            (pkg !in shareBlacklist) &&
+            !shareBlacklist.any { bl -> (pkg == bl) || pkg.startsWith("$bl.") }
     }
 
     // Query available activities (strictly excluding ourselves and generic sharing targets)
     val editMatches = runCatching { pm.queryIntentActivities(editIntent, 0) }.getOrDefault(emptyList())
+        .asSequence()
         .filter { isAllowedEditor(it.activityInfo.packageName) }
+        .toList()
     val editIntents = editMatches.map { match ->
         Intent(editIntent).apply {
             component = ComponentName(match.activityInfo.packageName, match.activityInfo.name)
@@ -121,7 +123,9 @@ fun launchExternalEditor(context: Context, image: MediaImage) {
     }
 
     val genericEditMatches = runCatching { pm.queryIntentActivities(genericEditIntent, 0) }.getOrDefault(emptyList())
+        .asSequence()
         .filter { isAllowedEditor(it.activityInfo.packageName) }
+        .toList()
     val genericEditIntents = genericEditMatches.map { match ->
         Intent(genericEditIntent).apply {
             component = ComponentName(match.activityInfo.packageName, match.activityInfo.name)
@@ -129,7 +133,9 @@ fun launchExternalEditor(context: Context, image: MediaImage) {
     }
 
     val cameraMatches = runCatching { pm.queryIntentActivities(cameraEditIntent, 0) }.getOrDefault(emptyList())
+        .asSequence()
         .filter { isAllowedEditor(it.activityInfo.packageName) }
+        .toList()
     val cameraEditIntents = cameraMatches.map { match ->
         Intent(cameraEditIntent).apply {
             component = ComponentName(match.activityInfo.packageName, match.activityInfo.name)
@@ -142,7 +148,7 @@ fun launchExternalEditor(context: Context, image: MediaImage) {
         val editorKeywords = listOf(
             "edit", "cut", "shot", "video", "maker", "clip",
             "film", "movie", "vlog", "vn", "capcut", "inshot",
-            "youcut", "kinemaster", "powerdirector", "motion"
+            "youcut", "kinemaster", "powerdirector", "motion",
         )
         val sendIntent = Intent(Intent.ACTION_SEND).apply {
             type = mimeType
@@ -151,14 +157,16 @@ fun launchExternalEditor(context: Context, image: MediaImage) {
             addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION or Intent.FLAG_ACTIVITY_NEW_DOCUMENT)
         }
         val sendMatches = runCatching { pm.queryIntentActivities(sendIntent, 0) }.getOrDefault(emptyList())
+            .asSequence()
             .filter { isAllowedEditor(it.activityInfo.packageName) }
             .filter { match ->
                 val pkg = match.activityInfo.packageName.lowercase()
                 val cls = match.activityInfo.name.lowercase()
                 val label = runCatching { match.loadLabel(pm).toString().lowercase() }.getOrDefault("")
-                (pkg == "com.google.android.apps.photos" && cls.contains("editvideo")) ||
+                ((pkg == "com.google.android.apps.photos") && cls.contains("editvideo")) ||
                     editorKeywords.any { pkg.contains(it) || cls.contains(it) || label.contains(it) }
             }
+            .toList()
         sendMatches.map { match ->
             Intent(sendIntent).apply {
                 component = ComponentName(match.activityInfo.packageName, match.activityInfo.name)
@@ -181,7 +189,7 @@ fun launchExternalEditor(context: Context, image: MediaImage) {
         android.widget.Toast.makeText(
             context,
             context.getString(R.string.no_external_editor_found),
-            android.widget.Toast.LENGTH_SHORT
+            android.widget.Toast.LENGTH_SHORT,
         ).show()
         return
     }
@@ -208,13 +216,13 @@ fun launchExternalEditor(context: Context, image: MediaImage) {
     val launched = runCatching {
         context.startActivity(chooserIntent)
         true
-    }.getOrDefault(false)
+    }.getOrDefault(defaultValue = false)
 
     if (!launched) {
         android.widget.Toast.makeText(
             context,
             context.getString(R.string.no_external_editor_found),
-            android.widget.Toast.LENGTH_SHORT
+            android.widget.Toast.LENGTH_SHORT,
         ).show()
     }
 }
@@ -227,7 +235,7 @@ fun EditChoiceBottomSheet(
     onChooseExternal: (rememberChoice: Boolean) -> Unit,
 ) {
     val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
-    var rememberChoice by remember { mutableStateOf(false) }
+    var rememberChoice by remember { mutableStateOf(value = false) }
 
     ModalBottomSheet(
         onDismissRequest = onDismiss,

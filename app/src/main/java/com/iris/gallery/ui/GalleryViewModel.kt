@@ -25,7 +25,6 @@ import com.iris.gallery.data.DuplicateGroup
 import com.iris.gallery.data.ExifEditRequest
 
 import com.iris.gallery.data.AlbumRepository
-import com.iris.gallery.data.AlbumAction
 import com.iris.gallery.data.AlbumOperationResult
 import android.database.ContentObserver
 import android.net.Uri
@@ -36,6 +35,8 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.withContext
 import java.io.File
+import androidx.core.content.edit
+import kotlin.time.Duration.Companion.milliseconds
 
 data class GalleryUiState(
     val loading: Boolean = false,
@@ -44,6 +45,7 @@ data class GalleryUiState(
     val error: String? = null,
 )
 
+@Suppress("Destructure")
 class GalleryViewModel(application: Application) : AndroidViewModel(application) {
     private val repository = MediaRepository(application)
     private val libraryPreferences = LibraryPreferences(application)
@@ -55,12 +57,11 @@ class GalleryViewModel(application: Application) : AndroidViewModel(application)
     private val _uiState = MutableStateFlow(GalleryUiState(images = repository.loadSnapshot(), trashed = trashRepository.trashedMedia.value))
     val uiState: StateFlow<GalleryUiState> = _uiState.asStateFlow()
     private val _favorites = MutableStateFlow(
-        preferences.getStringSet("favorites", emptySet()).orEmpty().mapNotNull { it.toLongOrNull() }.toSet(),
+        preferences.getStringSet("favorites", emptySet()).orEmpty().asSequence().mapNotNull { it.toLongOrNull() }.toSet(),
     )
     val favorites: StateFlow<Set<Long>> = _favorites.asStateFlow()
     val libraryState: StateFlow<LibraryPreferencesState> = libraryPreferences.state
     val vaultMedia: StateFlow<List<MediaImage>> = vaultRepository.vaultMedia
-    val trashedMedia: StateFlow<List<MediaImage>> = trashRepository.trashedMedia
     private val duplicateDetector = DuplicateDetector(application)
     private var duplicateJob: Job? = null
     private val _duplicateState = MutableStateFlow(DuplicateScanState())
@@ -108,7 +109,6 @@ class GalleryViewModel(application: Application) : AndroidViewModel(application)
     fun cancelDuplicateScan() { duplicateJob?.cancel() }
 
     fun setLocked(ids: Collection<Long>, locked: Boolean) = libraryPreferences.setLocked(ids, locked)
-    fun hasAllFilesAccess(): Boolean = vaultRepository.hasAllFilesAccess()
     suspend fun moveToVault(mediaList: List<MediaImage>): com.iris.gallery.data.VaultMoveResult = vaultRepository.moveToVault(mediaList)
     suspend fun rollbackVaultMove(vaultedMedia: List<MediaImage>) = vaultRepository.rollbackVault(vaultedMedia)
     suspend fun restoreFromVault(mediaList: List<MediaImage>): List<MediaImage> = vaultRepository.restoreFromVault(mediaList)
@@ -131,11 +131,6 @@ class GalleryViewModel(application: Application) : AndroidViewModel(application)
         refresh()
     }
 
-    suspend fun emptyTrash() {
-        trashRepository.emptyTrash()
-        refresh()
-    }
-
     suspend fun moveMediaToAlbum(mediaList: List<MediaImage>, targetDir: File, targetAlbumName: String): AlbumOperationResult {
         val result = albumRepository.moveMedia(mediaList, targetDir, targetAlbumName)
         if (result.successCount > 0) {
@@ -150,12 +145,12 @@ class GalleryViewModel(application: Application) : AndroidViewModel(application)
             val trulyDeletedOldIds = movedOldIds.filterNot { it in newIds }.toSet()
             repository.markMovedOrDeleted(trulyDeletedOldIds, movedOldPaths)
             val currentImages = _uiState.value.images
-            val remainingImages = currentImages.filterNot { it.id in movedOldIds || it.path in movedOldPaths }
+            val remainingImages = currentImages.filterNot { (it.id in movedOldIds) || (it.path in movedOldPaths) }
             val updatedImages = (remainingImages + result.movedMedia).sortedWith(
                 compareByDescending<MediaImage> { it.dateTaken }
                     .thenByDescending { it.dateModified }
                     .thenByDescending { it.dateAdded }
-                    .thenByDescending { it.id }
+                    .thenByDescending { it.id },
             )
             _uiState.value = _uiState.value.copy(images = updatedImages)
         }
@@ -190,14 +185,18 @@ class GalleryViewModel(application: Application) : AndroidViewModel(application)
     fun setAlbumMediaSortOverride(albumId: Long, sort: com.iris.gallery.data.MediaSort?) = libraryPreferences.setAlbumMediaSortOverride(albumId, sort)
     fun addExcludedFolder(path: String) = libraryPreferences.addExcludedFolder(path)
     fun removeExcludedFolder(path: String) = libraryPreferences.removeExcludedFolder(path)
-    fun setExcludedFolders(folders: Set<String>) = libraryPreferences.setExcludedFolders(folders)
 
     fun toggleFavorite(id: Long) {
         val updated = _favorites.value.toMutableSet().apply {
             if (!add(id)) remove(id)
         }
         _favorites.value = updated
-        preferences.edit().putStringSet("favorites", updated.mapTo(mutableSetOf()) { it.toString() }).apply()
+        preferences.edit {
+            putStringSet(
+                "favorites",
+                updated.mapTo(mutableSetOf()) { it.toString() },
+            )
+        }
     }
 
     private var contentObserver: ContentObserver? = null
@@ -217,7 +216,7 @@ class GalleryViewModel(application: Application) : AndroidViewModel(application)
                     }
                     liveReloadJob?.cancel()
                     liveReloadJob = viewModelScope.launch {
-                        delay(250)
+                        delay(250.milliseconds)
                         val batch = synchronized(pendingChangedUris) {
                             pendingChangedUris.toSet().also { pendingChangedUris.clear() }
                         }
@@ -231,16 +230,21 @@ class GalleryViewModel(application: Application) : AndroidViewModel(application)
                 }
             }
             val resolver = getApplication<Application>().contentResolver
+            val externalVolume = if (android.os.Build.VERSION.SDK_INT >= 29) {
+                MediaStore.VOLUME_EXTERNAL
+            } else {
+                "external"
+            }
             val volumes = if (android.os.Build.VERSION.SDK_INT >= 29) {
                 runCatching { MediaStore.getExternalVolumeNames(getApplication()) }
                     .getOrNull()
                     ?.filter { it.isNotBlank() }
                     ?.toMutableSet()
-                    ?: mutableSetOf(MediaStore.VOLUME_EXTERNAL)
+                    ?: mutableSetOf(externalVolume)
             } else {
-                mutableSetOf(MediaStore.VOLUME_EXTERNAL)
+                mutableSetOf(externalVolume)
             }
-            volumes.add(MediaStore.VOLUME_EXTERNAL)
+            volumes.add(externalVolume)
             for (volume in volumes) {
                 if (android.os.Build.VERSION.SDK_INT >= 29) {
                     resolver.registerContentObserver(MediaStore.Images.Media.getContentUri(volume), true, observer)
@@ -258,7 +262,6 @@ class GalleryViewModel(application: Application) : AndroidViewModel(application)
     }
 
     override fun onCleared() {
-        super.onCleared()
         contentObserver?.let {
             runCatching {
                 getApplication<Application>().contentResolver.unregisterContentObserver(it)
@@ -345,7 +348,7 @@ class GalleryViewModel(application: Application) : AndroidViewModel(application)
 
     fun purgeGhostMedia(image: MediaImage) {
         repository.purgeGhostMedia(image.id, image.path, image.uri)
-        com.iris.gallery.ui.ThumbnailCache.remove(image.id)
+        ThumbnailCache.remove(image.id)
     }
 
     private fun mergeChangedMedia(idSet: Set<Long>, changed: List<MediaImage>) {
@@ -367,9 +370,7 @@ class GalleryViewModel(application: Application) : AndroidViewModel(application)
     }
 
     private fun isOnKnownStoragePath(path: String): Boolean {
-        if (path.isBlank()) return false
-        if (path.startsWith("/storage/")) return true
-        return path.startsWith(getApplication<Application>().filesDir.absolutePath)
+        return path.isNotBlank() && (path.startsWith("/storage/") || path.startsWith(getApplication<Application>().filesDir.absolutePath))
     }
 
     private suspend fun refreshTrashOnly() {
@@ -397,7 +398,7 @@ class GalleryViewModel(application: Application) : AndroidViewModel(application)
             }
             val ready = item.path.isNotBlank() &&
                 isOnKnownStoragePath(item.path) &&
-                java.io.File(item.path).exists()
+                File(item.path).exists()
             if (ready) loaded.add(item) else pending.add(uri)
         }
         mergeChangedMedia(ids, loaded)
@@ -410,7 +411,7 @@ class GalleryViewModel(application: Application) : AndroidViewModel(application)
             val pending = uris.toMutableList()
             var delayMs = 1000L
             repeat(10) {
-                delay(delayMs)
+                delay(delayMs.milliseconds)
                 delayMs = (delayMs * 2).coerceAtMost(8000L)
                 val loaded = mutableListOf<MediaImage>()
                 val stillPending = mutableListOf<Uri>()
@@ -419,8 +420,8 @@ class GalleryViewModel(application: Application) : AndroidViewModel(application)
                     val ready = item != null &&
                         item.path.isNotBlank() &&
                         isOnKnownStoragePath(item.path) &&
-                        java.io.File(item.path).exists()
-                    if (ready) loaded.add(item!!) else stillPending.add(uri)
+                        File(item.path).exists()
+                    if (ready) loaded.add(item) else stillPending.add(uri)
                 }
                 if (loaded.isNotEmpty()) {
                     mergeChangedMedia(loaded.mapTo(HashSet()) { it.id }, loaded)
@@ -478,7 +479,7 @@ class GalleryViewModel(application: Application) : AndroidViewModel(application)
         }
         refreshJob = viewModelScope.launch {
             try {
-                kotlinx.coroutines.withTimeout(120_000) {
+                kotlinx.coroutines.withTimeout(120_000.milliseconds) {
                     // Index loads touch storage and take the repo index lock, so keep them off the main thread.
                     val internalTrash = withContext(Dispatchers.IO) {
                         vaultRepository.loadVaultItems()
@@ -487,21 +488,22 @@ class GalleryViewModel(application: Application) : AndroidViewModel(application)
                     val systemTrash = if (android.os.Build.VERSION.SDK_INT >= 30 && settingsPreferences.state.value.useSystemTrash) {
                         try {
                             repository.loadImages(trashed = true)
-                        } catch (e: Exception) {
-                            if (e is kotlinx.coroutines.CancellationException) throw e
+                        } catch (e: kotlinx.coroutines.CancellationException) {
+                            throw e
+                        } catch (_: Exception) {
                             emptyList()
                         }
                     } else emptyList()
                     val trashList = (internalTrash + systemTrash).distinctBy { it.id }
                     _uiState.update {
                         it.copy(
-                            loading = if (showLoading) true else it.loading,
+                            loading = showLoading || it.loading,
                             trashed = trashList,
                             error = null
                         )
                     }
                     try {
-                        repository.setSnapshotComplete(false)
+                        repository.setSnapshotComplete(complete = false)
                         val loaded = repository.loadImages()
                         val loadedPaths = loaded.mapTo(HashSet(loaded.size)) { it.path }
                         val loadedIds = loaded.mapTo(HashSet(loaded.size)) { it.id }
@@ -510,7 +512,7 @@ class GalleryViewModel(application: Application) : AndroidViewModel(application)
                             item.path !in loadedPaths &&
                             item.id !in loadedIds &&
                             !repository.isMarkedMovedOrDeleted(item.id, item.path) &&
-                            java.io.File(item.path).exists()
+                            File(item.path).exists()
                         }
                         val combined = if (currentPending.isNotEmpty()) {
                             (loaded + currentPending).distinctBy { it.id }.sortedWith(

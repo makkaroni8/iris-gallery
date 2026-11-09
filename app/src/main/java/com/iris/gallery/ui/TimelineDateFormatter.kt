@@ -1,6 +1,5 @@
 package com.iris.gallery.ui
 
-import android.os.Build
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
 import androidx.compose.ui.platform.LocalConfiguration
@@ -13,12 +12,8 @@ import java.util.Locale
 fun rememberAppLocale(): Locale {
     val configuration = LocalConfiguration.current
     return remember(configuration) {
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
-            configuration.locales[0]
-        } else {
-            @Suppress("DEPRECATION")
-            configuration.locale
-        } ?: Locale.getDefault()
+        configuration.locales[0]
+            ?: Locale.getDefault()
     }
 }
 
@@ -26,7 +21,7 @@ fun stripYearFromPattern(pattern: String): String {
     return runCatching {
         pattern
             .replace(Regex("[,/.\\-]?\\s*y+\\s*[,/.\\-]?"), "")
-            .replace(Regex("^[,/.\\-]\\s*|\\s*[,/.\\-]\$"), "")
+            .replace(Regex("^[,/.\\-]\\s*|\\s*[,/.\\-]$"), "")
             .replace(Regex("\\s+"), " ")
             .trim()
     }.getOrDefault(pattern)
@@ -150,8 +145,8 @@ fun formatTimelineDate(
         if (date == today.minusDays(1)) return yesterdayString
     }
     return runCatching {
-        date.format(if (smartYearHiding && date.year == today.year) sameYearFormatter else otherYearFormatter)
+        date.format(if (smartYearHiding && (date.year == today.year)) sameYearFormatter else otherYearFormatter)
     }.getOrElse {
-        date.format(DateTimeFormatter.ofPattern(if (smartYearHiding && date.year == today.year) "MMMM d" else "MMMM d, yyyy", Locale.getDefault()))
+        date.format(DateTimeFormatter.ofPattern(if (smartYearHiding && (date.year == today.year)) "MMMM d" else "MMMM d, yyyy", Locale.getDefault()))
     }
 }

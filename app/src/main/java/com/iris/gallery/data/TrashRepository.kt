@@ -80,25 +80,20 @@ class TrashRepository(private val context: Context) {
     }
 
     fun hasAllFilesAccess(): Boolean {
-        return if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
-            Environment.isExternalStorageManager()
-        } else {
-            true
-        }
+        return (Build.VERSION.SDK_INT < Build.VERSION_CODES.R) || Environment.isExternalStorageManager()
     }
 
     fun autoPurgeOldItems(): Int = synchronized(indexLock) {
         val items = readIndex().toMutableList()
         val now = System.currentTimeMillis()
         var purgedCount = 0
-        val iterator = items.iterator()
-        while (iterator.hasNext()) {
-            val item = iterator.next()
-            if (now - item.dateTrashed > TRASH_RETENTION_MS) {
-                val file = File(trashDir, item.trashFileName)
-                runCatching { file.delete() }
-                iterator.remove()
+        items.removeAll { item ->
+            if ((now - item.dateTrashed) > TRASH_RETENTION_MS) {
+                runCatching { File(trashDir, item.trashFileName).delete() }
                 purgedCount++
+                true
+            } else {
+                false
             }
         }
         if (purgedCount > 0) {
@@ -147,8 +142,8 @@ class TrashRepository(private val context: Context) {
         if (item.path.isNotBlank()) {
             val file = File(item.path)
             if (file.exists()) {
-                val fDel = runCatching { file.delete() }.getOrDefault(false)
-                val cDel = if (!fDel && file.exists()) runCatching { file.canonicalFile.delete() }.getOrDefault(false) else false
+                val fDel = runCatching { file.delete() }.getOrDefault(defaultValue = false)
+                val cDel = !fDel && file.exists() && runCatching { file.canonicalFile.delete() }.getOrDefault(defaultValue = false)
                 deleted = fDel || cDel
             }
         }
@@ -218,7 +213,7 @@ class TrashRepository(private val context: Context) {
 
         for (item in mediaList) {
             val uniqueId = generateUniqueId(currentItems)
-            val cleanName = sanitizeFileName(item.name.ifBlank { "media_${uniqueId}" })
+            val cleanName = sanitizeFileName(item.name.ifBlank { "media_$uniqueId" })
             val trashFileName = "${uniqueId}_${cleanName}"
             val targetFile = File(trashDir, trashFileName)
 
@@ -231,7 +226,7 @@ class TrashRepository(private val context: Context) {
                     // A truncated copy is worse than no copy: the original is only
                     // deleted after this check passes.
                     targetFile.exists() && targetFile.length() > 0 && targetFile.length() == srcFile.length()
-                }.getOrDefault(false)
+                }.getOrDefault(defaultValue = false)
             }
 
             if (!copied) {
@@ -328,7 +323,7 @@ class TrashRepository(private val context: Context) {
 
     suspend fun rollbackTrash(trashedItems: List<MediaImage>) = indexLocked {
         val currentItems = readIndex().toMutableList()
-        val idsToRemove = trashedItems.map { abs(it.id) }.toSet()
+        val idsToRemove = trashedItems.asSequence().map { abs(it.id) }.toSet()
 
         currentItems.removeAll { item ->
             if (item.id in idsToRemove) {
@@ -346,7 +341,7 @@ class TrashRepository(private val context: Context) {
     suspend fun restoreFromTrash(mediaList: List<MediaImage>): List<MediaImage> = indexLocked {
         val currentItems = readIndex().toMutableList()
         val restoredList = mutableListOf<MediaImage>()
-        val idsToRemove = mediaList.map { abs(it.id) }.toSet()
+        val idsToRemove = mediaList.asSequence().map { abs(it.id) }.toSet()
 
         val itemsToRestore = currentItems.filter { it.id in idsToRemove }
         for (item in itemsToRestore) {
@@ -380,7 +375,7 @@ class TrashRepository(private val context: Context) {
                         description = item.description,
                         dateModified = item.dateModified,
                         dateAdded = item.dateAdded,
-                    )
+                    ),
                 )
             }
         }
@@ -395,7 +390,6 @@ class TrashRepository(private val context: Context) {
         val idsToRemove = mediaList.map { abs(it.id) }.toSet()
         val pathsToRemove = mediaList.map { it.path }.toSet()
         val fileNamesToRemove = mediaList.map { File(it.path).name }.toSet()
-        val hasManagerAccess = hasAllFilesAccess()
 
         currentItems.removeAll { item ->
             if (item.id in idsToRemove || item.originalPath in pathsToRemove || item.trashFileName in fileNamesToRemove) {
@@ -412,16 +406,6 @@ class TrashRepository(private val context: Context) {
             deleteFromStorage(media)
         }
 
-        loadTrashItems()
-    }
-
-    suspend fun emptyTrash() = indexLocked {
-        trashDir.listFiles()?.forEach { file ->
-            if (file.name != ".nomedia") {
-                runCatching { file.delete() }
-            }
-        }
-        writeIndex(emptyList())
         loadTrashItems()
     }
 
@@ -455,10 +439,10 @@ class TrashRepository(private val context: Context) {
                     context,
                     arrayOf(destFile.absolutePath),
                     arrayOf(item.mimeType.ifBlank { null }),
-                    null
+                    null,
                 )
                 TrashRestoreTarget(Uri.fromFile(destFile), destFile.absolutePath)
-            } else if (Build.VERSION.SDK_INT >= 29) {
+            } else {
                 val relativePath = computeRelativePath(item.originalPath, item.isVideo)
                 val values = ContentValues().apply {
                     put(MediaStore.MediaColumns.DISPLAY_NAME, item.originalName)
@@ -509,31 +493,8 @@ class TrashRepository(private val context: Context) {
                     return null
                 }
                 TrashRestoreTarget(newUri, mediaStorePath(newUri).ifBlank { pendingPath })
-            } else {
-                @Suppress("DEPRECATION")
-                val publicDir = if (item.originalPath.isNotBlank()) {
-                    File(item.originalPath).parentFile ?: Environment.getExternalStoragePublicDirectory(
-                        if (item.isVideo) Environment.DIRECTORY_MOVIES else Environment.DIRECTORY_PICTURES
-                    ).resolve("Iris")
-                } else {
-                    Environment.getExternalStoragePublicDirectory(
-                        if (item.isVideo) Environment.DIRECTORY_MOVIES else Environment.DIRECTORY_PICTURES
-                    ).resolve("Iris")
-                }.apply { mkdirs() }
-                val destFile = uniqueDestinationFile(publicDir, item.originalName)
-                trashFile.copyTo(destFile, overwrite = false)
-                if (effectiveModMs > 0L) {
-                    destFile.setLastModified(effectiveModMs)
-                }
-                MediaScannerConnection.scanFile(
-                    context,
-                    arrayOf(destFile.absolutePath),
-                    arrayOf(item.mimeType.ifBlank { null }),
-                    null
-                )
-                TrashRestoreTarget(Uri.fromFile(destFile), destFile.absolutePath)
             }
-        } catch (e: Exception) {
+        } catch (_: Exception) {
             null
         }
     }
@@ -676,34 +637,34 @@ class TrashRepository(private val context: Context) {
         var stream: FileOutputStream? = null
         try {
             val array = JSONArray()
-            for (item in items) {
+            for ((id, trashFileName, originalName, originalPath, originalBucketName, originalBucketId, dateTaken, dateTrashed, width, height, isVideo, durationMs, mimeType, sizeBytes, orientation, title, description, dateModified, dateAdded) in items) {
                 val obj = JSONObject().apply {
-                    put("id", item.id)
-                    put("trashFileName", item.trashFileName)
-                    put("originalName", item.originalName)
-                    put("originalPath", item.originalPath)
-                    put("originalBucketName", item.originalBucketName)
-                    put("originalBucketId", item.originalBucketId)
-                    put("dateTaken", item.dateTaken)
-                    put("dateTrashed", item.dateTrashed)
-                    put("width", item.width)
-                    put("height", item.height)
-                    put("isVideo", item.isVideo)
-                    put("durationMs", item.durationMs)
-                    put("mimeType", item.mimeType)
-                    put("sizeBytes", item.sizeBytes)
-                    put("orientation", item.orientation)
-                    put("title", item.title)
-                    put("description", item.description)
-                    put("dateModified", item.dateModified)
-                    put("dateAdded", item.dateAdded)
+                    put("id", id)
+                    put("trashFileName", trashFileName)
+                    put("originalName", originalName)
+                    put("originalPath", originalPath)
+                    put("originalBucketName", originalBucketName)
+                    put("originalBucketId", originalBucketId)
+                    put("dateTaken", dateTaken)
+                    put("dateTrashed", dateTrashed)
+                    put("width", width)
+                    put("height", height)
+                    put("isVideo", isVideo)
+                    put("durationMs", durationMs)
+                    put("mimeType", mimeType)
+                    put("sizeBytes", sizeBytes)
+                    put("orientation", orientation)
+                    put("title", title)
+                    put("description", description)
+                    put("dateModified", dateModified)
+                    put("dateAdded", dateAdded)
                 }
                 array.put(obj)
             }
             stream = indexFile.startWrite()
             stream.write(array.toString(2).toByteArray(Charsets.UTF_8))
             indexFile.finishWrite(stream)
-        } catch (e: Exception) {
+        } catch (_: Exception) {
             indexFile.failWrite(stream)
         }
     }

@@ -1,5 +1,3 @@
-@file:OptIn(androidx.compose.foundation.ExperimentalFoundationApi::class)
-
 package com.iris.gallery.ui
 
 import com.iris.gallery.R
@@ -20,7 +18,6 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.unit.dp
 
 @Composable
 internal fun RenameFileDialog(
@@ -42,7 +39,7 @@ internal fun RenameFileDialog(
                     label = { Text(stringResource(R.string.rename_file_hint)) },
                     singleLine = true,
                     modifier = Modifier.fillMaxWidth(),
-                    suffix = if (ext.isNotEmpty()) { { Text(".$ext", color = MaterialTheme.colorScheme.outline) } } else null
+                    suffix = if (ext.isNotEmpty()) { { Text(".$ext", color = MaterialTheme.colorScheme.outline) } } else null,
                 )
             }
         },
@@ -53,7 +50,7 @@ internal fun RenameFileDialog(
                     onConfirm(finalName)
                     onDismiss()
                 },
-                enabled = newName.isNotBlank() && newName.trim() != nameWithoutExt
+                enabled = newName.isNotBlank() && (newName.trim() != nameWithoutExt),
             ) {
                 Text(stringResource(R.string.action_rename))
             }
@@ -62,6 +59,6 @@ internal fun RenameFileDialog(
             TextButton(onClick = onDismiss) {
                 Text(stringResource(R.string.action_cancel))
             }
-        }
+        },
     )
 }

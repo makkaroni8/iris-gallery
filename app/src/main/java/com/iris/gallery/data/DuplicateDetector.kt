@@ -1,19 +1,21 @@
 package com.iris.gallery.data
 
 import android.content.Context
-import android.graphics.Bitmap
+import android.graphics.BitmapFactory
+import android.os.Build
 import android.util.Size
+import androidx.core.graphics.get
+import androidx.core.graphics.scale
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ensureActive
 import kotlinx.coroutines.withContext
 import java.security.MessageDigest
-import kotlin.coroutines.coroutineContext
 
 data class DuplicateGroup(
     val items: List<MediaImage>,
     val exact: Boolean,
 ) {
-    val reclaimableBytes: Long get() = items.drop(1).sumOf { it.sizeBytes }
+    val reclaimableBytes: Long get() = items.asSequence().drop(1).sumOf(MediaImage::sizeBytes)
 }
 
 class DuplicateDetector(private val context: Context) {
@@ -21,20 +23,20 @@ class DuplicateDetector(private val context: Context) {
         media: List<MediaImage>,
         onProgress: (done: Int, total: Int) -> Unit,
     ): List<DuplicateGroup> = withContext(Dispatchers.IO) {
-        val photos = media.filter { !it.isVideo && it.sizeBytes > 0 }
+        val photos = media.filter { !it.isVideo && (it.sizeBytes > 0) }
         val exactGroups = mutableListOf<DuplicateGroup>()
         val exactIds = mutableSetOf<Long>()
 
         // Hash only plausible exact candidates. This avoids reading every original.
-        photos.groupBy { Triple(it.sizeBytes, it.width, it.height) }.values
+        photos.groupBy { (_, _, _, _, w, h, _, _, _, _, _, _, size) -> Triple(size, w, h) }.values
             .filter { it.size > 1 }
             .forEach { candidates ->
                 candidates.mapNotNull { item -> checksum(item)?.let { it to item } }
-                    .groupBy({ it.first }, { it.second }).values
+                    .groupBy({ (hash) -> hash }) { (_, item) -> item }.values
                     .filter { it.size > 1 }
                     .forEach { group ->
                         exactGroups += DuplicateGroup(group.sortedByDescending { it.dateTaken }, exact = true)
-                        exactIds += group.map { it.id }
+                        exactIds += group.map { (id) -> id }
                     }
             }
 
@@ -67,11 +69,13 @@ class DuplicateDetector(private val context: Context) {
                 bands[key]?.let(candidates::addAll)
             }
             for (j in candidates) {
-                val a = fingerprints[i].first
-                val b = fingerprints[j].first
-                val sameShape = kotlin.math.abs(a.width.toFloat() / a.height.coerceAtLeast(1) -
-                    b.width.toFloat() / b.height.coerceAtLeast(1)) < 0.035f
-                if (sameShape && java.lang.Long.bitCount(fingerprints[i].second xor fingerprints[j].second) <= 5) {
+                val (a, hashA) = fingerprints[i]
+                val (b, hashB) = fingerprints[j]
+                val sameShape = kotlin.math.abs(
+                    (a.width.toFloat() / a.height.coerceAtLeast(1)) -
+                        (b.width.toFloat() / b.height.coerceAtLeast(1)),
+                ) < 0.035f
+                if (sameShape && (java.lang.Long.bitCount(hashA xor hashB) <= 5)) {
                     union(i, j)
                 }
             }
@@ -84,11 +88,18 @@ class DuplicateDetector(private val context: Context) {
             }
         }
         val similarGroups = fingerprints.indices.groupBy { root(it) }.values
+            .asSequence()
             .filter { it.size > 1 }
             .map { indexes ->
-                DuplicateGroup(indexes.map { fingerprints[it].first }
-                    .sortedWith(compareByDescending<MediaImage> { it.width.toLong() * it.height }.thenByDescending { it.dateTaken }), exact = false)
+                DuplicateGroup(
+                    indexes.asSequence()
+                        .map { idx -> fingerprints[idx].first }
+                        .sortedWith(compareByDescending<MediaImage> { (_, _, _, _, w, h) -> (w.toLong() * h) }.thenByDescending(MediaImage::dateTaken))
+                        .toList(),
+                    exact = false,
+                )
             }
+            .toList()
         (exactGroups + similarGroups).sortedByDescending { it.reclaimableBytes }
     }
 
@@ -106,15 +117,21 @@ class DuplicateDetector(private val context: Context) {
     }.getOrNull()
 
     private fun fingerprint(item: MediaImage): Long? = runCatching {
-        val bitmap = context.contentResolver.loadThumbnail(item.uri, Size(9, 8), null)
-        val scaled = if (bitmap.width == 9 && bitmap.height == 8) bitmap
-            else Bitmap.createScaledBitmap(bitmap, 9, 8, true)
+        val bitmap = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+            context.contentResolver.loadThumbnail(item.uri, Size(9, 8), null)
+        } else {
+            context.contentResolver.openInputStream(item.uri)?.use { stream ->
+                BitmapFactory.decodeStream(stream)
+            } ?: return@runCatching null
+        }
+        val scaled = if ((bitmap.width == 9) && (bitmap.height == 8)) bitmap
+            else bitmap.scale(9, 8)
         var hash = 0L
         var bit = 0
         for (y in 0 until 8) for (x in 0 until 8) {
-            val left = scaled.getPixel(x, y)
-            val right = scaled.getPixel(x + 1, y)
-            fun luma(c: Int) = ((c shr 16 and 255) * 299 + (c shr 8 and 255) * 587 + (c and 255) * 114)
+            val left = scaled[x, y]
+            val right = scaled[x + 1, y]
+            fun luma(c: Int) = (((c shr 16 and 255) * 299) + ((c shr 8 and 255) * 587) + ((c and 255) * 114))
             if (luma(left) > luma(right)) hash = hash or (1L shl bit)
             bit++
         }

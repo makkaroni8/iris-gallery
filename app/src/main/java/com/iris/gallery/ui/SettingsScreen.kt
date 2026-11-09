@@ -8,8 +8,6 @@ import android.widget.Toast
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.horizontalScroll
-import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -62,7 +60,6 @@ import androidx.compose.material.icons.outlined.Security
 import androidx.compose.material.icons.outlined.Share
 import androidx.compose.material.icons.outlined.ViewDay
 import androidx.compose.material3.AlertDialog
-import androidx.compose.material3.AssistChip
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
@@ -73,7 +70,6 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
-import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.RadioButton
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Slider
@@ -108,9 +104,9 @@ import androidx.compose.material.icons.outlined.PlayArrow
 import androidx.compose.material.icons.outlined.Videocam
 import androidx.compose.material.icons.outlined.WbSunny
 import androidx.compose.ui.graphics.Brush
-import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.platform.LocalWindowInfo
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
@@ -130,11 +126,9 @@ import com.iris.gallery.data.StartupTab
 import com.iris.gallery.data.SUPPORTED_LANGUAGES
 import com.iris.gallery.data.ThemeMode
 import com.iris.gallery.data.TimelineDateFormat
-import com.iris.gallery.data.ViewerHeaderStyle
 import com.iris.gallery.data.getSystemDefaultLocale
-import com.iris.gallery.ui.LanguageSelectionBottomSheet
-import com.iris.gallery.ui.setAppLanguage
 import kotlin.math.roundToInt
+import androidx.core.net.toUri
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -148,30 +142,30 @@ fun SettingsScreen(
     onAddExcludedFolder: (String) -> Unit = {},
     onOpenAbout: () -> Unit = {},
     onRescanMedia: () -> Unit = {},
-    onBack: () -> Unit
+    onBack: () -> Unit,
 ) {
     val context = LocalContext.current
-    var showResetDialog by remember { mutableStateOf(false) }
-    var showSetPinDialog by remember { mutableStateOf(false) }
-    var showChangePinDialog by remember { mutableStateOf(false) }
-    var showDisablePinDialog by remember { mutableStateOf(false) }
-    var showLanguageDialog by remember { mutableStateOf(false) }
-    var showDateFormatDialog by remember { mutableStateOf(false) }
-    var showViewerHeaderDialog by remember { mutableStateOf(false) }
-    var showTimePickerDialog by remember { mutableStateOf(false) }
-    var showExcludedFoldersDialog by remember { mutableStateOf(false) }
-    var showSecureSharingDialog by remember { mutableStateOf(false) }
+    var showResetDialog by remember { mutableStateOf(value = false) }
+    var showSetPinDialog by remember { mutableStateOf(value = false) }
+    var showChangePinDialog by remember { mutableStateOf(value = false) }
+    var showDisablePinDialog by remember { mutableStateOf(value = false) }
+    var showLanguageDialog by remember { mutableStateOf(value = false) }
+    var showDateFormatDialog by remember { mutableStateOf(value = false) }
+    var showViewerHeaderDialog by remember { mutableStateOf(value = false) }
+    var showTimePickerDialog by remember { mutableStateOf(value = false) }
+    var showExcludedFoldersDialog by remember { mutableStateOf(value = false) }
+    var showSecureSharingDialog by remember { mutableStateOf(value = false) }
 
     fun clearCache() {
         runCatching {
             context.cacheDir.deleteRecursively()
             context.externalCacheDir?.deleteRecursively()
         }
-        Toast.makeText(context, context.getString(R.string.toast_cache_cleared), Toast.LENGTH_SHORT).show()
+        Toast.makeText(context, context.applicationContext.getString(R.string.toast_cache_cleared), Toast.LENGTH_SHORT).show()
     }
 
-    val currentLang = remember(settings.language) {
-        SUPPORTED_LANGUAGES.firstOrNull { it.code == settings.language }
+    val (currentLangCode, _, currentLangNativeName, currentLangFlag) = remember(settings.language) {
+        SUPPORTED_LANGUAGES.firstOrNull { (code) -> code == settings.language }
             ?: SUPPORTED_LANGUAGES.first()
     }
 
@@ -184,16 +178,16 @@ fun SettingsScreen(
                         Icon(Icons.AutoMirrored.Outlined.ArrowBack, stringResource(R.string.action_back))
                     }
                 },
-                colors = TopAppBarDefaults.topAppBarColors(containerColor = MaterialTheme.colorScheme.surface)
+                colors = TopAppBarDefaults.topAppBarColors(containerColor = MaterialTheme.colorScheme.surface),
             )
-        }
+        },
     ) { scaffoldPadding ->
         LazyColumn(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(scaffoldPadding),
             contentPadding = PaddingValues(horizontal = 16.dp, vertical = 16.dp),
-            verticalArrangement = Arrangement.spacedBy(16.dp)
+            verticalArrangement = Arrangement.spacedBy(16.dp),
         ) {
         // Section: Language & Region
         item {
@@ -223,11 +217,11 @@ fun SettingsScreen(
                             style = MaterialTheme.typography.bodyMedium,
                             fontWeight = FontWeight.SemiBold
                         )
-                        val langLabel = if (currentLang.code.isEmpty()) {
+                        val langLabel = if (currentLangCode.isEmpty()) {
                             val sysLocale = getSystemDefaultLocale(context)
-                            "${currentLang.flag} ${stringResource(R.string.settings_language_system_default)} (${sysLocale.getDisplayLanguage(sysLocale).replaceFirstChar { it.uppercase() }})"
+                            "$currentLangFlag ${stringResource(R.string.settings_language_system_default)} (${sysLocale.getDisplayLanguage(sysLocale).replaceFirstChar { it.uppercase() }})"
                         } else {
-                            "${currentLang.flag} ${currentLang.nativeName}"
+                            "$currentLangFlag $currentLangNativeName"
                         }
                         Text(
                             text = langLabel,
@@ -263,7 +257,7 @@ fun SettingsScreen(
                         modifier = Modifier.fillMaxWidth(),
                         horizontalArrangement = Arrangement.spacedBy(8.dp)
                     ) {
-                        ThemeMode.values().forEach { mode ->
+                        ThemeMode.entries.forEach { mode ->
                             FilterChip(
                                 modifier = Modifier.weight(1f),
                                 selected = settings.themeMode == mode,
@@ -289,8 +283,7 @@ fun SettingsScreen(
                         title = stringResource(R.string.settings_amoled_black_title),
                         subtitle = stringResource(R.string.settings_amoled_black_desc),
                         checked = settings.amoledBlack,
-                        onCheckedChange = { preferences.setAmoledBlack(it) }
-                    )
+                    ) { preferences.setAmoledBlack(it) }
 
                     HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.4f))
 
@@ -300,10 +293,9 @@ fun SettingsScreen(
                             title = stringResource(R.string.settings_material_you_title),
                             subtitle = stringResource(R.string.settings_material_you_desc),
                             checked = settings.accentColor == AccentColor.MATERIAL_YOU,
-                            onCheckedChange = { isChecked ->
-                                preferences.setAccentColor(if (isChecked) AccentColor.MATERIAL_YOU else AccentColor.IRIS)
-                            }
-                        )
+                        ) { isChecked ->
+                            preferences.setAccentColor(if (isChecked) AccentColor.MATERIAL_YOU else AccentColor.IRIS)
+                        }
 
                         HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.4f))
                     }
@@ -403,7 +395,7 @@ fun SettingsScreen(
                         modifier = Modifier.fillMaxWidth(),
                         horizontalArrangement = Arrangement.spacedBy(8.dp)
                     ) {
-                        GridSpacing.values().forEach { spacing ->
+                        GridSpacing.entries.forEach { spacing ->
                             FilterChip(
                                 modifier = Modifier.weight(1f),
                                 selected = settings.gridSpacing == spacing,
@@ -425,26 +417,28 @@ fun SettingsScreen(
 
                     HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.4f))
 
-                    val screenWidthDp = LocalConfiguration.current.screenWidthDp.toFloat()
                     val density = LocalDensity.current
+                    val screenWidthDp = with(density) {
+                        LocalWindowInfo.current.containerSize.width.toDp().value
+                    }
                     val photoSpacingDp = settings.gridSpacing.dp.toFloat()
-                    val photoAvailableWidth = (screenWidthDp - 2 * photoSpacingDp).coerceAtLeast(100f)
+                    val photoAvailableWidth = (screenWidthDp - (2 * photoSpacingDp)).coerceAtLeast(100f)
 
                     // Dynamic slider boundaries for Photos
-                    val minPhotoDp = maxOf(36f, ((photoAvailableWidth + photoSpacingDp) / 6.8f - photoSpacingDp).coerceAtLeast(36f))
+                    val minPhotoDp = maxOf(36f, (((photoAvailableWidth + photoSpacingDp) / 6.8f) - photoSpacingDp).coerceAtLeast(36f))
                     val maxPhotoDp = (photoAvailableWidth * 0.72f).coerceIn(160f, 320f)
                     val currentPhotoSize = settings.photoGridSize.coerceIn(minPhotoDp, maxPhotoDp)
                     val photoColumns = GridCalculations.calculatePhotoColumns(
                         screenWidthDp = screenWidthDp,
                         cellSizeDp = currentPhotoSize,
                         gridSpacingDp = photoSpacingDp,
-                        density = density
+                        density = density,
                     )
 
                     // Dynamic slider boundaries for Albums
                     val albumSpacingDp = (settings.gridSpacing.dp + 8).toFloat()
                     val albumPaddingDp = 12f
-                    val albumAvailableWidth = (screenWidthDp - 2 * albumPaddingDp).coerceAtLeast(100f)
+                    val albumAvailableWidth = (screenWidthDp - (2 * albumPaddingDp)).coerceAtLeast(100f)
                     val minAlbumDp = maxOf(48f, ((albumAvailableWidth + albumSpacingDp) / 4.8f - albumSpacingDp).coerceAtLeast(48f))
                     val maxAlbumDp = (albumAvailableWidth * 0.85f).coerceIn(200f, 420f)
                     val currentAlbumSize = settings.albumGridSize.coerceIn(minAlbumDp, maxAlbumDp)
@@ -452,7 +446,7 @@ fun SettingsScreen(
                         screenWidthDp = screenWidthDp,
                         cellSizeDp = currentAlbumSize,
                         gridSpacingDp = settings.gridSpacing.dp.toFloat(),
-                        density = density
+                        density = density,
                     )
 
                     val colorScheme = MaterialTheme.colorScheme
@@ -554,43 +548,51 @@ fun SettingsScreen(
                                                         }
                                                     ),
                                                 )
-                                                if (index == 0 && settings.showVideoDurationBadge) {
-                                                    Surface(
-                                                        color = Color.Black.copy(alpha = 0.65f),
-                                                        shape = RoundedCornerShape(3.dp),
-                                                        modifier = Modifier.align(Alignment.BottomStart).padding(if (photoColumns <= 2) 4.dp else 2.dp),
-                                                    ) {
-                                                        Row(
-                                                            verticalAlignment = Alignment.CenterVertically,
-                                                            modifier = Modifier.padding(horizontal = 3.dp, vertical = 1.dp),
-                                                        ) {
-                                                            Icon(
-                                                                Icons.Outlined.PlayArrow,
-                                                                contentDescription = null,
-                                                                tint = Color.White,
-                                                                modifier = Modifier.size(if (photoColumns <= 2) 10.dp else 6.5.dp),
-                                                            )
-                                                            Text("0:24", color = Color.White, fontSize = if (photoColumns <= 2) 9.sp else 6.5.sp, fontWeight = FontWeight.Bold)
+                                                when (index) {
+                                                    0 -> {
+                                                        if (settings.showVideoDurationBadge) {
+                                                            Surface(
+                                                                color = Color.Black.copy(alpha = 0.65f),
+                                                                shape = RoundedCornerShape(3.dp),
+                                                                modifier = Modifier.align(Alignment.BottomStart).padding(if (photoColumns <= 2) 4.dp else 2.dp),
+                                                            ) {
+                                                                Row(
+                                                                    verticalAlignment = Alignment.CenterVertically,
+                                                                    modifier = Modifier.padding(horizontal = 3.dp, vertical = 1.dp),
+                                                                ) {
+                                                                    Icon(
+                                                                        Icons.Outlined.PlayArrow,
+                                                                        contentDescription = null,
+                                                                        tint = Color.White,
+                                                                        modifier = Modifier.size(if (photoColumns <= 2) 10.dp else 6.5.dp),
+                                                                    )
+                                                                    Text("0:24", color = Color.White, fontSize = if (photoColumns <= 2) 9.sp else 6.5.sp, fontWeight = FontWeight.Bold)
+                                                                }
+                                                            }
                                                         }
                                                     }
-                                                } else if (index == 1 && settings.showMediaFormatBadge) {
-                                                    Surface(
-                                                        color = Color.Black.copy(alpha = 0.65f),
-                                                        shape = RoundedCornerShape(3.dp),
-                                                        modifier = Modifier.align(Alignment.BottomStart).padding(if (photoColumns <= 2) 4.dp else 2.dp),
-                                                    ) {
-                                                        Text("RAW", color = Color.White, fontSize = if (photoColumns <= 2) 9.sp else 6.5.sp, fontWeight = FontWeight.Bold, modifier = Modifier.padding(horizontal = 3.dp, vertical = 1.dp))
+                                                    1 -> {
+                                                        if (settings.showMediaFormatBadge) {
+                                                            Surface(
+                                                                color = Color.Black.copy(alpha = 0.65f),
+                                                                shape = RoundedCornerShape(3.dp),
+                                                                modifier = Modifier.align(Alignment.BottomStart).padding(if (photoColumns <= 2) 4.dp else 2.dp),
+                                                            ) {
+                                                                Text("RAW", color = Color.White, fontSize = if (photoColumns <= 2) 9.sp else 6.5.sp, fontWeight = FontWeight.Bold, modifier = Modifier.padding(horizontal = 3.dp, vertical = 1.dp))
+                                                            }
+                                                        }
                                                     }
-                                                } else if (index == 2) {
-                                                    Icon(
-                                                        Icons.Filled.Favorite,
-                                                        contentDescription = null,
-                                                        tint = tint.copy(alpha = 0.9f),
-                                                        modifier = Modifier
-                                                            .align(Alignment.TopEnd)
-                                                            .padding(if (photoColumns <= 2) 5.dp else 2.5.dp)
-                                                            .size(if (photoColumns <= 2) 14.dp else 8.dp),
-                                                    )
+                                                    2 -> {
+                                                        Icon(
+                                                            Icons.Filled.Favorite,
+                                                            contentDescription = null,
+                                                            tint = tint.copy(alpha = 0.9f),
+                                                            modifier = Modifier
+                                                                .align(Alignment.TopEnd)
+                                                                .padding(if (photoColumns <= 2) 5.dp else 2.5.dp)
+                                                                .size(if (photoColumns <= 2) 14.dp else 8.dp),
+                                                        )
+                                                    }
                                                 }
                                             }
                                         }
@@ -620,7 +622,7 @@ fun SettingsScreen(
                                     },
                                     label = {
                                         Text(
-                                            "$targetCols",
+                                            targetCols.toString(),
                                             modifier = Modifier.fillMaxWidth(),
                                             textAlign = TextAlign.Center,
                                             fontSize = 12.sp,
@@ -745,7 +747,7 @@ fun SettingsScreen(
                                     },
                                     label = {
                                         Text(
-                                            "$targetCols",
+                                            targetCols.toString(),
                                             modifier = Modifier.fillMaxWidth(),
                                             textAlign = TextAlign.Center,
                                             fontSize = 12.sp,
@@ -802,8 +804,7 @@ fun SettingsScreen(
                         title = stringResource(R.string.settings_show_timeline_title),
                         subtitle = stringResource(R.string.settings_show_timeline_desc),
                         checked = settings.showTimelineHeaders,
-                        onCheckedChange = { preferences.setShowTimelineHeaders(it) }
-                    )
+                    ) { preferences.setShowTimelineHeaders(it) }
 
                     AnimatedVisibility(
                         visible = settings.showTimelineHeaders,
@@ -1308,7 +1309,7 @@ fun SettingsScreen(
                         onCheckedChange = { isChecked ->
                             if (isChecked) {
                                 if (settings.hasPin) {
-                                    preferences.setAppLockEnabled(true)
+                                    preferences.setAppLockEnabled(enabled = true)
                                 } else {
                                     showSetPinDialog = true
                                 }
@@ -1316,7 +1317,7 @@ fun SettingsScreen(
                                 if (settings.hasPin) {
                                     showDisablePinDialog = true
                                 } else {
-                                    preferences.setAppLockEnabled(false)
+                                    preferences.setAppLockEnabled(enabled = false)
                                 }
                             }
                         }
@@ -1391,7 +1392,7 @@ fun SettingsScreen(
                                 Button(
                                     onClick = {
                                         val intent = Intent(android.provider.Settings.ACTION_MANAGE_APP_ALL_FILES_ACCESS_PERMISSION).apply {
-                                            data = Uri.parse("package:${context.packageName}")
+                                            data = "package:${context.packageName}".toUri()
                                         }
                                         runCatching { context.startActivity(intent) }
                                             .onFailure {
@@ -1676,7 +1677,7 @@ fun SettingsScreen(
             onPinConfirmed = { pin ->
                 preferences.setPin(pin)
                 showSetPinDialog = false
-                Toast.makeText(context, context.getString(R.string.toast_pin_enabled), Toast.LENGTH_SHORT).show()
+                Toast.makeText(context, context.applicationContext.getString(R.string.toast_pin_enabled), Toast.LENGTH_SHORT).show()
             }
         )
     }
@@ -1688,7 +1689,7 @@ fun SettingsScreen(
             onNewPinConfirmed = { pin ->
                 preferences.setPin(pin)
                 showChangePinDialog = false
-                Toast.makeText(context, context.getString(R.string.toast_pin_changed), Toast.LENGTH_SHORT).show()
+                Toast.makeText(context, context.applicationContext.getString(R.string.toast_pin_changed), Toast.LENGTH_SHORT).show()
             }
         )
     }
@@ -1700,7 +1701,7 @@ fun SettingsScreen(
             onSuccess = {
                 preferences.removePin()
                 showDisablePinDialog = false
-                Toast.makeText(context, context.getString(R.string.toast_pin_disabled), Toast.LENGTH_SHORT).show()
+                Toast.makeText(context, context.applicationContext.getString(R.string.toast_pin_disabled), Toast.LENGTH_SHORT).show()
             }
         )
     }
@@ -1715,7 +1716,7 @@ fun SettingsScreen(
                     onClick = {
                         preferences.resetToDefaults()
                         showResetDialog = false
-                        Toast.makeText(context, context.getString(R.string.toast_settings_reset), Toast.LENGTH_SHORT).show()
+                        Toast.makeText(context, context.applicationContext.getString(R.string.toast_settings_reset), Toast.LENGTH_SHORT).show()
                     }
                 ) {
                     Text(stringResource(R.string.settings_reset_confirm))
@@ -1782,16 +1783,18 @@ fun SettingsScreen(
         AlertDialog(
             onDismissRequest = { showTimePickerDialog = false },
             confirmButton = {
-                TextButton(onClick = {
-                    preferences.setMemoriesNotificationTime(timePickerState.hour, timePickerState.minute)
-                    com.iris.gallery.MemoriesNotifications.schedule(
-                        context = context,
-                        enabled = settings.memoriesNotificationEnabled,
-                        hour = timePickerState.hour,
-                        minute = timePickerState.minute
-                    )
-                    showTimePickerDialog = false
-                }) {
+                TextButton(
+                    onClick = {
+                        preferences.setMemoriesNotificationTime(timePickerState.hour, timePickerState.minute)
+                        com.iris.gallery.MemoriesNotifications.schedule(
+                            context = context,
+                            enabled = settings.memoriesNotificationEnabled,
+                            hour = timePickerState.hour,
+                            minute = timePickerState.minute,
+                        )
+                        showTimePickerDialog = false
+                    },
+                ) {
                     Text(stringResource(R.string.action_save))
                 }
             },
@@ -1832,7 +1835,7 @@ fun SettingsScreen(
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                         modifier = Modifier.padding(bottom = 4.dp)
                     )
-                    SecureSharingMode.values().forEach { mode ->
+                    SecureSharingMode.entries.forEach { mode ->
                         val isSelected = settings.secureSharingMode == mode
                         val modeIcon = when (mode) {
                             SecureSharingMode.OFF -> Icons.Outlined.Share
@@ -1960,7 +1963,7 @@ fun ExcludedFoldersDialog(
     ) { uri: Uri? ->
         if (uri != null) {
             val resolved = getPathFromTreeUri(uri)
-            if (resolved != null && resolved.isNotBlank()) {
+            if (!resolved.isNullOrBlank()) {
                 val clean = resolved.trimEnd('/')
                 if (clean in excludedFolders) {
                     Toast.makeText(context, R.string.dialog_folder_already_excluded, Toast.LENGTH_SHORT).show()
@@ -1993,10 +1996,12 @@ fun ExcludedFoldersDialog(
                                 Text(folderPath.substringAfterLast('/'), style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.SemiBold)
                                 Text(folderPath, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant, maxLines = 1, overflow = TextOverflow.Ellipsis)
                             }
-                            IconButton(onClick = {
-                                onRemoveExcludedFolder(folderPath)
-                                Toast.makeText(context, R.string.toast_folder_unexcluded, Toast.LENGTH_SHORT).show()
-                            }) {
+                            IconButton(
+                                onClick = {
+                                    onRemoveExcludedFolder(folderPath)
+                                    Toast.makeText(context, R.string.toast_folder_unexcluded, Toast.LENGTH_SHORT).show()
+                                },
+                            ) {
                                 Icon(Icons.Outlined.DeleteOutline, contentDescription = null, tint = MaterialTheme.colorScheme.error)
                             }
                         }

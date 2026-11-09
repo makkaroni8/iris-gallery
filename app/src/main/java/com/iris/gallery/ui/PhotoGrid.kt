@@ -1,10 +1,7 @@
-@file:OptIn(androidx.compose.foundation.ExperimentalFoundationApi::class)
-
 package com.iris.gallery.ui
 
 import kotlin.math.roundToInt
 import androidx.compose.animation.core.tween
-import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.combinedClickable
@@ -21,7 +18,6 @@ import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
@@ -32,10 +28,8 @@ import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.foundation.lazy.grid.LazyGridState
-import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.CheckCircle
-import androidx.compose.material.icons.outlined.Map
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
@@ -68,34 +62,22 @@ import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.scaleIn
 import androidx.compose.animation.scaleOut
-import androidx.compose.animation.core.tween
-import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.foundation.lazy.grid.GridItemSpan
 import androidx.compose.ui.res.stringResource
 import com.iris.gallery.data.MediaImage
-import com.iris.gallery.ui.MediaThumbnail
 import com.iris.gallery.data.CornerStyle
 import com.iris.gallery.data.GridSpacing
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import com.iris.gallery.data.TimelineDateFormat
-import com.iris.gallery.ui.rememberAppLocale
-import com.iris.gallery.ui.getTimelineFormatter
-import com.iris.gallery.ui.formatTimelineDate
 import com.iris.gallery.R
 import java.time.Instant
 import java.time.LocalDate
 import java.time.ZoneId
-import androidx.compose.ui.unit.dp
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.animation.AnimatedVisibility
-import androidx.compose.animation.fadeIn
-import androidx.compose.animation.fadeOut
-import androidx.compose.animation.core.tween
-import androidx.compose.animation.scaleIn
-import androidx.compose.animation.scaleOut
+import kotlin.time.Duration.Companion.milliseconds
 
-@OptIn(ExperimentalFoundationApi::class)
+@Suppress("Destructure")
 @Composable
 internal fun PhotoGrid(
     images: List<MediaImage>,
@@ -118,7 +100,6 @@ internal fun PhotoGrid(
     selectedIds: Set<Long> = emptySet(),
     favorites: Set<Long> = emptySet(),
     showFavoriteBadge: Boolean = true,
-    onToggleSelection: ((Long) -> Unit)? = null,
     onSetSelection: ((Long, Boolean) -> Unit)? = null,
     onSetDateSelection: ((List<Long>, Boolean) -> Unit)? = null,
     onInvalidMedia: ((MediaImage) -> Unit)? = null,
@@ -161,7 +142,7 @@ internal fun PhotoGrid(
         } }
     }
     val timelineItems = remember(groups, showTimeline) {
-        buildList<MediaImage?> {
+        buildList {
             groups.forEach { group ->
                 if (showTimeline) add(null)
                 addAll(group.value)
@@ -173,15 +154,17 @@ internal fun PhotoGrid(
     val endPadding = padding.calculateEndPadding(layoutDirection)
     val topPadding = padding.calculateTopPadding()
     val bottomPadding = padding.calculateBottomPadding()
-    val screenWidthDp = androidx.compose.ui.platform.LocalConfiguration.current.screenWidthDp.toFloat()
     val density = androidx.compose.ui.platform.LocalDensity.current
+    val screenWidthDp = with(density) {
+        androidx.compose.ui.platform.LocalWindowInfo.current.containerSize.width.toDp().value
+    }
     val actualColumns = remember(screenWidthDp, cellSize, gridSpacing, density, startPadding, endPadding) {
-        com.iris.gallery.ui.GridCalculations.calculatePhotoColumns(
+        GridCalculations.calculatePhotoColumns(
             screenWidthDp = screenWidthDp,
             cellSizeDp = cellSize.value,
             gridSpacingDp = gridSpacing.dp.toFloat(),
             density = density,
-            horizontalPaddingDp = (startPadding + endPadding).value / 2f
+            horizontalPaddingDp = (startPadding + endPadding).value / 2f,
         )
     }
 
@@ -194,13 +177,10 @@ internal fun PhotoGrid(
             val availableWidthPx = (screenWidthDp.dp - startPadding - endPadding - (gridSpacing.dp * 2).dp).roundToPx()
             val cols = actualColumns.coerceAtLeast(1)
             val spacing = (gridSpacing.dp).dp.roundToPx()
-            maxOf(1, (availableWidthPx - spacing * (cols - 1)) / cols)
+            maxOf(1, (availableWidthPx - (spacing * (cols - 1))) / cols)
         }
     }
     val estimatedHeaderHeight = remember(density) { with(density) { 50.dp.roundToPx() } }
-
-    val photoHeight = estimatedPhotoHeight
-    val headerHeight = estimatedHeaderHeight
 
     val rowLayout = remember(groups, showTimeline, actualColumns, timelineItems.size) {
         val cols = actualColumns.coerceAtLeast(1)
@@ -212,7 +192,7 @@ internal fun PhotoGrid(
         var rowIdx = 0
 
         if (showTimeline) {
-            for (group in groups) {
+            for ((_, value) in groups) {
                 if (itemIdx < totalCount) {
                     itemToRow[itemIdx] = rowIdx
                     rowToItem.add(itemIdx)
@@ -220,13 +200,13 @@ internal fun PhotoGrid(
                     itemIdx++
                     rowIdx++
                 }
-                val photoCount = group.value.size
+                val photoCount = value.size
                 var photoInGroup = 0
                 while (photoInGroup < photoCount && itemIdx < totalCount) {
                     rowToItem.add(itemIdx)
                     isRowHeaderList.add(false)
                     val inThisRow = minOf(cols, photoCount - photoInGroup)
-                    for (c in 0 until inThisRow) {
+                    repeat(inThisRow) {
                         if (itemIdx < totalCount) {
                             itemToRow[itemIdx] = rowIdx
                             itemIdx++
@@ -241,7 +221,7 @@ internal fun PhotoGrid(
                 rowToItem.add(itemIdx)
                 isRowHeaderList.add(false)
                 val inThisRow = minOf(cols, totalCount - itemIdx)
-                for (c in 0 until inThisRow) {
+                repeat(inThisRow) {
                     itemToRow[itemIdx] = rowIdx
                     itemIdx++
                 }
@@ -249,7 +229,7 @@ internal fun PhotoGrid(
             }
         }
         val totalRows = maxOf(rowIdx, 1)
-        val isRowHeader = BooleanArray(totalRows) { if (it < isRowHeaderList.size) isRowHeaderList[it] else false }
+        val isRowHeader = BooleanArray(totalRows) { it < isRowHeaderList.size && isRowHeaderList[it] }
         Triple(totalRows, itemToRow, Pair(rowToItem.toIntArray(), isRowHeader))
     }
     val totalRows = rowLayout.first
@@ -257,28 +237,41 @@ internal fun PhotoGrid(
     val rowToItem = rowLayout.third.first
     val isRowHeader = rowLayout.third.second
 
-    val rowOffsets = remember(rowLayout, photoHeight, headerHeight, spacingPx, topPaddingPx) {
+    val rowOffsets = remember(
+        rowLayout,
+        estimatedPhotoHeight,
+        estimatedHeaderHeight,
+        spacingPx,
+        topPaddingPx,
+    ) {
         val offsets = IntArray(totalRows)
         var acc = topPaddingPx
         for (r in 0 until totalRows) {
             offsets[r] = acc
-            val h = if (isRowHeader[r]) headerHeight else photoHeight
+            val h = if (isRowHeader[r]) estimatedHeaderHeight else estimatedPhotoHeight
             acc += h + spacingPx
         }
         offsets
     }
 
-    val totalContentHeight = remember(rowLayout, photoHeight, headerHeight, spacingPx, topPaddingPx, bottomPaddingPx) {
+    val totalContentHeight = remember(
+        rowLayout,
+        estimatedPhotoHeight,
+        estimatedHeaderHeight,
+        spacingPx,
+        topPaddingPx,
+        bottomPaddingPx,
+    ) {
         var acc = topPaddingPx
         for (r in 0 until totalRows) {
-            val h = if (isRowHeader[r]) headerHeight else photoHeight
+            val h = if (isRowHeader[r]) estimatedHeaderHeight else estimatedPhotoHeight
             acc += h + spacingPx
         }
         acc += bottomPaddingPx
         maxOf(acc, 1)
     }
 
-    var scrubberDragging by remember { mutableStateOf(false) }
+    var scrubberDragging by remember { mutableStateOf(value = false) }
     var scrubFraction by remember { mutableFloatStateOf(0f) }
     var scrubTargetIndex by remember(timelineItems) { mutableIntStateOf(0) }
     var scrubThumbIndex by remember(timelineItems) { mutableIntStateOf(0) }
@@ -380,7 +373,7 @@ internal fun PhotoGrid(
                 }
             }
     ) {
-        val targetThumbnailPx = remember(actualColumns) { com.iris.gallery.ui.getThumbnailTargetSizePx(actualColumns) }
+        val targetThumbnailPx = remember(actualColumns) { getThumbnailTargetSizePx(actualColumns) }
         LazyVerticalGrid(
             state = gridState,
             columns = GridCells.Adaptive(cellSize),
@@ -429,7 +422,7 @@ internal fun PhotoGrid(
                                 if (startIndex >= 0 && currIndex >= 0) {
                                     val minIdx = minOf(startIndex, currIndex)
                                     val maxIdx = maxOf(startIndex, currIndex)
-                                    val currentRangeIds = allImages.subList(minIdx, maxIdx + 1).map { it.id }.toSet()
+                                    val currentRangeIds = allImages.subList(minIdx, maxIdx + 1).asSequence().map { it.id }.toSet()
                                     currentRangeIds.forEach { id ->
                                         currentSetSelection?.invoke(id, selecting)
                                     }
@@ -455,7 +448,7 @@ internal fun PhotoGrid(
                         startId = null
                         previousDragIds = emptySet()
                         scrubberScope.launch {
-                            kotlinx.coroutines.delay(250)
+                            delay(250.milliseconds)
                             suppressReleaseClickId = null
                         }
                     },
@@ -593,7 +586,6 @@ internal fun PhotoGrid(
                                     val rowStart = rowOffsets[targetRow]
                                     val remainder = (targetScrollPx - rowStart).coerceAtLeast(0)
                                     val targetIndex = rowToItem[targetRow]
-                                    val offset = remainder
                                     scrubTargetIndex = targetIndex
 
                                     val thumbContentPx = (targetScrollPx + y.coerceIn(0f, size.height.toFloat())).toInt()
@@ -602,12 +594,12 @@ internal fun PhotoGrid(
                                         thumbRow = (-thumbRow - 2).coerceIn(0, totalRows - 1)
                                     }
                                     scrubThumbIndex = rowToItem[thumbRow]
-                                    if (targetIndex != lastTargetIndex || kotlin.math.abs(offset - lastOffset) > 8) {
+                                    if (targetIndex != lastTargetIndex || kotlin.math.abs(remainder - lastOffset) > 8) {
                                         lastTargetIndex = targetIndex
-                                        lastOffset = offset
+                                        lastOffset = remainder
                                         scrubScrollJob?.cancel()
                                         scrubScrollJob = scrubberScope.launch {
-                                            gridState.scrollToItem(targetIndex, offset)
+                                            gridState.scrollToItem(targetIndex, remainder)
                                         }
                                     }
                                 }
@@ -632,9 +624,8 @@ internal fun PhotoGrid(
                                     val rowStart = rowOffsets[targetRow]
                                     val remainder = (targetScrollPx - rowStart).coerceAtLeast(0)
                                     val targetIndex = rowToItem[targetRow]
-                                    val offset = remainder
                                     scrubberScope.launch {
-                                        gridState.scrollToItem(targetIndex, offset)
+                                        gridState.scrollToItem(targetIndex, remainder)
                                     }
                                 }
                             }

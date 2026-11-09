@@ -26,9 +26,11 @@ class IrisApplication : Application(), SingletonImageLoader.Factory {
             .components {
                 add(AvifCoilDecoder.Factory())
                 add(coil3.svg.SvgDecoder.Factory())
-                if (Build.VERSION.SDK_INT >= 28) {
+                if (Build.VERSION.SDK_INT >= 29) {
                     add(AnimatedImageDecoder.Factory())
                     add(StaticImageDecoder.Factory())
+                } else if (Build.VERSION.SDK_INT >= 28) {
+                    add(AnimatedImageDecoder.Factory())
                 } else {
                     add(GifDecoder.Factory())
                 }

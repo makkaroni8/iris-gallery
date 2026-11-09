@@ -32,6 +32,10 @@ import java.time.Instant
 import java.time.LocalDate
 import java.time.ZoneId
 import java.time.format.DateTimeFormatter
+import androidx.core.content.edit
+import androidx.core.graphics.createBitmap
+import androidx.core.graphics.get
+import androidx.core.graphics.withClip
 
 class IrisPhotoWidget : AppWidgetProvider() {
     override fun onReceive(context: Context, intent: Intent) {
@@ -43,7 +47,7 @@ class IrisPhotoWidget : AppWidgetProvider() {
                 try {
                     if (id != AppWidgetManager.INVALID_APPWIDGET_ID) {
                         val prefs = context.getSharedPreferences("iris_widget", Context.MODE_PRIVATE)
-                        prefs.edit().putInt("offset_$id", prefs.getInt("offset_$id", 0) + 1).apply()
+                        prefs.edit { putInt("offset_$id", prefs.getInt("offset_$id", 0) + 1) }
                         update(context, AppWidgetManager.getInstance(context), id)
                     }
                 } catch (error: Throwable) {
@@ -52,12 +56,16 @@ class IrisPhotoWidget : AppWidgetProvider() {
             }
             return
         }
-        if (intent.action == AppWidgetManager.ACTION_APPWIDGET_UPDATE ||
-            intent.action == AppWidgetManager.ACTION_APPWIDGET_OPTIONS_CHANGED) {
+        if ((intent.action == AppWidgetManager.ACTION_APPWIDGET_UPDATE) ||
+            (intent.action == AppWidgetManager.ACTION_APPWIDGET_OPTIONS_CHANGED)) {
             val pending = goAsync()
             val ids = intent.getIntArrayExtra(AppWidgetManager.EXTRA_APPWIDGET_IDS)
-                ?: intArrayOf(intent.getIntExtra(AppWidgetManager.EXTRA_APPWIDGET_ID,
-                    AppWidgetManager.INVALID_APPWIDGET_ID)).filter { it != AppWidgetManager.INVALID_APPWIDGET_ID }.toIntArray()
+                ?: intArrayOf(
+                    intent.getIntExtra(
+                        AppWidgetManager.EXTRA_APPWIDGET_ID,
+                        AppWidgetManager.INVALID_APPWIDGET_ID,
+                    ),
+                ).filter { it != AppWidgetManager.INVALID_APPWIDGET_ID }.toIntArray()
             CoroutineScope(Dispatchers.IO).launch {
                 try {
                     val manager = AppWidgetManager.getInstance(context)
@@ -96,34 +104,48 @@ class IrisPhotoWidget : AppWidgetProvider() {
         val offset = context.getSharedPreferences("iris_widget", Context.MODE_PRIVATE).getInt("offset_$id", 0)
         val memories = if (allMemories.isEmpty()) emptyList()
             else listOf(allMemories[Math.floorMod(slot + offset, allMemories.size)])
-        val open = PendingIntent.getActivity(context, id, Intent(context, MainActivity::class.java).apply {
-            putExtra("open_memories", true)
-            addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP)
-        }, PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE)
+        val open = PendingIntent.getActivity(
+            context,
+            id,
+            Intent(context, MainActivity::class.java).apply {
+                putExtra("open_memories", true)
+                addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP)
+            },
+            PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE,
+        )
         views.setOnClickPendingIntent(R.id.widget_flipper, open)
-        val next = PendingIntent.getBroadcast(context, id, Intent(context, IrisPhotoWidget::class.java).apply {
-            action = ACTION_NEXT
-            putExtra(AppWidgetManager.EXTRA_APPWIDGET_ID, id)
-        }, PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE)
+        val next = PendingIntent.getBroadcast(
+            context,
+            id,
+            Intent(context, IrisPhotoWidget::class.java).apply {
+                action = ACTION_NEXT
+                putExtra(AppWidgetManager.EXTRA_APPWIDGET_ID, id)
+            },
+            PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE,
+        )
         views.setOnClickPendingIntent(R.id.widget_next, next)
         if (Build.VERSION.SDK_INT >= 31) {
             views.setViewLayoutWidth(R.id.widget_next, buttonSize, TypedValue.COMPLEX_UNIT_DIP)
             views.setViewLayoutHeight(R.id.widget_next, buttonSize, TypedValue.COMPLEX_UNIT_DIP)
             views.setViewLayoutMargin(R.id.widget_next, RemoteViews.MARGIN_END, buttonMargin, TypedValue.COMPLEX_UNIT_DIP)
             views.setViewLayoutMargin(R.id.widget_next, RemoteViews.MARGIN_BOTTOM, buttonMargin, TypedValue.COMPLEX_UNIT_DIP)
-            val paddingPx = TypedValue.applyDimension(TypedValue.COMPLEX_UNIT_DIP, buttonSize * .24f,
-                context.resources.displayMetrics).toInt()
+            val paddingPx = TypedValue.applyDimension(
+                TypedValue.COMPLEX_UNIT_DIP,
+                buttonSize * .24f,
+                context.resources.displayMetrics,
+            ).toInt()
             views.setViewPadding(R.id.widget_next, paddingPx, paddingPx, paddingPx, paddingPx)
         }
 
         PHOTO_IDS.forEachIndexed { index, viewId ->
             val memory = memories.getOrNull(index)
-            if (memory == null && index > 0) {
+            if ((memory == null) && (index > 0)) {
                 views.setViewVisibility(viewId, View.GONE)
             } else {
                 views.setViewVisibility(viewId, View.VISIBLE)
-                views.setImageViewBitmap(viewId, memory?.let { memoryCard(context, it, index, cardRatio) }
-                    ?: emptyCard(cardRatio))
+                val cardBitmap = memory?.let { memoryCard(context, it, index, cardRatio) }
+                    ?: emptyCard(cardRatio)
+                views.setImageViewBitmap(viewId, cardBitmap)
             }
         }
         manager.updateAppWidget(id, views)
@@ -138,15 +160,20 @@ class IrisPhotoWidget : AppWidgetProvider() {
         val locked = context.getSharedPreferences("library_preferences", Context.MODE_PRIVATE)
             .getStringSet("locked", emptySet()).orEmpty().mapNotNullTo(hashSetOf(), String::toLongOrNull)
         return buildList {
-            context.contentResolver.query(MediaStore.Images.Media.EXTERNAL_CONTENT_URI,
+            context.contentResolver.query(
+                MediaStore.Images.Media.EXTERNAL_CONTENT_URI,
                 arrayOf(MediaStore.Images.Media._ID, MediaStore.Images.Media.DATE_TAKEN, MediaStore.Images.Media.DATE_ADDED),
-                null, null, "${MediaStore.Images.Media.DATE_TAKEN} DESC")?.use { cursor ->
-                while (cursor.moveToNext() && size < 30) {
+                null,
+                null,
+                "${MediaStore.Images.Media.DATE_TAKEN} DESC",
+            )?.use { cursor ->
+                while (cursor.moveToNext() && (size < 30)) {
                     val mediaId = cursor.getLong(0)
                     if (mediaId in locked) continue
-                    val timestamp = cursor.getLong(1).takeIf { it > 0 } ?: cursor.getLong(2) * 1_000
+                    val timestamp =
+                        cursor.getLong(1).takeIf { it > 0 } ?: (cursor.getLong(2) * 1_000)
                     val date = Instant.ofEpochMilli(timestamp).atZone(zone).toLocalDate()
-                    if (date.year < today.year && date.month == today.month && date.dayOfMonth == today.dayOfMonth) {
+                    if ((date.year < today.year) && (date.month == today.month) && (date.dayOfMonth == today.dayOfMonth)) {
                         add(Memory(mediaId, date))
                     }
                 }
@@ -164,72 +191,122 @@ class IrisPhotoWidget : AppWidgetProvider() {
             } else {
                 @Suppress("DEPRECATION")
                 MediaStore.Images.Thumbnails.getThumbnail(
-                    context.contentResolver, memory.id, MediaStore.Images.Thumbnails.MINI_KIND, null
+                    context.contentResolver,
+                    memory.id,
+                    MediaStore.Images.Thumbnails.MINI_KIND,
+                    null,
                 )
             }
         }.getOrNull() ?: return emptyCard(ratio)
-        val output = Bitmap.createBitmap(outputWidth, outputHeight, Bitmap.Config.ARGB_8888)
+        val output = createBitmap(outputWidth, outputHeight)
         val canvas = Canvas(output)
         val corner = 54f
         val inset = 10f
         val adaptiveSurface = adaptiveSurfaceColor(source)
-        canvas.drawRoundRect(RectF(0f, 0f, outputWidth.toFloat(), outputHeight.toFloat()), corner, corner,
-            Paint(Paint.ANTI_ALIAS_FLAG).apply { color = adaptiveSurface })
+        canvas.drawRoundRect(
+            RectF(0f, 0f, outputWidth.toFloat(), outputHeight.toFloat()),
+            corner,
+            corner,
+            Paint(Paint.ANTI_ALIAS_FLAG).apply { color = adaptiveSurface },
+        )
         val photoBounds = RectF(inset, inset, outputWidth - inset, outputHeight - inset)
-        canvas.save()
-        canvas.clipPath(Path().apply { addRoundRect(photoBounds, corner - inset, corner - inset, Path.Direction.CW) })
-        val sourceRatio = source.width.toFloat() / source.height
-        val targetRatio = outputWidth.toFloat() / outputHeight
-        val crop = if (sourceRatio > targetRatio) {
-            val width = (source.height * targetRatio).toInt()
-            Rect((source.width - width) / 2, 0, (source.width + width) / 2, source.height)
-        } else {
-            val height = (source.width / targetRatio).toInt()
-            Rect(0, (source.height - height) / 2, source.width, (source.height + height) / 2)
+        val clipPath = Path().apply {
+            addRoundRect(
+                photoBounds,
+                corner - inset,
+                corner - inset,
+                Path.Direction.CW,
+            )
         }
-        canvas.drawBitmap(source, crop, Rect(inset.toInt(), inset.toInt(), outputWidth - inset.toInt(), outputHeight - inset.toInt()),
-            Paint(Paint.ANTI_ALIAS_FLAG or Paint.FILTER_BITMAP_FLAG))
-        val gradientStart = outputHeight * .38f
-        val scrim = Paint().apply { shader = LinearGradient(0f, gradientStart, 0f, outputHeight.toFloat(),
-            intArrayOf(Color.TRANSPARENT, Color.argb(55, 0, 0, 0), Color.argb(218, 5, 4, 8)),
-            floatArrayOf(0f, .34f, 1f), Shader.TileMode.CLAMP) }
-        canvas.drawRect(0f, gradientStart, outputWidth.toFloat(), outputHeight.toFloat(), scrim)
+        canvas.withClip(clipPath) {
+            val sourceRatio = source.width.toFloat() / source.height
+            val targetRatio = outputWidth.toFloat() / outputHeight
+            val crop = if (sourceRatio > targetRatio) {
+                val width = (source.height * targetRatio).toInt()
+                Rect((source.width - width) / 2, 0, (source.width + width) / 2, source.height)
+            } else {
+                val height = (source.width / targetRatio).toInt()
+                Rect(0, (source.height - height) / 2, source.width, (source.height + height) / 2)
+            }
+            drawBitmap(
+                source,
+                crop,
+                Rect(
+                    inset.toInt(),
+                    inset.toInt(),
+                    outputWidth - inset.toInt(),
+                    outputHeight - inset.toInt(),
+                ),
+                Paint(Paint.ANTI_ALIAS_FLAG or Paint.FILTER_BITMAP_FLAG),
+            )
+            val gradientStart = outputHeight * .38f
+            val scrim = Paint().apply {
+                shader = LinearGradient(
+                    0f, gradientStart, 0f, outputHeight.toFloat(),
+                    intArrayOf(
+                        Color.TRANSPARENT,
+                        Color.argb(55, 0, 0, 0),
+                        Color.argb(218, 5, 4, 8),
+                    ),
+                    floatArrayOf(0f, .34f, 1f),
+                    Shader.TileMode.CLAMP,
+                )
+            }
+            drawRect(0f, gradientStart, outputWidth.toFloat(), outputHeight.toFloat(), scrim)
 
-        // A quiet Material-style identity chip that stays readable on any photo.
-        val chipPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply { color = Color.argb(166, 24, 21, 29) }
-        canvas.drawRoundRect(RectF(28f, 26f, 260f, 78f), 26f, 26f, chipPaint)
-        canvas.drawCircle(55f, 52f, 7f, Paint(Paint.ANTI_ALIAS_FLAG).apply { color = Color.rgb(218, 184, 255) })
-        canvas.drawText("IRIS  ·  MEMORIES", 75f, 61f, Paint(Paint.ANTI_ALIAS_FLAG).apply {
-            color = Color.WHITE; textSize = 20f
-            typeface = Typeface.create("sans-serif-medium", Typeface.NORMAL)
-        })
-        val years = LocalDate.now().year - memory.date.year
-        val phrase = when (index % 4) {
-            0 -> "From this day"
-            1 -> "From ${memory.date.year}"
-            2 -> "$years ${if (years == 1) "year" else "years"} ago"
-            else -> "A moment worth remembering"
-        }
-        val compact = outputHeight < 540
-        val titleSize = if (compact) 35f else 43f
-        val titleY = outputHeight - if (compact) 58f else 78f
-        canvas.drawText(phrase, 34f, titleY, Paint(Paint.ANTI_ALIAS_FLAG).apply {
-            color = Color.WHITE; textSize = titleSize
-            typeface = Typeface.create("sans-serif", Typeface.BOLD)
-            setShadowLayer(5f, 0f, 2f, Color.argb(120, 0, 0, 0))
-        })
-        if (!compact) {
-            val detail = "${memory.date.format(DateTimeFormatter.ofPattern("d MMMM yyyy"))}  ·  $years ${if (years == 1) "year" else "years"} ago"
-            canvas.drawText(detail, 36f, outputHeight - 34f,
-                Paint(Paint.ANTI_ALIAS_FLAG).apply {
+            // A quiet Material-style identity chip that stays readable on any photo.
+            val chipPaint =
+                Paint(Paint.ANTI_ALIAS_FLAG).apply { color = Color.argb(166, 24, 21, 29) }
+            drawRoundRect(RectF(28f, 26f, 260f, 78f), 26f, 26f, chipPaint)
+            drawCircle(
+                55f,
+                52f,
+                7f,
+                Paint(Paint.ANTI_ALIAS_FLAG).apply { color = Color.rgb(218, 184, 255) },
+            )
+            val chipTextPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+                color = Color.WHITE; textSize = 20f
+                typeface = Typeface.create("sans-serif-medium", Typeface.NORMAL)
+            }
+            drawText("IRIS  ·  MEMORIES", 75f, 61f, chipTextPaint)
+            val years = LocalDate.now().year - memory.date.year
+            val phrase = when (index % 4) {
+                0 -> "From this day"
+                1 -> "From ${memory.date.year}"
+                2 -> "$years ${if (years == 1) "year" else "years"} ago"
+                else -> "A moment worth remembering"
+            }
+            val compact = outputHeight < 540
+            val titleSize = if (compact) 35f else 43f
+            val titleY = outputHeight - if (compact) 58f else 78f
+            val phrasePaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+                color = Color.WHITE; textSize = titleSize
+                typeface = Typeface.create("sans-serif", Typeface.BOLD)
+                setShadowLayer(5f, 0f, 2f, Color.argb(120, 0, 0, 0))
+            }
+            drawText(phrase, 34f, titleY, phrasePaint)
+            if (!compact) {
+                val detail =
+                    "${memory.date.format(DateTimeFormatter.ofPattern("d MMMM yyyy"))}  ·  $years ${if (years == 1) "year" else "years"} ago"
+                val detailPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
                     color = Color.argb(215, 255, 255, 255); textSize = 24f
                     typeface = Typeface.create("sans-serif", Typeface.NORMAL)
+                }
+                drawText(detail, 36f, outputHeight - 34f, detailPaint)
+            }
+            drawRoundRect(
+                RectF(
+                    inset + 1.5f,
+                    inset + 1.5f,
+                    outputWidth - inset - 1.5f,
+                    outputHeight - inset - 1.5f
+                ),
+                corner - inset, corner - inset,
+                Paint(Paint.ANTI_ALIAS_FLAG).apply {
+                    color = Color.argb(55, 255, 255, 255); style = Paint.Style.STROKE; strokeWidth =
+                    3f
                 })
         }
-        canvas.drawRoundRect(RectF(inset + 1.5f, inset + 1.5f, outputWidth - inset - 1.5f, outputHeight - inset - 1.5f),
-            corner - inset, corner - inset,
-            Paint(Paint.ANTI_ALIAS_FLAG).apply { color = Color.argb(55, 255, 255, 255); style = Paint.Style.STROKE; strokeWidth = 3f })
-        canvas.restore()
         source.recycle()
         return output
     }
@@ -239,26 +316,34 @@ class IrisPhotoWidget : AppWidgetProvider() {
         val stepX = (bitmap.width / 18).coerceAtLeast(1)
         val stepY = (bitmap.height / 18).coerceAtLeast(1)
         for (y in 0 until bitmap.height step stepY) for (x in 0 until bitmap.width step stepX) {
-            val color = bitmap.getPixel(x, y)
+            val color = bitmap[x, y]
             red += Color.red(color); green += Color.green(color); blue += Color.blue(color); samples++
         }
         if (samples == 0L) return Color.rgb(34, 31, 39)
         // Darken toward a rich tonal surface so it complements the photo while
         // retaining enough contrast against the launcher and white typography.
-        fun tonal(value: Long) = ((value / samples) * .52f + 18f).toInt().coerceIn(18, 150)
+        fun tonal(value: Long) = (((value / samples) * .52f) + 18f).toInt().coerceIn(18, 150)
         return Color.rgb(tonal(red), tonal(green), tonal(blue))
     }
 
     private fun emptyCard(ratio: Float): Bitmap {
         val width = 840
         val height = (width / ratio).toInt().coerceIn(420, 900)
-        return Bitmap.createBitmap(width, height, Bitmap.Config.ARGB_8888).also { bitmap ->
+        return createBitmap(width, height).also { bitmap ->
         val canvas = Canvas(bitmap)
-        canvas.drawRoundRect(RectF(0f, 0f, width.toFloat(), height.toFloat()), 54f, 54f,
-            Paint(Paint.ANTI_ALIAS_FLAG).apply { color = Color.rgb(34, 31, 39) })
-        canvas.drawCircle(width / 2f, height / 2f - 40f, 22f,
-            Paint(Paint.ANTI_ALIAS_FLAG).apply { color = Color.rgb(218, 184, 255) })
-        canvas.drawText("No memories from this day yet", 48f, height / 2f + 42f, Paint(Paint.ANTI_ALIAS_FLAG).apply {
+        canvas.drawRoundRect(
+            RectF(0f, 0f, width.toFloat(), height.toFloat()),
+            54f,
+            54f,
+            Paint(Paint.ANTI_ALIAS_FLAG).apply { color = Color.rgb(34, 31, 39) },
+        )
+        canvas.drawCircle(
+            width / 2f,
+            (height / 2f) - 40f,
+            22f,
+            Paint(Paint.ANTI_ALIAS_FLAG).apply { color = Color.rgb(218, 184, 255) },
+        )
+        canvas.drawText("No memories from this day yet", 48f, (height / 2f) + 42f, Paint(Paint.ANTI_ALIAS_FLAG).apply {
             color = Color.rgb(234, 221, 255); textSize = 34f; typeface = Typeface.DEFAULT_BOLD
         })
         }

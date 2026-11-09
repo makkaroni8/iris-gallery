@@ -15,18 +15,14 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.grid.GridCells
-import androidx.compose.foundation.lazy.grid.GridItemSpan
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Clear
-import androidx.compose.material.icons.outlined.Add
 import androidx.compose.material.icons.outlined.Close
 import androidx.compose.material.icons.outlined.CreateNewFolder
-import androidx.compose.material.icons.outlined.Folder
 import androidx.compose.material.icons.outlined.Search
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Card
@@ -36,7 +32,6 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalBottomSheet
-import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.SheetState
@@ -61,7 +56,6 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.iris.gallery.R
 import com.iris.gallery.data.AlbumAction
-import com.iris.gallery.data.MediaImage
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -76,16 +70,16 @@ fun AlbumPickerSheet(
     sheetState: SheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true),
 ) {
     var searchQuery by remember { mutableStateOf("") }
-    var showCreateDialog by remember { mutableStateOf(false) }
+    var showCreateDialog by remember { mutableStateOf(value = false) }
 
     val filteredAlbums = remember(albums, searchQuery, currentAlbumId, action) {
-        val list = if (action == AlbumAction.MOVE && currentAlbumId != null) {
-            albums.filter { it.id != currentAlbumId }
+        val list = if ((action == AlbumAction.MOVE) && (currentAlbumId != null)) {
+            albums.filter { (id) -> id != currentAlbumId }
         } else {
             albums
         }
         if (searchQuery.isBlank()) list
-        else list.filter { it.name.contains(searchQuery.trim(), ignoreCase = true) }
+        else list.filter { (_, name) -> name.contains(searchQuery.trim(), ignoreCase = true) }
     }
 
     ModalBottomSheet(
@@ -98,7 +92,7 @@ fun AlbumPickerSheet(
             modifier = Modifier
                 .fillMaxWidth()
                 .fillMaxHeight(0.85f)
-                .navigationBarsPadding()
+                .navigationBarsPadding(),
         ) {
             // Header
             Row(
@@ -112,7 +106,7 @@ fun AlbumPickerSheet(
                     Text(
                         text = stringResource(
                             if (action == AlbumAction.MOVE) R.string.move_to_album_title
-                            else R.string.copy_to_album_title
+                            else R.string.copy_to_album_title,
                         ),
                         style = MaterialTheme.typography.headlineSmall,
                         fontWeight = FontWeight.Bold,
@@ -133,7 +127,7 @@ fun AlbumPickerSheet(
                 modifier = Modifier
                     .fillMaxWidth()
                     .padding(horizontal = 20.dp, vertical = 6.dp),
-                verticalArrangement = Arrangement.spacedBy(10.dp)
+                verticalArrangement = Arrangement.spacedBy(10.dp),
             ) {
                 if (albums.size > 3) {
                     OutlinedTextField(
@@ -155,8 +149,8 @@ fun AlbumPickerSheet(
                             unfocusedContainerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.35f),
                             focusedContainerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f),
                             unfocusedBorderColor = androidx.compose.ui.graphics.Color.Transparent,
-                            focusedBorderColor = MaterialTheme.colorScheme.primary
-                        )
+                            focusedBorderColor = MaterialTheme.colorScheme.primary,
+                        ),
                     )
                 }
             }
@@ -174,7 +168,7 @@ fun AlbumPickerSheet(
                     Card(
                         shape = RoundedCornerShape(16.dp),
                         colors = CardDefaults.cardColors(
-                            containerColor = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.6f)
+                            containerColor = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.6f),
                         ),
                         modifier = Modifier
                             .fillMaxWidth()
@@ -223,11 +217,11 @@ fun AlbumPickerSheet(
                 }
 
                 // Existing Albums
-                items(filteredAlbums, key = { it.id }) { album ->
+                items(filteredAlbums, key = { (id) -> id }) { album ->
                     Column(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .clickable { onSelectAlbum(album) }
+                            .clickable { onSelectAlbum(album) },
                     ) {
                         Card(
                             shape = RoundedCornerShape(16.dp),
@@ -247,7 +241,7 @@ fun AlbumPickerSheet(
                         )
                         Row(
                             verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.spacedBy(4.dp)
+                            horizontalArrangement = Arrangement.spacedBy(4.dp),
                         ) {
                             if (album.isSdCard) {
                                 Surface(
@@ -259,7 +253,7 @@ fun AlbumPickerSheet(
                                         style = MaterialTheme.typography.labelSmall,
                                         fontWeight = FontWeight.Bold,
                                         color = MaterialTheme.colorScheme.onSecondaryContainer,
-                                        modifier = Modifier.padding(horizontal = 4.dp, vertical = 0.5.dp)
+                                        modifier = Modifier.padding(horizontal = 4.dp, vertical = 0.5.dp),
                                     )
                                 }
                             }
@@ -280,11 +274,10 @@ fun AlbumPickerSheet(
     if (showCreateDialog) {
         CreateAlbumDialog(
             onDismiss = { showCreateDialog = false },
-            onCreate = { albumName ->
-                showCreateDialog = false
-                onCreateAlbum(albumName)
-            }
-        )
+        ) { albumName ->
+            showCreateDialog = false
+            onCreateAlbum(albumName)
+        }
     }
 }
 
@@ -309,7 +302,7 @@ fun CreateAlbumDialog(
             Text(
                 text = stringResource(R.string.create_album_title),
                 style = MaterialTheme.typography.titleLarge,
-                fontWeight = FontWeight.Bold
+                fontWeight = FontWeight.Bold,
             )
         },
         text = {
@@ -333,7 +326,7 @@ fun CreateAlbumDialog(
             ) {
                 Text(
                     text = stringResource(R.string.create_album_button),
-                    fontWeight = FontWeight.Bold
+                    fontWeight = FontWeight.Bold,
                 )
             }
         },

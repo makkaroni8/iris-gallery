@@ -1,4 +1,4 @@
-@file:OptIn(androidx.compose.foundation.ExperimentalFoundationApi::class, androidx.compose.material3.ExperimentalMaterial3Api::class)
+@file:OptIn(androidx.compose.material3.ExperimentalMaterial3Api::class)
 
 package com.iris.gallery.ui
 
@@ -16,7 +16,6 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
@@ -24,8 +23,6 @@ import androidx.compose.foundation.layout.calculateEndPadding
 import androidx.compose.foundation.layout.calculateStartPadding
 import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.lazy.LazyRow
-import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.GridItemSpan
 import androidx.compose.foundation.lazy.grid.LazyGridState
@@ -49,7 +46,6 @@ import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.PushPin
 import androidx.compose.material.icons.outlined.ArrowDownward
 import androidx.compose.material.icons.outlined.ArrowUpward
-import androidx.compose.material.icons.outlined.Edit
 import androidx.compose.material.icons.outlined.FolderOff
 import androidx.compose.material.icons.outlined.Lock
 import androidx.compose.material.icons.outlined.PushPin
@@ -63,7 +59,6 @@ import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
-import androidx.compose.material3.ListItem
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.OutlinedTextField
@@ -120,7 +115,7 @@ private val SYSTEM_FOLDER_NAMES = setOf(
     "download",
     "downloads",
     "bluetooth",
-    "raw"
+    "raw",
 )
 
 private val KNOWN_APP_KEYWORDS = listOf(
@@ -128,27 +123,27 @@ private val KNOWN_APP_KEYWORDS = listOf(
     "snapchat", "facebook", "messenger", "discord", "tiktok", "signal",
     "viber", "wechat", "line", "pinterest", "tumblr", "vsco", "snapseed",
     "lightroom", "canva", "capcut", "inshot", "youcut", "picsart",
-    "threads", "bluesky", "mastodon", "slack", "skype", "zoom"
+    "threads", "bluesky", "mastodon", "slack", "skype", "zoom",
 )
 
 private fun isKnownApp(samplePath: String, name: String): Boolean {
-    if (samplePath.contains("/android/media/") || samplePath.contains("/android/data/")) return true
-    return KNOWN_APP_KEYWORDS.any { name.contains(it) || samplePath.contains("/$it") }
+    return samplePath.contains("/android/media/") || samplePath.contains("/android/data/") || KNOWN_APP_KEYWORDS.any { name.contains(it) || samplePath.contains("/$it") }
 }
 
 fun isCameraOrSystemAlbum(album: MediaAlbum): Boolean {
-    val samplePath = album.images.firstOrNull { it.path.isNotBlank() }?.path.orEmpty().lowercase()
+    var samplePath = ""
+    for (i in album.images.indices) {
+        val p = album.images[i].path
+        if (p.isNotBlank()) {
+            samplePath = p.lowercase()
+            break
+        }
+    }
     val name = album.name.lowercase().trim()
 
-    if (isKnownApp(samplePath, name)) {
-        return false
-    }
-
-    if (name in SYSTEM_FOLDER_NAMES) {
-        return true
-    }
-
-    if (samplePath.contains("/dcim/camera") ||
+    return !isKnownApp(samplePath, name) && (
+        (name in SYSTEM_FOLDER_NAMES) ||
+        samplePath.contains("/dcim/camera") ||
         samplePath.contains("/dcim/100andro") ||
         samplePath.contains("/pictures/screenshots") ||
         samplePath.contains("/dcim/screenshots") ||
@@ -156,16 +151,11 @@ fun isCameraOrSystemAlbum(album: MediaAlbum): Boolean {
         samplePath.contains("/movies/screen recorder") ||
         samplePath.contains("/download/") ||
         samplePath.contains("/downloads/") ||
-        samplePath.contains("/bluetooth/")
-    ) {
-        return true
-    }
-
-    if (samplePath.endsWith("/dcim") || samplePath.endsWith("/pictures") || samplePath.endsWith("/movies")) {
-        return true
-    }
-
-    return false
+        samplePath.contains("/bluetooth/") ||
+        samplePath.endsWith("/dcim") ||
+        samplePath.endsWith("/pictures") ||
+        samplePath.endsWith("/movies")
+    )
 }
 
 fun isAppAlbum(album: MediaAlbum): Boolean {
@@ -198,7 +188,7 @@ fun AlbumsGrid(
     val currentOnCellSizeChange by rememberUpdatedState(onCellSizeChange)
     var searchQuery by remember { mutableStateOf("") }
     var selectedCategory by remember { mutableStateOf(AlbumCategory.ALL) }
-    var sortMenuExpanded by remember { mutableStateOf(false) }
+    var sortMenuExpanded by remember { mutableStateOf(value = false) }
     var selectedAlbumForOptions by remember { mutableStateOf<MediaAlbum?>(null) }
 
     val albums = remember(images, pinned, covers, sort, customOrder) {
@@ -211,22 +201,25 @@ fun AlbumsGrid(
                 cover = media.firstOrNull { it.id == covers[id] } ?: media.first(),
                 images = media,
                 isSdCard = isSd,
-                storageLabel = if (isSd) "SD Card" else ""
+                storageLabel = if (isSd) "SD Card" else "",
             )
         }
-        val orderIndex = customOrder.withIndex().associate { it.value to it.index }
-        base.sortedWith(compareByDescending<MediaAlbum> { it.id in pinned }.thenComparator { a, b ->
-            when (sort) {
-                AlbumSort.NEWEST -> b.cover.dateTaken.compareTo(a.cover.dateTaken)
-                AlbumSort.OLDEST -> a.cover.dateTaken.compareTo(b.cover.dateTaken)
-                AlbumSort.NAME -> NaturalOrderComparator.compare(a.name, b.name)
-                AlbumSort.ITEM_COUNT -> b.images.size.compareTo(a.images.size)
-                AlbumSort.CUSTOM -> (orderIndex[a.id] ?: Int.MAX_VALUE).compareTo(orderIndex[b.id] ?: Int.MAX_VALUE)
-            }
-        })
+        val orderIndex = customOrder.asSequence().withIndex().associateBy({ it.value }) { it.index }
+        base.sortedWith(
+            compareByDescending<MediaAlbum> { it.id in pinned }
+                .thenComparator { a, b ->
+                    when (sort) {
+                        AlbumSort.NEWEST -> b.cover.dateTaken.compareTo(a.cover.dateTaken)
+                        AlbumSort.OLDEST -> a.cover.dateTaken.compareTo(b.cover.dateTaken)
+                        AlbumSort.NAME -> NaturalOrderComparator.compare(a.name, b.name)
+                        AlbumSort.ITEM_COUNT -> b.images.size.compareTo(a.images.size)
+                        AlbumSort.CUSTOM -> (orderIndex[a.id] ?: Int.MAX_VALUE).compareTo(orderIndex[b.id] ?: Int.MAX_VALUE)
+                    }
+                },
+        )
     }
     val effectiveOrder = remember(albums, customOrder) {
-        customOrder.filter { id -> albums.any { it.id == id } } + albums.map { it.id }.filterNot(customOrder::contains)
+        customOrder.filter { id -> albums.any { it.id == id } } + albums.asSequence().map { it.id }.filterNot(customOrder::contains)
     }
 
     val categorizedAlbums = remember(albums, selectedCategory) {
@@ -271,17 +264,19 @@ fun AlbumsGrid(
                         }
                     } while (event.changes.any { it.pressed })
                 }
-            }
+            },
     ) {
-        val screenWidthDp = androidx.compose.ui.platform.LocalConfiguration.current.screenWidthDp.toFloat()
         val density = androidx.compose.ui.platform.LocalDensity.current
+        val screenWidthDp = with(density) {
+            androidx.compose.ui.platform.LocalWindowInfo.current.containerSize.width.toDp().value
+        }
         val actualColumns = remember(screenWidthDp, cellSize, gridSpacing, density, startPadding, endPadding) {
             GridCalculations.calculateAlbumColumns(
                 screenWidthDp = screenWidthDp,
                 cellSizeDp = cellSize.value,
                 gridSpacingDp = gridSpacing.dp.toFloat(),
                 density = density,
-                horizontalPaddingDp = (startPadding + endPadding).value / 2f
+                horizontalPaddingDp = (startPadding + endPadding).value / 2f,
             )
         }
         val targetThumbnailPx = remember(actualColumns) { getThumbnailTargetSizePx(actualColumns) }
@@ -296,7 +291,7 @@ fun AlbumsGrid(
             item(key = "album-search-and-sort", span = { GridItemSpan(maxLineSpan) }) {
                 Column(
                     modifier = Modifier.fillMaxWidth().padding(bottom = 6.dp),
-                    verticalArrangement = Arrangement.spacedBy(10.dp)
+                    verticalArrangement = Arrangement.spacedBy(10.dp),
                 ) {
                     // Search albums input field
                     OutlinedTextField(
@@ -317,7 +312,7 @@ fun AlbumsGrid(
                         colors = OutlinedTextFieldDefaults.colors(
                             unfocusedContainerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.35f),
                             focusedContainerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f),
-                            unfocusedBorderColor = androidx.compose.ui.graphics.Color.Transparent,
+                            unfocusedBorderColor = Color.Transparent,
                             focusedBorderColor = MaterialTheme.colorScheme.primary
                         )
                     )
@@ -417,7 +412,7 @@ fun AlbumsGrid(
                                         } else null,
                                         onClick = {
                                             sortMenuExpanded = false
-                                            if (value == AlbumSort.CUSTOM && customOrder.isEmpty()) {
+                                            if ((value == AlbumSort.CUSTOM) && customOrder.isEmpty()) {
                                                 onOrderChanged(albums.map { it.id })
                                             }
                                             onSortChanged(value)
@@ -486,7 +481,7 @@ fun AlbumsGrid(
                         }
 
                         // Floating Pin Badge on top-right of pinned album image
-                        if (sort != AlbumSort.CUSTOM && isPinned) {
+                        if ((sort != AlbumSort.CUSTOM) && isPinned) {
                             Surface(
                                 shape = CircleShape,
                                 color = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.95f),
@@ -506,13 +501,13 @@ fun AlbumsGrid(
                                     )
                                 }
                             }
-                        } else if (sort == AlbumSort.CUSTOM && isEditingOrder) {
+                        } else if ((sort == AlbumSort.CUSTOM) && isEditingOrder) {
                             val index = effectiveOrder.indexOf(album.id)
                             Row(
                                 modifier = Modifier
                                     .align(Alignment.TopEnd)
                                     .padding(4.dp),
-                                horizontalArrangement = Arrangement.spacedBy(4.dp)
+                                horizontalArrangement = Arrangement.spacedBy(4.dp),
                             ) {
                                 val buttonColor = MaterialTheme.colorScheme.surfaceContainerHighest.copy(alpha = 0.92f)
                                 val buttonContentColor = MaterialTheme.colorScheme.onSurface
@@ -548,7 +543,7 @@ fun AlbumsGrid(
                                         }
                                     }
                                 }
-                                if (index in 0 until effectiveOrder.lastIndex) {
+                                if (index in (0 until effectiveOrder.lastIndex)) {
                                     Surface(
                                         shape = CircleShape,
                                         color = buttonColor,
@@ -620,7 +615,7 @@ fun AlbumsGrid(
                             }
                             if (showCount) {
                                 Text(
-                                    androidx.compose.ui.res.stringResource(com.iris.gallery.R.string.album_items_count, album.images.size),
+                                    stringResource(com.iris.gallery.R.string.album_items_count, album.images.size),
                                     style = MaterialTheme.typography.bodySmall,
                                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                                     maxLines = 1,
@@ -675,7 +670,7 @@ fun AlbumsGrid(
                                 overflow = TextOverflow.Ellipsis
                             )
                             Text(
-                                text = androidx.compose.ui.res.stringResource(com.iris.gallery.R.string.album_items_count, album.images.size),
+                                text = stringResource(com.iris.gallery.R.string.album_items_count, album.images.size),
                                 style = MaterialTheme.typography.bodyMedium,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant
                             )

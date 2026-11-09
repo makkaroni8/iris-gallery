@@ -1,14 +1,9 @@
-@file:OptIn(androidx.compose.foundation.ExperimentalFoundationApi::class)
-
 package com.iris.gallery.ui
 
 import android.content.ContentUris
 import android.net.Uri
 import android.os.Build
 import android.provider.MediaStore
-import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.lazy.grid.items
-import androidx.compose.foundation.lazy.items
 import com.iris.gallery.data.MediaImage
 import com.iris.gallery.data.Mp4MetadataStripper
 import com.iris.gallery.data.SecureSharingMode
@@ -22,7 +17,7 @@ internal fun resolveVolumeName(path: String): String {
         val parts = path.split('/')
         if (parts.size > 2) {
             val candidate = parts[2]
-            if (candidate != "emulated" && candidate != "self") {
+            if ((candidate != "emulated") && (candidate != "self")) {
                 return candidate
             }
         }
@@ -43,7 +38,7 @@ internal fun canonicalMediaUri(context: android.content.Context, item: MediaImag
         return ContentUris.withAppendedId(baseTable, item.id)
     }
     val uriPath = item.uri.path.orEmpty()
-    if (item.uri.authority == "media" && (uriPath.contains("/images/media/") || uriPath.contains("/video/media/"))) {
+    if ((item.uri.authority == "media") && (uriPath.contains("/images/media/") || uriPath.contains("/video/media/"))) {
         return item.uri.buildUpon().clearQuery().build()
     }
     if (item.path.isNotBlank()) {
@@ -61,7 +56,7 @@ internal fun canonicalMediaUri(context: android.content.Context, item: MediaImag
                 arrayOf(MediaStore.MediaColumns._ID),
                 "${MediaStore.MediaColumns.DATA}=?",
                 arrayOf(item.path),
-                null
+                null,
             )?.use { cursor ->
                 if (cursor.moveToFirst()) {
                     val id = cursor.getLong(0)
@@ -88,7 +83,7 @@ internal fun canonicalMediaUri(item: MediaImage): Uri {
         return ContentUris.withAppendedId(baseTable, item.id)
     }
     val uriPath = item.uri.path.orEmpty()
-    if (item.uri.authority == "media" && (uriPath.contains("/images/media/") || uriPath.contains("/video/media/"))) {
+    if ((item.uri.authority == "media") && (uriPath.contains("/images/media/") || uriPath.contains("/video/media/"))) {
         return item.uri.buildUpon().clearQuery().build()
     }
     return item.uri.buildUpon().clearQuery().build()
@@ -99,7 +94,7 @@ internal fun getShareUri(context: android.content.Context, item: MediaImage): Ur
         androidx.core.content.FileProvider.getUriForFile(
             context,
             "${context.packageName}.fileprovider",
-            java.io.File(item.path)
+            File(item.path),
         )
     } else {
         item.uri
@@ -112,13 +107,13 @@ internal fun isPathExcluded(mediaPath: String, excludedFolders: Set<String>): Bo
     for (raw in excludedFolders) {
         val clean = raw.trim().trimEnd('/')
         if (clean.isBlank()) continue
-        if (normalizedMedia == clean || normalizedMedia.startsWith("$clean/")) {
+        if ((normalizedMedia == clean) || normalizedMedia.startsWith("$clean/")) {
             return true
         }
         if (clean.startsWith("/")) {
             val rel = clean.removePrefix("/")
             val primary = "/storage/emulated/0/$rel"
-            if (normalizedMedia == primary || normalizedMedia.startsWith("$primary/")) {
+            if ((normalizedMedia == primary) || normalizedMedia.startsWith("$primary/")) {
                 return true
             }
             if (normalizedMedia.contains("$clean/")) {
@@ -211,7 +206,7 @@ private val ALL_METADATA_TAGS = GPS_METADATA_TAGS + listOf(
 internal suspend fun prepareShareUris(
     context: android.content.Context,
     items: List<MediaImage>,
-    mode: SecureSharingMode
+    mode: SecureSharingMode,
 ): List<Uri> = withContext(Dispatchers.IO) {
     if (mode == SecureSharingMode.OFF) {
         return@withContext items.map { getShareUri(context, it) }
@@ -220,7 +215,7 @@ internal suspend fun prepareShareUris(
     val cacheDir = File(context.cacheDir, "shared_media").apply { mkdirs() }
     val now = System.currentTimeMillis()
     cacheDir.listFiles()?.forEach { file ->
-        if (now - file.lastModified() > 30 * 60 * 1000L) {
+        if ((now - file.lastModified()) > (30 * 60 * 1000L)) {
             file.delete()
         }
     }
@@ -255,9 +250,9 @@ internal suspend fun prepareShareUris(
                     }
                 }
                 true
-            }.getOrDefault(false)
+            }.getOrDefault(defaultValue = false)
 
-            if (copySuccess && tempFile.exists() && tempFile.length() > 0) {
+            if (copySuccess && tempFile.exists() && (tempFile.length() > 0)) {
                 val stripSuccess = runCatching {
                     val exif = ExifInterface(tempFile.absolutePath)
                     tagsToRemove.forEach { tag ->
@@ -265,13 +260,13 @@ internal suspend fun prepareShareUris(
                     }
                     exif.saveAttributes()
                     true
-                }.getOrDefault(false)
+                }.getOrDefault(defaultValue = false)
 
                 if (stripSuccess) {
                     androidx.core.content.FileProvider.getUriForFile(
                         context,
                         "${context.packageName}.fileprovider",
-                        tempFile
+                        tempFile,
                     )
                 } else {
                     tempFile.delete()
@@ -289,7 +284,7 @@ private fun shareVideo(
     context: android.content.Context,
     item: MediaImage,
     mode: SecureSharingMode,
-    cacheDir: File
+    cacheDir: File,
 ): Uri? {
     val extension = item.name.substringAfterLast('.', "").lowercase().ifBlank {
         when {
@@ -300,7 +295,7 @@ private fun shareVideo(
     }
     val isMp4 = item.mimeType.contains("mp4", ignoreCase = true) ||
         item.mimeType.contains("quicktime", ignoreCase = true) ||
-        extension in setOf("mp4", "m4v", "mov", "3gp", "3g2")
+        (extension in setOf("mp4", "m4v", "mov", "3gp", "3g2"))
     if (!isMp4) return getShareUri(context, item)
 
     val tempFile = runCatching {
@@ -319,17 +314,17 @@ private fun shareVideo(
                 Mp4MetadataStripper.strip(
                     input = input,
                     output = output,
-                    stripAll = mode == SecureSharingMode.STRIP_ALL
+                    stripAll = (mode == SecureSharingMode.STRIP_ALL),
                 )
             }
         }
-    }.getOrDefault(false)
+    }.getOrDefault(defaultValue = false)
 
-    return if (stripped && tempFile.length() > 0) {
+    return if (stripped && (tempFile.length() > 0)) {
         androidx.core.content.FileProvider.getUriForFile(
             context,
             "${context.packageName}.fileprovider",
-            tempFile
+            tempFile,
         )
     } else {
         tempFile.delete()

@@ -16,6 +16,7 @@ import java.io.File
 import java.io.FileOutputStream
 import java.util.Locale
 import kotlin.math.abs
+import kotlin.time.Duration.Companion.milliseconds
 
 enum class AlbumAction {
     MOVE,
@@ -29,17 +30,13 @@ data class AlbumOperationResult(
     val action: AlbumAction,
     val movedMedia: List<MediaImage> = emptyList(),
     val successfulSourceMedia: List<MediaImage> = emptyList(),
-    val failedMedia: List<MediaImage> = emptyList()
+    val failedMedia: List<MediaImage> = emptyList(),
 )
 
 class AlbumRepository(private val context: Context) {
 
     fun hasAllFilesAccess(): Boolean {
-        return if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
-            Environment.isExternalStorageManager()
-        } else {
-            true
-        }
+        return (Build.VERSION.SDK_INT < Build.VERSION_CODES.R) || Environment.isExternalStorageManager()
     }
 
     private fun resolveVolumeName(path: String): String {
@@ -53,13 +50,6 @@ class AlbumRepository(private val context: Context) {
             }
         }
         return "external"
-    }
-
-    private fun isSameVolume(srcPath: String, targetPath: String): Boolean {
-        if (srcPath.isBlank()) return true
-        val srcVol = resolveVolumeName(srcPath)
-        val targetVol = resolveVolumeName(targetPath)
-        return srcVol.equals(targetVol, ignoreCase = true)
     }
 
     private fun canonicalMediaUri(item: MediaImage): Uri {
@@ -86,7 +76,7 @@ class AlbumRepository(private val context: Context) {
             path.startsWith("/storage/emulated/0/") -> path.removePrefix("/storage/emulated/0/")
             path.startsWith("/storage/") -> {
                 val parts = path.split('/')
-                if (parts.size > 3) parts.drop(3).joinToString("/") else targetDir.name
+                if (parts.size > 3) parts.asSequence().drop(3).joinToString("/") else targetDir.name
             }
             else -> targetDir.name
         }
@@ -104,7 +94,7 @@ class AlbumRepository(private val context: Context) {
                 latch.complete(Unit)
             }
         }
-        withTimeoutOrNull(4000) { latch.await() }
+        withTimeoutOrNull(4000.milliseconds) { latch.await() }
     }
 
     private fun queryMediaStoreIdByPath(path: String, isVideo: Boolean): Long? {
@@ -173,7 +163,7 @@ class AlbumRepository(private val context: Context) {
                 }
                 val updated = runCatching {
                     context.contentResolver.update(canonicalUri, values, null, null) > 0
-                }.getOrDefault(false)
+                }.getOrDefault(defaultValue = false)
 
                 if (updated) {
                     val (resPath, resName, _) = runCatching {
@@ -216,7 +206,7 @@ class AlbumRepository(private val context: Context) {
             // 2. Direct filesystem rename (for All Files Access or API <= 28)
             if (!done && srcFile != null && srcFile.exists()) {
                 val destFile = getUniqueDestinationFile(targetDir, item.name.ifBlank { "media_${System.currentTimeMillis()}" })
-                val renamed = runCatching { srcFile.renameTo(destFile) }.getOrDefault(false)
+                val renamed = runCatching { srcFile.renameTo(destFile) }.getOrDefault(defaultValue = false)
                 if (renamed) {
                     if (item.dateModified > 0) {
                         runCatching { destFile.setLastModified(item.dateModified) }
@@ -244,13 +234,13 @@ class AlbumRepository(private val context: Context) {
             }
 
             // 3. Fallback to copy + delete (cross-volume move)
-            if (!done && (!sameVolume || hasManager || Build.VERSION.SDK_INT <= 28)) {
+            if (!done && (!sameVolume || hasManager)) {
                 val destFile = getUniqueDestinationFile(targetDir, item.name.ifBlank { "media_${System.currentTimeMillis()}" })
                 var copied = false
                 if (hasManager && srcFile != null && srcFile.exists()) {
                     copied = runCatching {
                         srcFile.copyTo(destFile, overwrite = true).exists() && destFile.length() > 0
-                    }.getOrDefault(false)
+                    }.getOrDefault(defaultValue = false)
                 }
                 if (!copied) {
                     copied = runCatching {
@@ -260,7 +250,7 @@ class AlbumRepository(private val context: Context) {
                             }
                         }
                         destFile.exists() && destFile.length() > 0
-                    }.getOrDefault(false)
+                    }.getOrDefault(defaultValue = false)
                 }
                 val srcLen = if (srcFile != null && srcFile.exists()) srcFile.length() else item.sizeBytes
                 val copyVerified = copied && destFile.exists() && destFile.length() > 0 &&
@@ -279,7 +269,7 @@ class AlbumRepository(private val context: Context) {
                         finalName = destFile.name
                         finalId = -1L
                         pathsToScan.add(destFile.absolutePath)
-                        if (srcFile != null) pathsToScan.add(srcFile.absolutePath)
+                        srcFile?.let { pathsToScan.add(it.absolutePath) }
                     } else {
                         runCatching { destFile.delete() }
                     }
@@ -371,7 +361,7 @@ class AlbumRepository(private val context: Context) {
             if (hasManager && srcFile != null && srcFile.exists()) {
                 done = runCatching {
                     srcFile.copyTo(destFile, overwrite = false).exists() && destFile.length() > 0
-                }.getOrDefault(false)
+                }.getOrDefault(defaultValue = false)
             }
 
             if (!done) {
@@ -382,7 +372,7 @@ class AlbumRepository(private val context: Context) {
                         }
                     }
                     destFile.exists() && destFile.length() > 0
-                }.getOrDefault(false)
+                }.getOrDefault(defaultValue = false)
                 if (copyOk) done = true
             }
 
@@ -484,16 +474,16 @@ class AlbumRepository(private val context: Context) {
         var fileDeleted = false
         if (item.path.isNotBlank()) {
             val file = File(item.path)
-            if (file.exists()) {
-                val fDel = runCatching { file.delete() }.getOrDefault(false)
-                val cDel = if (!fDel && file.exists()) runCatching { file.canonicalFile.delete() }.getOrDefault(false) else false
-                fileDeleted = fDel || cDel || !file.exists()
+            fileDeleted = if (file.exists()) {
+                val fDel = runCatching { file.delete() }.getOrDefault(defaultValue = false)
+                val cDel = !fDel && file.exists() && runCatching { file.canonicalFile.delete() }.getOrDefault(defaultValue = false)
+                (fDel || cDel) || !file.exists()
             } else {
-                fileDeleted = true
+                true
             }
         }
         val mediaStoreUri = canonicalMediaUri(item)
-        val rowDeleted = runCatching { context.contentResolver.delete(mediaStoreUri, null, null) > 0 }.getOrDefault(false)
+        val rowDeleted = runCatching { context.contentResolver.delete(mediaStoreUri, null, null) > 0 }.getOrDefault(defaultValue = false)
         return fileDeleted || rowDeleted
     }
 }

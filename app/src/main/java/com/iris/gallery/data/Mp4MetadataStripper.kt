@@ -7,9 +7,6 @@ import java.io.ByteArrayOutputStream
 import java.io.DataInputStream
 import java.io.DataOutputStream
 import java.io.EOFException
-import java.io.File
-import java.io.FileInputStream
-import java.io.FileOutputStream
 import java.io.IOException
 import java.io.InputStream
 import java.io.OutputStream
@@ -28,7 +25,7 @@ internal object Mp4MetadataStripper {
     private const val MAX_MOOV_BYTES = 64L * 1024L * 1024L
 
     private val CONTAINER_BOXES = setOf(
-        "moov", "trak", "mdia", "minf", "stbl", "dinf", "edts", "mvex", "moof", "traf", "mfra"
+        "moov", "trak", "mdia", "minf", "stbl", "dinf", "edts", "mvex", "moof", "traf", "mfra",
     )
     private val TIME_BOXES = setOf("mvhd", "tkhd", "mdhd")
     private val LOCATION_BOXES = setOf("\u00A9xyz", "loci", "\u00A9lat", "\u00A9lon")
@@ -57,7 +54,7 @@ internal object Mp4MetadataStripper {
                 }
             }
             true
-        }.getOrDefault(false)
+        }.getOrDefault(defaultValue = false)
     }
 
     private fun rewriteContainer(payload: ByteArray, stripAll: Boolean): ByteArray {
@@ -68,19 +65,19 @@ internal object Mp4MetadataStripper {
         while (true) {
             val header = readHeader(source) ?: break
             val payloadSize = payloadSizeOf(header)
-            if (payloadSize < 0 || payloadSize > source.available()) {
+            if ((payloadSize < 0) || (payloadSize > source.available())) {
                 throw IOException("invalid child box ${header.type}")
             }
             val child = ByteArray(payloadSize.toInt())
             source.readFully(child)
 
             when {
-                stripAll && (header.type == "udta" || header.type == "meta") -> Unit
-                stripAll && header.type in LOCATION_BOXES -> Unit
-                !stripAll && header.type == "udta" ->
+                stripAll && ((header.type == "udta") || (header.type == "meta")) -> Unit
+                stripAll && (header.type in LOCATION_BOXES) -> Unit
+                !stripAll && (header.type == "udta") ->
                     writeBox(target, "udta", rewriteContainer(child, stripAll = false))
-                !stripAll && header.type in LOCATION_BOXES -> Unit
-                stripAll && header.type in TIME_BOXES ->
+                !stripAll && (header.type in LOCATION_BOXES) -> Unit
+                stripAll && (header.type in TIME_BOXES) ->
                     writeBox(target, header.type, zeroTimes(child))
                 header.type in CONTAINER_BOXES ->
                     writeBox(target, header.type, rewriteContainer(child, stripAll))

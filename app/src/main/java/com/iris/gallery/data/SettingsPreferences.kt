@@ -7,12 +7,13 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 
 import com.iris.gallery.R
+import androidx.core.content.edit
 
 enum class ThemeMode { SYSTEM, LIGHT, DARK }
 enum class AccentColor { MATERIAL_YOU, IRIS, LAPIS_MESOPOTAMIA, EMERALD, ISHTAR_AMBER, ROSE, MONOCHROME }
 enum class CornerStyle(val dp: Int) { SHARP(0), CLASSIC(4), ROUNDED(12), SQUIRCLE(18) }
 enum class GridSpacing(val dp: Int) { COMPACT(2), STANDARD(4), RELAXED(8) }
-enum class StartupTab(val pageIndex: Int) { MEDIA(0), ALBUMS(1), FAVORITES(2), LIBRARY(3) }
+enum class StartupTab { MEDIA, ALBUMS, FAVORITES, LIBRARY }
 enum class PreferredEditor { ALWAYS_ASK, BUILT_IN, EXTERNAL }
 enum class DeleteMode { TRASH, PERMANENT, ALWAYS_ASK }
 
@@ -105,23 +106,12 @@ fun getSystemDefaultLocale(context: Context? = null): java.util.Locale {
         val appCtx = context ?: runCatching { com.iris.gallery.IrisApplication.instance }.getOrNull()
         val lm = appCtx?.getSystemService(android.app.LocaleManager::class.java)
         val sysLocales = lm?.systemLocales
-        if (sysLocales != null && !sysLocales.isEmpty) {
+        if ((sysLocales != null) && (!sysLocales.isEmpty)) {
             return sysLocales[0]
         }
     }
     val config = android.content.res.Resources.getSystem().configuration
-    return if (Build.VERSION.SDK_INT >= 24) {
-        if (!config.locales.isEmpty) config.locales[0] else java.util.Locale.getDefault()
-    } else {
-        @Suppress("DEPRECATION")
-        config.locale ?: java.util.Locale.getDefault()
-    }
-}
-
-fun detectBestLanguage(): String {
-    val systemLang = getSystemDefaultLocale().language.lowercase()
-    val match = SUPPORTED_LANGUAGES.firstOrNull { it.code.isNotEmpty() && it.code == systemLang }
-    return match?.code ?: "en"
+    return if (!config.locales.isEmpty) config.locales[0] else java.util.Locale.getDefault()
 }
 
 data class SettingsState(
@@ -196,7 +186,6 @@ class SettingsPreferences(context: Context) {
 
     fun setThemeMode(mode: ThemeMode) = update { copy(themeMode = mode) }
     fun setLanguage(lang: String) = update { copy(language = lang) }
-    fun setFirstLaunchLanguageSetupDone(done: Boolean) = update { copy(firstLaunchLanguageSetupDone = done) }
     fun setAmoledBlack(enabled: Boolean) = update { copy(amoledBlack = enabled) }
     fun setAccentColor(color: AccentColor) = update { copy(accentColor = color) }
     fun setCornerStyle(style: CornerStyle) = update { copy(cornerStyle = style) }
@@ -371,14 +360,12 @@ class SettingsPreferences(context: Context) {
         return bytes.joinToString("") { "%02x".format(it) }
     }
 
-    fun resetToDefaults() {
-        val security = _state.value
-        _state.value = SettingsState().copy(
-            appLockPinHash = security.appLockPinHash,
-            appLockPinSalt = security.appLockPinSalt,
-            appLockEnabled = security.appLockEnabled,
+    fun resetToDefaults() = update {
+        SettingsState().copy(
+            appLockPinHash = appLockPinHash,
+            appLockPinSalt = appLockPinSalt,
+            appLockEnabled = appLockEnabled,
         )
-        write(_state.value)
     }
 
     private fun update(transform: SettingsState.() -> SettingsState) {
@@ -464,67 +451,67 @@ class SettingsPreferences(context: Context) {
     }
 
     private fun write(state: SettingsState) {
-        prefs.edit()
-            .putString("theme_mode", state.themeMode.name)
-            .putBoolean("amoled_black", state.amoledBlack)
-            .putString("accent_color", state.accentColor.name)
-            .putString("corner_style", state.cornerStyle.name)
-            .putString("grid_spacing", state.gridSpacing.name)
-            .putFloat("photo_grid_size", state.photoGridSize)
-            .putFloat("album_grid_size", state.albumGridSize)
-            .putBoolean("show_timeline_headers", state.showTimelineHeaders)
-            .putString("timeline_date_format", state.timelineDateFormat.name)
-            .putString("custom_timeline_date_format", state.customTimelineDateFormat)
-            .putBoolean("use_relative_dates", state.useRelativeDates)
-            .putBoolean("show_day_of_week", state.showDayOfWeek)
-            .putBoolean("abbreviate_day_of_week", state.abbreviateDayOfWeek)
-            .putBoolean("smart_year_hiding", state.smartYearHiding)
-            .putBoolean("show_video_duration_badge", state.showVideoDurationBadge)
-            .putBoolean("show_media_format_badge", state.showMediaFormatBadge)
-            .putBoolean("group_raw_photos", state.groupRawPhotos)
-            .putBoolean("show_album_count", state.showAlbumCount)
-            .putBoolean("auto_play_video", state.autoPlayVideo)
-            .putBoolean("loop_video", state.loopVideo)
-            .putBoolean("video_double_tap_to_zoom", state.videoDoubleTapToZoom)
-            .putBoolean("video_gesture_controls", state.videoGestureControls)
-            .putBoolean("show_viewer_user_comments", state.showViewerUserComments)
-            .putString("viewer_header_style", state.viewerHeaderStyle.name)
-            .putBoolean("show_viewer_page_count", state.showViewerPageCount)
-            .putBoolean("show_viewer_time", state.showViewerTime)
-            .putBoolean("show_filmstrip", state.showFilmstrip)
-            .putBoolean("dismissed_filmstrip_tip", state.dismissedFilmstripTip)
-            .putBoolean("pinch_to_rotate", state.pinchToRotate)
-            .putBoolean("dismissed_rotate_tip", state.dismissedRotateTip)
-            .putFloat("double_tap_zoom_level", state.doubleTapZoomLevel)
-            .putBoolean("multi_stage_zoom_v2", state.multiStageZoom)
-            .putString("startup_tab", state.startupTab.name)
-            .putInt("media_filter", state.mediaFilter)
-            .putBoolean("show_media_tab", state.showMediaTab)
-            .putBoolean("show_albums_tab", state.showAlbumsTab)
-            .putBoolean("show_favorites_tab", state.showFavoritesTab)
-            .putBoolean("show_library_tab", state.showLibraryTab)
-            .putBoolean("biometric_lock_enabled", state.biometricLockEnabled)
-            .putBoolean("vault_hide_from_storage", state.vaultHideFromStorage)
-            .putBoolean("app_lock_enabled", state.appLockEnabled)
-            .putString("app_lock_pin_hash", state.appLockPinHash)
-            .putString("app_lock_pin_salt", state.appLockPinSalt)
-            .putInt("app_lock_failed_attempts", state.appLockFailedAttempts)
-            .putLong("app_lock_lockout_until", state.appLockLockoutUntil)
-            .putBoolean("app_lock_biometrics_enabled", state.appLockBiometricsEnabled)
-            .putBoolean("confirm_delete", state.confirmDelete)
-            .putString("delete_mode", state.deleteMode.name)
-            .putBoolean("use_system_trash", state.useSystemTrash)
-            .putBoolean("video_muted", state.videoMuted)
-            .putString("preferred_editor", state.preferredEditor.name)
-            .putBoolean("editor_overwrite_original", state.editorOverwriteOriginal)
-            .putString("app_language", state.language)
-            .putBoolean("first_launch_lang_done", state.firstLaunchLanguageSetupDone)
-            .putBoolean("memories_notification_enabled", state.memoriesNotificationEnabled)
-            .putInt("memories_notification_hour", state.memoriesNotificationHour)
-            .putInt("memories_notification_minute", state.memoriesNotificationMinute)
-            .putBoolean("dismissed_memories_tip", state.dismissedMemoriesTip)
-            .putString("secure_sharing_mode", state.secureSharingMode.name)
-            .putBoolean("dismissed_secure_sharing_tip", state.dismissedSecureSharingTip)
-            .apply()
+        prefs.edit {
+            putString("theme_mode", state.themeMode.name)
+                .putBoolean("amoled_black", state.amoledBlack)
+                .putString("accent_color", state.accentColor.name)
+                .putString("corner_style", state.cornerStyle.name)
+                .putString("grid_spacing", state.gridSpacing.name)
+                .putFloat("photo_grid_size", state.photoGridSize)
+                .putFloat("album_grid_size", state.albumGridSize)
+                .putBoolean("show_timeline_headers", state.showTimelineHeaders)
+                .putString("timeline_date_format", state.timelineDateFormat.name)
+                .putString("custom_timeline_date_format", state.customTimelineDateFormat)
+                .putBoolean("use_relative_dates", state.useRelativeDates)
+                .putBoolean("show_day_of_week", state.showDayOfWeek)
+                .putBoolean("abbreviate_day_of_week", state.abbreviateDayOfWeek)
+                .putBoolean("smart_year_hiding", state.smartYearHiding)
+                .putBoolean("show_video_duration_badge", state.showVideoDurationBadge)
+                .putBoolean("show_media_format_badge", state.showMediaFormatBadge)
+                .putBoolean("group_raw_photos", state.groupRawPhotos)
+                .putBoolean("show_album_count", state.showAlbumCount)
+                .putBoolean("auto_play_video", state.autoPlayVideo)
+                .putBoolean("loop_video", state.loopVideo)
+                .putBoolean("video_double_tap_to_zoom", state.videoDoubleTapToZoom)
+                .putBoolean("video_gesture_controls", state.videoGestureControls)
+                .putBoolean("show_viewer_user_comments", state.showViewerUserComments)
+                .putString("viewer_header_style", state.viewerHeaderStyle.name)
+                .putBoolean("show_viewer_page_count", state.showViewerPageCount)
+                .putBoolean("show_viewer_time", state.showViewerTime)
+                .putBoolean("show_filmstrip", state.showFilmstrip)
+                .putBoolean("dismissed_filmstrip_tip", state.dismissedFilmstripTip)
+                .putBoolean("pinch_to_rotate", state.pinchToRotate)
+                .putBoolean("dismissed_rotate_tip", state.dismissedRotateTip)
+                .putFloat("double_tap_zoom_level", state.doubleTapZoomLevel)
+                .putBoolean("multi_stage_zoom_v2", state.multiStageZoom)
+                .putString("startup_tab", state.startupTab.name)
+                .putInt("media_filter", state.mediaFilter)
+                .putBoolean("show_media_tab", state.showMediaTab)
+                .putBoolean("show_albums_tab", state.showAlbumsTab)
+                .putBoolean("show_favorites_tab", state.showFavoritesTab)
+                .putBoolean("show_library_tab", state.showLibraryTab)
+                .putBoolean("biometric_lock_enabled", state.biometricLockEnabled)
+                .putBoolean("vault_hide_from_storage", state.vaultHideFromStorage)
+                .putBoolean("app_lock_enabled", state.appLockEnabled)
+                .putString("app_lock_pin_hash", state.appLockPinHash)
+                .putString("app_lock_pin_salt", state.appLockPinSalt)
+                .putInt("app_lock_failed_attempts", state.appLockFailedAttempts)
+                .putLong("app_lock_lockout_until", state.appLockLockoutUntil)
+                .putBoolean("app_lock_biometrics_enabled", state.appLockBiometricsEnabled)
+                .putBoolean("confirm_delete", state.confirmDelete)
+                .putString("delete_mode", state.deleteMode.name)
+                .putBoolean("use_system_trash", state.useSystemTrash)
+                .putBoolean("video_muted", state.videoMuted)
+                .putString("preferred_editor", state.preferredEditor.name)
+                .putBoolean("editor_overwrite_original", state.editorOverwriteOriginal)
+                .putString("app_language", state.language)
+                .putBoolean("first_launch_lang_done", state.firstLaunchLanguageSetupDone)
+                .putBoolean("memories_notification_enabled", state.memoriesNotificationEnabled)
+                .putInt("memories_notification_hour", state.memoriesNotificationHour)
+                .putInt("memories_notification_minute", state.memoriesNotificationMinute)
+                .putBoolean("dismissed_memories_tip", state.dismissedMemoriesTip)
+                .putString("secure_sharing_mode", state.secureSharingMode.name)
+                .putBoolean("dismissed_secure_sharing_tip", state.dismissedSecureSharingTip)
+        }
     }
 }

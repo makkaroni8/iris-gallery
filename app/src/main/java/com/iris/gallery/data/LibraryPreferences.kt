@@ -4,6 +4,7 @@ import android.content.Context
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import androidx.core.content.edit
 
 enum class AlbumSort { NEWEST, OLDEST, NAME, ITEM_COUNT, CUSTOM }
 enum class MediaSort { DATE_DESC, DATE_ASC, NAME_ASC, NAME_DESC, SIZE_DESC, SIZE_ASC }
@@ -26,9 +27,11 @@ class LibraryPreferences(context: Context) {
     val state: StateFlow<LibraryPreferencesState> = _state.asStateFlow()
 
     fun setLocked(ids: Collection<Long>, locked: Boolean) = update {
-        copy(lockedMedia = lockedMedia.toMutableSet().apply {
-            if (locked) addAll(ids) else removeAll(ids.toSet())
-        })
+        copy(
+            lockedMedia = lockedMedia.toMutableSet().apply {
+                if (locked) addAll(ids) else removeAll(ids.toSet())
+            },
+        )
     }
 
     fun togglePinnedAlbum(id: Long) = update {
@@ -63,17 +66,13 @@ class LibraryPreferences(context: Context) {
         copy(excludedFolders = excludedFolders - clean)
     }
 
-    fun setExcludedFolders(folders: Set<String>) = update {
-        copy(excludedFolders = folders.map { it.trim().removeSuffix("/") }.filter { it.isNotBlank() }.toSet())
-    }
-
     fun getCustomTitle(mediaId: Long): String? = prefs.getString("title_$mediaId", null)?.ifBlank { null }
 
     fun setCustomTitle(mediaId: Long, title: String?) {
         if (title.isNullOrBlank()) {
-            prefs.edit().remove("title_$mediaId").apply()
+            prefs.edit {remove("title_$mediaId")}
         } else {
-            prefs.edit().putString("title_$mediaId", title.trim()).apply()
+            prefs.edit { putString("title_$mediaId", title.trim())}
         }
     }
 
@@ -89,7 +88,7 @@ class LibraryPreferences(context: Context) {
             val parts = value.split(':', limit = 2)
             val album = parts.getOrNull(0)?.toLongOrNull()
             val media = parts.getOrNull(1)?.toLongOrNull()
-            if (album != null && media != null) album to media else null
+            if ((album != null) && (media != null)) album to media else null
         }.toMap(),
         albumOrder = prefs.getString("album_order", "").orEmpty().split(',').mapNotNull(String::toLongOrNull),
         albumSort = runCatching { AlbumSort.valueOf(prefs.getString("album_sort", null).orEmpty()) }
@@ -100,22 +99,31 @@ class LibraryPreferences(context: Context) {
             val parts = value.split(':', limit = 2)
             val album = parts.getOrNull(0)?.toLongOrNull()
             val sort = parts.getOrNull(1)?.let { runCatching { MediaSort.valueOf(it) }.getOrNull() }
-            if (album != null && sort != null) album to sort else null
+            if ((album != null) && (sort != null)) album to sort else null
         }.toMap(),
         excludedFolders = prefs.getStringSet("excluded_folders", emptySet()).orEmpty(),
     )
 
     private fun write(state: LibraryPreferencesState) {
-        prefs.edit()
-            .putStringSet("locked", state.lockedMedia.mapTo(mutableSetOf(), Long::toString))
-            .putStringSet("pinned_albums", state.pinnedAlbums.mapTo(mutableSetOf(), Long::toString))
-            .putStringSet("album_covers", state.albumCovers.mapTo(mutableSetOf()) { "${it.key}:${it.value}" })
-            .putString("album_order", state.albumOrder.joinToString(","))
-            .putString("album_sort", state.albumSort.name)
-            .putString("album_media_sort", state.albumMediaSort.name)
-            .putStringSet("album_media_sort_overrides", state.albumMediaSortOverrides.mapTo(mutableSetOf()) { "${it.key}:${it.value.name}" })
-            .putStringSet("excluded_folders", state.excludedFolders)
-            .apply()
+        prefs.edit {
+            putStringSet("locked", state.lockedMedia.mapTo(mutableSetOf(), Long::toString))
+                .putStringSet(
+                    "pinned_albums",
+                    state.pinnedAlbums.mapTo(mutableSetOf(), Long::toString),
+                )
+                .putStringSet(
+                    "album_covers",
+                    state.albumCovers.mapTo(mutableSetOf()) { (key, value) -> "$key:$value" },
+                )
+                .putString("album_order", state.albumOrder.joinToString(","))
+                .putString("album_sort", state.albumSort.name)
+                .putString("album_media_sort", state.albumMediaSort.name)
+                .putStringSet(
+                    "album_media_sort_overrides",
+                    state.albumMediaSortOverrides.mapTo(mutableSetOf()) { (key, value) -> "$key:${value.name}" },
+                )
+                .putStringSet("excluded_folders", state.excludedFolders)
+        }
     }
 }
 

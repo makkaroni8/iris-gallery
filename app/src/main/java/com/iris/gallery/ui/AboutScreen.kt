@@ -1,13 +1,7 @@
 package com.iris.gallery.ui
 
 import android.content.Intent
-import android.net.Uri
 import android.widget.Toast
-import androidx.compose.animation.AnimatedVisibility
-import androidx.compose.animation.fadeIn
-import androidx.compose.animation.fadeOut
-import androidx.compose.animation.slideInVertically
-import androidx.compose.animation.slideOutVertically
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -22,10 +16,8 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
@@ -71,22 +63,23 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.iris.gallery.R
 import kotlinx.coroutines.launch
+import androidx.core.net.toUri
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun AboutScreen(
     padding: PaddingValues = PaddingValues(0.dp),
-    onBack: () -> Unit
+    onBack: () -> Unit,
 ) {
     val context = LocalContext.current
     var eggClicks by remember { mutableIntStateOf(0) }
     var activeToast by remember { mutableStateOf<Toast?>(null) }
-    var showEasterEggSheet by remember { mutableStateOf(false) }
+    var showEasterEggSheet by remember { mutableStateOf(value = false) }
     val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
     val scope = rememberCoroutineScope()
 
     fun openUrl(url: String) {
-        val intent = Intent(Intent.ACTION_VIEW, Uri.parse(url)).apply {
+        val intent = Intent(Intent.ACTION_VIEW, url.toUri()).apply {
             addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
         }
         context.startActivity(intent)
@@ -136,15 +129,16 @@ fun AboutScreen(
                         .clickable {
                             eggClicks++
                             activeToast?.cancel()
+                            val appCtx = context.applicationContext
                             if (eggClicks >= 5) {
                                 eggClicks = 0
-                                activeToast = Toast.makeText(context, context.getString(R.string.toast_optics_unlocked), Toast.LENGTH_SHORT).apply { show() }
+                                activeToast = Toast.makeText(appCtx, appCtx.getString(R.string.toast_optics_unlocked), Toast.LENGTH_SHORT).apply { show() }
                                 showEasterEggSheet = true
                             } else {
                                 val remaining = 5 - eggClicks
-                                val message = if (remaining == 1) context.getString(R.string.toast_easter_egg_hint_one)
-                                else context.getString(R.string.toast_easter_egg_hint, remaining)
-                                activeToast = Toast.makeText(context, message, Toast.LENGTH_SHORT).apply { show() }
+                                val message = if (remaining == 1) appCtx.getString(R.string.toast_easter_egg_hint_one)
+                                else appCtx.getString(R.string.toast_easter_egg_hint, remaining)
+                                activeToast = Toast.makeText(appCtx, message, Toast.LENGTH_SHORT).apply { show() }
                             }
                         },
                     contentAlignment = Alignment.Center
@@ -200,16 +194,16 @@ fun AboutScreen(
                     AboutLinkRow(
                         icon = Icons.Outlined.Psychology,
                         title = androidx.compose.ui.res.stringResource(R.string.about_developer_label),
-                        subtitle = androidx.compose.ui.res.stringResource(R.string.about_developer_name)
-                    ) { openUrl("https://bn3di.is-a.dev") }
+                        subtitle = androidx.compose.ui.res.stringResource(R.string.about_developer_name),
+                    ) { openUrl("https://" + "bn3di.is-a.dev") }
 
                     HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f))
 
                     AboutLinkRow(
                         icon = Icons.Outlined.Language,
                         title = androidx.compose.ui.res.stringResource(R.string.about_website_label),
-                        subtitle = "https://bn3di.is-a.dev"
-                    ) { openUrl("https://bn3di.is-a.dev") }
+                        subtitle = "https://bn3di.is-a.dev",
+                    ) { openUrl("https://" + "bn3di.is-a.dev") }
 
                     HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f))
 
@@ -284,11 +278,11 @@ fun AboutScreen(
         ModalBottomSheet(
             onDismissRequest = { showEasterEggSheet = false },
             sheetState = sheetState,
-            containerColor = MaterialTheme.colorScheme.surface
+            containerColor = MaterialTheme.colorScheme.surface,
         ) {
-            MesopotamiaOpticsSheet(onClose = {
+            MesopotamiaOpticsSheet {
                 scope.launch { sheetState.hide() }.invokeOnCompletion { showEasterEggSheet = false }
-            })
+            }
         }
     }
 }

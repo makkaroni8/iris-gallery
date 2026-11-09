@@ -35,7 +35,7 @@ object MemoriesNotifications {
             context,
             ALARM_REQUEST_CODE,
             Intent(context, MemoriesReceiver::class.java),
-            PendingIntent.FLAG_NO_CREATE or PendingIntent.FLAG_IMMUTABLE
+            PendingIntent.FLAG_NO_CREATE or PendingIntent.FLAG_IMMUTABLE,
         )
         if (intent != null) {
             alarm.cancel(intent)
@@ -53,7 +53,7 @@ object MemoriesNotifications {
             context,
             ALARM_REQUEST_CODE,
             Intent(context, MemoriesReceiver::class.java),
-            PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
+            PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE,
         )
         val next = Calendar.getInstance().apply {
             set(Calendar.HOUR_OF_DAY, hour)
@@ -68,23 +68,26 @@ object MemoriesNotifications {
     }
 
     fun scheduleFromSettings(context: Context) {
-        val settings = SettingsPreferences(context).state.value
-        schedule(
-            context = context,
-            enabled = settings.memoriesNotificationEnabled,
-            hour = settings.memoriesNotificationHour,
-            minute = settings.memoriesNotificationMinute
-        )
+        with(SettingsPreferences(context).state.value) {
+            schedule(
+                context = context,
+                enabled = memoriesNotificationEnabled,
+                hour = memoriesNotificationHour,
+                minute = memoriesNotificationMinute,
+            )
+        }
     }
 }
 
 class MemoriesReceiver : BroadcastReceiver() {
     override fun onReceive(context: Context, intent: Intent) {
-        val settings = SettingsPreferences(context).state.value
-        if (!settings.memoriesNotificationEnabled) return
+        if (!SettingsPreferences(context).state.value.memoriesNotificationEnabled) return
 
-        if (Build.VERSION.SDK_INT >= 33 && ContextCompat.checkSelfPermission(context,
-                Manifest.permission.POST_NOTIFICATIONS) != PackageManager.PERMISSION_GRANTED) return
+        if ((Build.VERSION.SDK_INT >= 33) &&
+            (ContextCompat.checkSelfPermission(context, Manifest.permission.POST_NOTIFICATIONS) != PackageManager.PERMISSION_GRANTED)
+        ) {
+            return
+        }
         val pending = goAsync()
         CoroutineScope(Dispatchers.IO).launch {
             try {
@@ -92,34 +95,48 @@ class MemoriesReceiver : BroadcastReceiver() {
                 val locked = context.getSharedPreferences("library_preferences", Context.MODE_PRIVATE)
                     .getStringSet("locked", emptySet()).orEmpty().mapNotNullTo(hashSetOf(), String::toLongOrNull)
                 val memories = MediaRepository(context).loadImages()
-                    .filterNot { it.id in locked }
-                    .filter {
-                        val date = Instant.ofEpochMilli(it.dateTaken).atZone(ZoneId.systemDefault()).toLocalDate()
-                        date.year < today.year && date.month == today.month && date.dayOfMonth == today.dayOfMonth
+                    .asSequence()
+                    .filterNot { (id) -> id in locked }
+                    .filter { (_, _, _, dateTaken) ->
+                        val date = Instant.ofEpochMilli(dateTaken).atZone(ZoneId.systemDefault()).toLocalDate()
+                        (date.year < today.year) && (date.month == today.month) && (date.dayOfMonth == today.dayOfMonth)
                     }
+                    .toList()
                 if (memories.isEmpty()) return@launch
                 val manager = context.getSystemService(NotificationManager::class.java)
-                manager.createNotificationChannel(NotificationChannel(MemoriesNotifications.CHANNEL,
-                    context.getString(R.string.notification_channel_memories), NotificationManager.IMPORTANCE_DEFAULT).apply {
-                    description = context.getString(R.string.notification_channel_desc)
-                })
+                manager.createNotificationChannel(
+                    NotificationChannel(
+                        MemoriesNotifications.CHANNEL,
+                        context.getString(R.string.notification_channel_memories),
+                        NotificationManager.IMPORTANCE_DEFAULT,
+                    ).apply {
+                        description = context.getString(R.string.notification_channel_desc)
+                    },
+                )
                 val phrases = listOf("From this day", "A look back", "Remember this day?", "Your story from today")
                 val title = phrases[today.dayOfYear % phrases.size]
-                val first = memories.first()
+                val (firstId, firstUri) = memories.first()
                 val preview = runCatching {
                     if (Build.VERSION.SDK_INT >= 29) {
-                        context.contentResolver.loadThumbnail(first.uri, Size(720, 480), null)
+                        context.contentResolver.loadThumbnail(firstUri, Size(720, 480), null)
                     } else {
                         @Suppress("DEPRECATION")
                         MediaStore.Images.Thumbnails.getThumbnail(
-                            context.contentResolver, first.id, MediaStore.Images.Thumbnails.MINI_KIND, null
+                            context.contentResolver,
+                            firstId,
+                            MediaStore.Images.Thumbnails.MINI_KIND,
+                            null,
                         )
                     }
                 }.getOrNull()
-                val open = PendingIntent.getActivity(context, 4103, Intent(context, MainActivity::class.java)
-                    .putExtra("open_memories", true)
-                    .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP),
-                    PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE)
+                val open = PendingIntent.getActivity(
+                    context,
+                    4103,
+                    Intent(context, MainActivity::class.java)
+                        .putExtra("open_memories", true)
+                        .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP),
+                    PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE,
+                )
                 val text = if (memories.size == 1) {
                     context.getString(R.string.notification_memory_waiting, memories.size)
                 } else {
@@ -130,7 +147,11 @@ class MemoriesReceiver : BroadcastReceiver() {
                     .setContentText(text)
                     .setContentIntent(open).setAutoCancel(true).setOnlyAlertOnce(true)
                     .setVisibility(NotificationCompat.VISIBILITY_SECRET)
-                    .apply { if (preview != null) setStyle(NotificationCompat.BigPictureStyle().bigPicture(preview).bigLargeIcon(null as android.graphics.Bitmap?)) }
+                    .apply {
+                        preview?.let {
+                            setStyle(NotificationCompat.BigPictureStyle().bigPicture(it).bigLargeIcon(null as android.graphics.Bitmap?))
+                        }
+                    }
                     .build()
                 manager.notify(4104, notification)
             } catch (error: Throwable) {
@@ -141,5 +162,9 @@ class MemoriesReceiver : BroadcastReceiver() {
 }
 
 class BootReceiver : BroadcastReceiver() {
-    override fun onReceive(context: Context, intent: Intent) = MemoriesNotifications.scheduleFromSettings(context)
+    override fun onReceive(context: Context, intent: Intent) {
+        if (intent.action == Intent.ACTION_BOOT_COMPLETED) {
+            MemoriesNotifications.scheduleFromSettings(context)
+        }
+    }
 }

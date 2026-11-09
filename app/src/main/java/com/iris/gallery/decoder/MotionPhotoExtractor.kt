@@ -64,32 +64,22 @@ object MotionPhotoExtractor {
 
     /** Cached extraction result, or null if [image] is not a motion photo. */
     fun detectMotionPhoto(context: Context, image: MediaImage): MotionVideo? {
-        cache.get(image.id)?.let { return it }
+        cache[image.id]?.let { return it }
         val result = runCatching { extract(context, image) }.getOrNull() ?: return null
-        if (result != null) cache.put(image.id, result)
+        cache.put(image.id, result)
         return result
-    }
-
-    /** Drop the cached entry for [imageId] (e.g. when the item is deleted). */
-    fun evict(imageId: Long) {
-        cache.remove(imageId)
-    }
-
-    /** Clear the whole cache. */
-    fun clearCache() {
-        cache.evictAll()
     }
 
     private fun extract(context: Context, image: MediaImage): MotionVideo? {
         val directFile = if (image.path.isNotBlank()) File(image.path) else null
-        val useDirectFile = directFile != null && directFile.exists() && directFile.canRead()
+        val useDirectFile = (directFile != null) && directFile.exists() && directFile.canRead()
 
         val openInput: () -> InputStream? = {
             if (useDirectFile) {
-                java.io.FileInputStream(directFile!!)
+                java.io.FileInputStream(directFile)
             } else {
-                val targetUri = if (Build.VERSION.SDK_INT >= 29 &&
-                    image.uri.scheme == ContentResolver.SCHEME_CONTENT
+                val targetUri = if ((Build.VERSION.SDK_INT >= 29) &&
+                    (image.uri.scheme == ContentResolver.SCHEME_CONTENT)
                 ) {
                     runCatching { MediaStore.setRequireOriginal(image.uri) }.getOrDefault(image.uri)
                 } else image.uri
@@ -98,7 +88,7 @@ object MotionPhotoExtractor {
         }
 
         val fileLength = when {
-            useDirectFile -> directFile!!.length()
+            useDirectFile -> directFile.length()
             image.sizeBytes > 0 -> image.sizeBytes
             else -> -1L
         }
@@ -109,7 +99,7 @@ object MotionPhotoExtractor {
         // 0b) Apple Live Photo: paired .MOV/.mov file beside the .JPG/.HEIC.
         //    Apple Live Photos are stored as two separate files that share a
         //    content identifier UUID. The .MOV sits in the same directory.
-        extractAppleLivePhoto(context, image, directFile)?.let { return it }
+        extractAppleLivePhoto(image)?.let { return it }
 
         if (fileLength <= 0) return null
 
@@ -151,10 +141,10 @@ object MotionPhotoExtractor {
             RandomAccessFile(src, "r").use { raf ->
                 val sig = ByteArray(4)
                 raf.readFully(sig)
-                sig[0].toInt() == 0x50 && sig[1].toInt() == 0x4B &&
-                    sig[2].toInt() == 0x03 && sig[3].toInt() == 0x04
+                (sig[0].toInt() == 0x50) && (sig[1].toInt() == 0x4B) &&
+                    (sig[2].toInt() == 0x03) && (sig[3].toInt() == 0x04)
             }
-        }.getOrDefault(false)
+        }.getOrDefault(defaultValue = false)
         if (!isZip) return null
 
         // Stable temp file names derived from the source path + mtime stamp.
@@ -222,9 +212,7 @@ object MotionPhotoExtractor {
     // ------------------------------------------------------------------
 
     private fun extractAppleLivePhoto(
-        context: Context,
         image: MediaImage,
-        directFile: File?,
     ): MotionVideo? {
         // Apple Live Photos store the still as .JPG/.HEIC and the video as .MOV
         // in the same directory. The filename stem is shared (e.g. IMG_1234.JPG
@@ -349,9 +337,8 @@ object MotionPhotoExtractor {
 
         // MP4 starts 4 bytes before "ftyp" (the size field). Video runs to EOF.
         val start = (ftypRel - 4).toLong().coerceAtLeast(0)
-        val end = fileLength
-        if (end - start < 16) return null
-        return copyVideoRange(context, image, openInput, directFile, start, end)
+        if (fileLength - start < 16) return null
+        return copyVideoRange(context, image, openInput, directFile, start, fileLength)
     }
 
     // ------------------------------------------------------------------
@@ -366,15 +353,15 @@ object MotionPhotoExtractor {
         start: Long,
         end: Long,
     ): MotionVideo? {
-        if (start < 0 || end <= start) return null
+        if (start !in 0..<end) return null
         val len = end - start
-        val outFile = File(context.cacheDir, "motion_${image.id}_${start}_${len}.mp4")
+        val outFile = File(context.cacheDir, "motion_${image.id}_${start}_$len.mp4")
         if (outFile.exists() && outFile.length() == len) {
             return MotionVideo(Uri.fromFile(outFile), "video/mp4", len)
         }
 
         return runCatching {
-            if (directFile != null && directFile.exists() && directFile.canRead()) {
+            if ((directFile != null) && directFile.exists() && directFile.canRead()) {
                 RandomAccessFile(directFile, "r").use { raf ->
                     raf.seek(start)
                     val tmp = File(outFile.absolutePath + ".tmp")

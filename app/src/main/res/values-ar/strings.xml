@@ -21,15 +21,11 @@
 
     <!-- Top Bar & Selection -->
     <string name="selected_count">تم تحديد %1$d</string>
-    <string name="selected_count_format">تم تحديد %1$d</string>
     <string name="action_clear_selection">إلغاء التحديد</string>
     <string name="action_restore">استعادة المحدد</string>
-    <string name="action_restore_selected">استعادة المحدد</string>
     <string name="action_share">مشاركة</string>
-    <string name="action_share_selected">مشاركة المحدد</string>
     <string name="action_share_media">مشاركة الوسائط</string>
     <string name="action_delete">حذف</string>
-    <string name="action_delete_selected">حذف المحدد</string>
     <string name="action_more">مزيد من الإجراءات</string>
     <string name="action_more_options">خيارات إضافية</string>
     <string name="action_select_all">تحديد الكل</string>
@@ -40,8 +36,6 @@
     <string name="action_favorited">في المفضلة</string>
     <string name="action_unfavorite">إزالة من المفضلة</string>
     <string name="action_empty_trash">إفراغ</string>
-    <string name="action_comfortable_grid">شبكة مريحة</string>
-    <string name="action_compact_grid">شبكة مدمجة</string>
     <string name="action_back">رجوع</string>
     <string name="action_cancel">إلغاء</string>
     <string name="action_save">حفظ</string>
@@ -49,13 +43,11 @@
     <string name="action_saving">جارٍ الحفظ…</string>
     <string name="action_grant">منح</string>
     <string name="action_grant_access">منح الإذن</string>
-    <string name="action_use_system_popup">استخدام نافذة النظام</string>
     <string name="action_close">إغلاق</string>
     <string name="action_continue">متابعة</string>
     <string name="action_edit">تعديل</string>
     <string name="action_unlock">فتح</string>
     <string name="action_lock">قفل</string>
-    <string name="action_details">التفاصيل</string>
     <string name="action_backspace">حذف</string>
     <string name="action_mute">كتم الصوت</string>
     <string name="action_unmute">إلغاء كتم الصوت</string>
@@ -76,7 +68,6 @@
     <string name="settings_language_desc">اختر لغة العرض المفضلة لديك</string>
     <string name="first_launch_lang_title">لغة التطبيق</string>
     <string name="first_launch_lang_subtitle">اختر لغتك المفضلة للمتابعة</string>
-    <string name="first_launch_lang_detected">اللغة الحالية لجهازك</string>
 
     <!-- Permission Screen -->
     <string name="permission_title">معرض صورك، بجماله وخصوصيته</string>
@@ -91,21 +82,13 @@
     <string name="empty_locked_locked_state">قم بإلغاء القفل لعرض العناصر الخاصة</string>
     <string name="empty_memories">لا توجد ذكريات لهذا اليوم بعد</string>
     <string name="empty_editable">لا توجد صور قابلة للتعديل</string>
-    <string name="empty_formats">لم يتم العثور على صور RAW أو GIF أو صور متحركة أو بانورامية</string>
     <string name="empty_special_formats">لم يتم العثور على صور RAW أو GIF أو صور متحركة أو بانورامية</string>
-    <string name="empty_format_filter">لم يتم العثور على أي %1$s</string>
     <string name="empty_format_type">لم يتم العثور على أي %1$s</string>
     <string name="empty_search_albums">لا توجد ألبومات تطابق \"%1$s\"</string>
-    <string name="empty_duplicates">لم يتم العثور على صور مكررة</string>
 
     <!-- Dialogs -->
     <string name="empty_trash_dialog_title">إفراغ سلة المهملات؟</string>
     <string name="empty_trash_dialog_desc">حذف جميع العناصر البالغ عددها %1$d نهائياً من جهازك؟ لا يمكن التراجع عن هذا الإجراء.</string>
-    <string name="dialog_empty_trash_title">إفراغ سلة المهملات؟</string>
-    <string name="dialog_empty_trash_message">حذف جميع العناصر البالغ عددها %1$d نهائياً من جهازك؟ لا يمكن التراجع عن هذا الإجراء.</string>
-    <string name="dialog_empty_trash_confirm">إفراغ سلة المهملات</string>
-    <string name="dialog_delete_item_title">نقل %1$s إلى سلة المهملات؟</string>
-    <string name="dialog_delete_item_message">سيطلب نظام أندرويد تأكيدك لتطبيق هذا التغيير.</string>
     <string name="delete_trash_video_title">نقل الفيديو إلى سلة المهملات؟</string>
     <string name="delete_trash_photo_title">نقل الصورة إلى سلة المهملات؟</string>
     <string name="delete_trash_desc">سيطلب نظام أندرويد تأكيدك لتطبيق هذا التغيير.</string>
@@ -113,19 +96,12 @@
     <string name="delete_permanent_photo_title">حذف الصورة نهائياً؟</string>
     <string name="delete_permanent_desc">سيتم حذف هذا العنصر نهائياً من جهازك. لا يمكن التراجع عن هذا الإجراء.</string>
     <string name="delete_vault_desc">سيتم حذف هذا العنصر نهائياً من خزنتك الخاصة.</string>
-    <string name="dialog_delete_vault_item_title">حذف %1$s نهائياً؟</string>
-    <string name="dialog_delete_vault_item_message">سيتم حذف هذا العنصر نهائياً من خزنتك الخاصة.</string>
     <string name="prompt_free_vault_title">خزنة دون نوافذ تأكيد</string>
     <string name="prompt_free_vault_desc">منح إذن \'الوصول إلى جميع الملفات\' يتيح لمعرض Iris نقل الصور وإخفاءها في خزنتك الخاصة بسلاسة دون أن يطلب أندرويد تأكيد الحذف في كل مرة.\n\nيعمل تطبيق Iris دون اتصال بالإنترنت بنسبة 100%، لذا لن تغادر ملفاتك جهازك أبداً.</string>
-    <string name="dialog_prompt_free_vault_title">خزنة دون نوافذ تأكيد</string>
-    <string name="dialog_prompt_free_vault_message">منح إذن \'الوصول إلى جميع الملفات\' يتيح لمعرض Iris نقل الصور وإخفاءها في خزنتك الخاصة بسلاسة دون أن يطلب أندرويد تأكيد الحذف في كل مرة.\n\nيعمل تطبيق Iris دون اتصال بالإنترنت بنسبة 100%، لذا لن تغادر ملفاتك جهازك أبداً.</string>
 
     <!-- Media Types & Titles -->
-    <string name="media_type_photo">صورة</string>
-    <string name="media_type_video">فيديو</string>
     <string name="format_image">صورة</string>
     <string name="format_video">فيديو</string>
-    <string name="media_page_indicator">%1$d من %2$d</string>
     <string name="viewer_page_count">%1$d من %2$d</string>
 
     <!-- Albums Screen -->
@@ -138,8 +114,6 @@
     <string name="album_items_count">%1$d عنصر</string>
     <string name="album_pin">تثبيت الألبوم</string>
     <string name="album_unpin">إلغاء تثبيت الألبوم</string>
-    <string name="action_move_up">نقل لأعلى</string>
-    <string name="action_move_down">نقل لأسفل</string>
 
     <!-- Library Screen Cards -->
     <string name="library_header">تنظيم واكتشاف</string>
@@ -155,17 +129,10 @@
     <string name="library_editor_subtitle">أنشئ نسخة معدلة ومحسنة دون المساس بالصورة الأصلية</string>
     <string name="library_formats_title">تنسيقات الوسائط</string>
     <string name="library_formats_subtitle">صور RAW وGIF والصور المتحركة والبانورامية</string>
-    <string name="library_settings_title">الإعدادات والتخصيص</string>
-    <string name="library_settings_subtitle">السمات، لوحات الألوان، أنماط الشبكة، والإيماءات</string>
     <string name="library_about_title">حول التطبيق</string>
     <string name="library_about_subtitle">المطور، المشروع مفتوح المصدر، وتفاصيل التطبيق</string>
 
     <!-- Media Formats Filters -->
-    <string name="format_all">الكل (%1$d)</string>
-    <string name="format_raw">RAW (%1$d)</string>
-    <string name="format_gif">GIF (%1$d)</string>
-    <string name="format_panorama">بانوراما (%1$d)</string>
-    <string name="format_motion">صور متحركة (%1$d)</string>
     <string name="filter_all_count">الكل (%1$d)</string>
     <string name="filter_raw_count">RAW (%1$d)</string>
     <string name="filter_gifs_count">GIF (%1$d)</string>
@@ -173,13 +140,6 @@
     <string name="filter_motion_count">صور متحركة (%1$d)</string>
 
     <!-- Duplicates Review Screen -->
-    <string name="duplicates_title">النسخ المكررة والمتشابهة</string>
-    <string name="duplicates_desc">فحص المكتبة للبحث عن النسخ المتطابقة واللقطات المتشابهة</string>
-    <string name="duplicates_scan_now">فحص الآن</string>
-    <string name="duplicates_scanning">جارٍ الفحص…</string>
-    <string name="duplicates_summary">%1$d مجموعة (%2$d صورة)</string>
-    <string name="duplicates_keep_best_delete">الاحتفاظ بالأفضل وحذف %1$d محددة</string>
-    <string name="duplicates_scan_count">%1$d من %2$d</string>
     <string name="duplicates_hero_title">تنظيف بثقة وأمان</string>
     <string name="duplicates_hero_desc">يقارن Iris بين الملفات وبصمات بصرية صغيرة تتم معالجتها داخل جهازك. لا تغادر صورك هاتفك أبداً، ولا يتم حذف أي شيء دون تأكيد نظام أندرويد.</string>
     <string name="duplicates_comparing_progress">مقارنة %1$d من %2$d</string>
@@ -204,37 +164,23 @@
     <string name="details_title">التفاصيل</string>
     <string name="details_photo_details">تفاصيل الصورة</string>
     <string name="details_file_name">اسم الملف</string>
-    <string name="details_title_label">العنوان</string>
     <string name="details_title_field">العنوان</string>
     <string name="details_desc_field">الوصف</string>
-    <string name="details_date_taken">تاريخ الالتقاط</string>
     <string name="details_captured">تم الالتقاط</string>
-    <string name="details_time">الوقت</string>
     <string name="details_resolution">الدقة</string>
-    <string name="details_file_size">حجم الملف</string>
     <string name="details_size">الحجم</string>
     <string name="details_location">الموقع الجغرافي</string>
-    <string name="details_open_in_map">فتح في الخريطة</string>
     <string name="details_map">الخريطة</string>
     <string name="details_camera">الكاميرا</string>
     <string name="details_camera_capture">لقطة الكاميرا</string>
-    <string name="details_camera_lens">الكاميرا والعدسة</string>
-    <string name="details_aperture">فتحة العدسة</string>
-    <string name="details_shutter">سرعة الغالق</string>
-    <string name="details_iso">حساسية الضوء (ISO)</string>
-    <string name="details_focal_length">البعد البؤري</string>
-    <string name="details_dimensions">الأبعاد</string>
     <string name="details_orientation">الاتجاه</string>
     <string name="details_duration">المدة</string>
-    <string name="details_format">التنسيق</string>
     <string name="details_type">النوع</string>
     <string name="details_path">المسار</string>
     <string name="details_edit_metadata">تعديل البيانات الوصفية (Exif)</string>
-    <string name="details_edit_filename">اسم الملف</string>
     <string name="details_edit_title">العنوان</string>
     <string name="details_title_hint">عنوان اختياري</string>
     <string name="details_edit_captured_hint">تاريخ الالتقاط · yyyy-MM-dd HH:mm</string>
-    <string name="details_edit_orientation_hint">الاتجاه · 0، 90، 180 أو 270</string>
     <string name="details_edit_permission_note">سيطلب نظام أندرويد الإذن قبل تعديل وسائط تابعة لتطبيق آخر.</string>
     <string name="details_image_properties">خصائص الصورة</string>
     <string name="details_modified">تاريخ التعديل</string>
@@ -247,7 +193,6 @@
     <string name="details_jpeg_comment_numbered">تعليق JPEG %1$d</string>
 
     <!-- Settings Screen -->
-    <string name="settings_title">الإعدادات</string>
     <string name="settings_section_appearance">المظهر والسمة</string>
     <string name="settings_theme_mode">وضع المظهر</string>
     <string name="settings_theme_system">تلقائي (حسب النظام)</string>
@@ -373,17 +318,11 @@
     <string name="app_lock_title">إلغاء قفل معرض Iris</string>
     <string name="app_lock_picker_title">إلغاء القفل لاختيار الوسائط</string>
     <string name="app_lock_welcome_back">مرحباً بك مجدداً</string>
-    <string name="app_lock_select_media">اختيار الوسائط</string>
     <string name="app_lock_unlocking">جارٍ إلغاء القفل…</string>
-    <string name="app_lock_enter_pin_select">أدخل رمز PIN للمعرض لاختيار الصور</string>
-    <string name="app_lock_enter_pin_unlock">أدخل رمز PIN للمعرض لإلغاء القفل</string>
     <string name="app_lock_subtitle">أدخل رمز PIN للمعرض لإلغاء القفل</string>
     <string name="app_lock_picker_subtitle">أدخل رمز PIN للمعرض لاختيار الصور</string>
     <string name="app_lock_wrong_pin">رمز PIN غير صحيح. يرجى المحاولة مرة أخرى.</string>
-    <string name="app_lock_biometric_title">إلغاء قفل معرض Iris</string>
-    <string name="app_lock_biometric_subtitle">امسح بصمة إصبعك للمتابعة</string>
     <string name="app_lock_scan_fingerprint">امسح بصمة إصبعك للمتابعة</string>
-    <string name="app_lock_biometric_negative">استخدام رمز PIN</string>
     <string name="app_lock_auth_cancelled">تم إلغاء المصادقة</string>
     <string name="app_lock_biometrics_unavailable">القياسات الحيوية غير متوفرة</string>
     <string name="pin_keypad_use_pin">استخدام رمز PIN</string>
@@ -409,26 +348,12 @@
     <string name="editor_title">تعديل نسخة</string>
     <string name="editor_close">إغلاق المحرر</string>
     <string name="editor_preparing">جارٍ تجهيز المحرر…</string>
-    <string name="editor_tool_adjust">ضبط</string>
-    <string name="editor_tool_crop">قص</string>
-    <string name="editor_tool_transform">تحويل</string>
-    <string name="editor_tool_resize">تغيير الحجم</string>
-    <string name="editor_tool_draw">رسم</string>
-    <string name="editor_tool_text">نص</string>
-    <string name="editor_tool_pixelate">تمويه نقطي (بكسلة)</string>
-    <string name="editor_tool_blur">طمس (ضبابية)</string>
-    <string name="editor_rotate_flip">تدوير وقلب</string>
     <string name="editor_rotate_left">90° يساراً</string>
     <string name="editor_rotate_right">90° يميناً</string>
-    <string name="editor_flip_h">قلب أفقي ⇄</string>
-    <string name="editor_flip_v">قلب رأسي ⇅</string>
     <string name="editor_reset_orientation">إعادة ضبط الاتجاه</string>
     <string name="editor_straighten">ضبط الاستقامة</string>
     <string name="editor_reset_zoom">إعادة ضبط التكبير</string>
-    <string name="editor_crop_manual_hint">اسحب أي زاوية للقص يدوياً</string>
-    <string name="editor_crop_help">اسحب داخل الإطار لتغيير موضعه، واستخدم المقابض البيضاء لتغيير حجمه.</string>
     <string name="editor_crop_manual">يدوي</string>
-    <string name="editor_crop_square">مربع</string>
     <string name="editor_width_px">العرض (بكسل)</string>
     <string name="editor_height_px">الارتفاع (بكسل)</string>
     <string name="editor_lock_aspect">قفل نسبة العرض إلى الارتفاع</string>
@@ -449,7 +374,6 @@
     <string name="editor_update_text">تعديل النص</string>
     <string name="editor_delete_text">حذف النص</string>
     <string name="editor_text_size">حجم النص · %1$d</string>
-    <string name="editor_text_bg">الخلفية</string>
     <string name="editor_text_bg_dark">داكنة</string>
     <string name="editor_text_bg_light">فاتحة</string>
     <string name="editor_text_bg_none">بدون خلفية</string>
@@ -460,7 +384,6 @@
     <string name="editor_warmth">الدفء</string>
 
     <!-- About Screen -->
-    <string name="about_title">حول Iris</string>
     <string name="about_developer_project">المطور والمشروع</string>
     <string name="about_developer_label">المطور</string>
     <string name="about_developer_name">Mohamad Oday (@MohamadOday)</string>
@@ -486,10 +409,6 @@
     <string name="notification_channel_desc">صور ومقاطع فيديو من هذا اليوم في الأعوام الماضية</string>
     <string name="notification_memory_waiting">لديك %1$d ذكرى في انتظارك</string>
     <string name="notification_memories_waiting">لديك %1$d ذكريات في انتظارك</string>
-    <string name="memories_phrase_1">من هذا اليوم</string>
-    <string name="memories_phrase_2">نظرة إلى الماضي</string>
-    <string name="memories_phrase_3">هل تتذكر هذا اليوم؟</string>
-    <string name="memories_phrase_4">قصتك من اليوم</string>
     <string name="settings_section_memories">الذكريات والإشعارات</string>
     <string name="setting_memories_notifications">إشعارات الذكريات اليومية</string>
     <string name="setting_memories_notifications_desc">تلقي تذكير عندما تكون هناك صور أو فيديوهات من هذا اليوم في الأعوام الماضية</string>
@@ -500,15 +419,11 @@
 
     <!-- Toasts -->
     <string name="toast_items_vaulted">تم نقل %1$d عنصر إلى الخزنة المخفية</string>
-    <string name="toast_vault_items_moved">تم نقل %1$d عنصر إلى الخزنة المخفية</string>
     <string name="toast_vault_items_locked_gallery">تم إخفاء %1$d عنصر في معرض Iris</string>
     <string name="toast_vault_items_restored">تمت استعادة %1$d عنصر من الخزنة</string>
-    <string name="toast_vault_items_deleted">تم حذف %1$d عنصر نهائياً</string>
     <string name="toast_lock_cancelled">تم إلغاء القفل</string>
     <string name="toast_could_not_request_removal">تعذر طلب الحذف من وحدة التخزين</string>
     <string name="toast_could_not_request_metadata">تعذر طلب الإذن لتعديل البيانات الوصفية</string>
-    <string name="toast_error_storage_removal">تعذر طلب الحذف من وحدة التخزين</string>
-    <string name="toast_error_original_removal">تعذر حذف الملف الأصلي من وحدة التخزين</string>
     <string name="toast_cache_cleared">تم مسح الذاكرة المؤقتة للصور المصغرة</string>
     <string name="toast_settings_reset">تمت استعادة الإعدادات الافتراضية بنجاح</string>
     <string name="toast_pin_enabled">تم تفعيل رمز PIN للمعرض</string>
@@ -516,8 +431,6 @@
     <string name="toast_pin_disabled">تمت إزالة رمز PIN للمعرض</string>
     <string name="toast_edited_saved">تم حفظ النسخة المعدلة في Pictures/Iris</string>
     <string name="toast_edited_failed">تعذر حفظ النسخة المعدلة</string>
-    <string name="toast_editor_saved">تم حفظ النسخة المعدلة في Pictures/Iris</string>
-    <string name="toast_editor_failed">تعذر حفظ النسخة المعدلة</string>
     <string name="toast_optics_unlocked">تم كشف بصريات ابن الهيثم!</string>
     <string name="toast_item_moved_to_trash">تم النقل إلى سلة المهملات (تُحفظ لمدة 30 يومًا)</string>
     <string name="toast_items_moved_to_trash">تم نقل %1$d عناصر إلى سلة المهملات (تُحفظ لمدة 30 يومًا)</string>
@@ -551,7 +464,6 @@
     <string name="toast_rescan_started">جارٍ فحص وحدة التخزين بحثاً عن الوسائط…</string>
     <string name="toast_rescan_completed">اكتمل فحص الوسائط</string>
     <string name="settings_rescan_media">إعادة فحص مكتبة الوسائط</string>
-    <string name="settings_rescan_media_desc">البحث في وحدة التخزين وبطاقة الذاكرة لإعادة فهرسة الملفات</string>
 
     <!-- Phase 4 Strings -->
     <string name="action_set_as_wallpaper">تعيين كخلفية</string>
@@ -572,8 +484,6 @@
     <string name="filter_camera_system">الكاميرا والنظام</string>
     <string name="filter_apps">التطبيقات</string>
     <string name="sort_apply_this_album_only">تطبيق على هذا الألبوم فقط</string>
-    <string name="album_options_title">خيارات الألبوم</string>
-    <string name="folder_up">للأعلى</string>
     <string name="folder_empty">لم يتم العثور على وسائط في هذا المجلد</string>
     <string name="folder_section_folders">المجلدات (%1$d)</string>
     <string name="folder_section_media">الوسائط (%1$d)</string>
@@ -589,7 +499,6 @@
     <string name="exclude_album_desc">إخفاء هذا الألبوم من المعرض</string>
     <string name="dialog_restore_album_title">استعادة الألبوم</string>
     <string name="dialog_restore_album_desc">هل تريد استعادة كافة العناصر (%1$d) في %2$s إلى المعرض؟</string>
-    <string name="action_save_as">حفظ باسم…</string>
     <string name="export_format_title">تنسيق التصدير</string>
     <string name="format_jpeg_desc">مضغوط، مثالي للصور</string>
     <string name="format_png_desc">جودة غير منقوصة، يدعم الشفافية</string>
@@ -597,26 +506,17 @@
 
     <!-- Details & EXIF -->
     <string name="details_file_info">معلومات الملف</string>
-    <string name="details_camera_exif">الكاميرا وEXIF</string>
-    <string name="details_user_comment">تعليق المستخدم</string>
-    <string name="details_user_comment_hint">لم تتم إضافة تعليق</string>
     <string name="details_lens">العدسة</string>
     <string name="details_artist">المؤلف / الفنان</string>
     <string name="details_copyright">حقوق النشر</string>
     <string name="details_software">البرنامج</string>
-    <string name="details_altitude">الارتفاع</string>
     <string name="details_white_balance">توازن اللون الأبيض</string>
     <string name="details_white_balance_auto">تلقائي</string>
     <string name="details_white_balance_manual">يدوي</string>
-    <string name="details_megapixels">%1$s ميغابكسل</string>
 
     <!-- EXIF Editor -->
     <string name="exif_editor_title">محرر EXIF والبيانات الوصفية</string>
-    <string name="exif_editor_subtitle">عرض أو تعديل أو إزالة علامات البيانات الوصفية</string>
-    <string name="exif_tab_notes">الملاحظات والمعلومات</string>
     <string name="exif_tab_camera">الكاميرا والعدسة</string>
-    <string name="exif_tab_location">الموقع الجغرابي</string>
-    <string name="exif_tab_file">الملف والتاريخ</string>
     <string name="exif_user_comment_label">تعليق / ملاحظة المستخدم</string>
     <string name="exif_user_comment_hint">اكتب تعليقات شخصية أو ذكريات أو ملاحظات أرشفة…</string>
     <string name="exif_image_desc_label">وصف الصورة</string>
@@ -638,17 +538,14 @@
     <string name="exif_focal_length_label">البعد البؤري (ملم)</string>
     <string name="exif_latitude_label">خط العرض (°)</string>
     <string name="exif_longitude_label">خط الطول (°)</string>
-    <string name="exif_altitude_label">الارتفاع (أمتار)</string>
     <string name="exif_remove_gps">إزالة بيانات الموقع</string>
     <string name="exif_remove_gps_desc">إزالة إحداثيات GPS من هذه الصورة لحماية الخصوصية</string>
     <string name="exif_strip_all">مسح جميع بيانات EXIF</string>
-    <string name="exif_strip_all_desc">يمسح مواصفات الكاميرا والمؤلف والتعليقات والموقع للخصوصية</string>
     <string name="exif_strip_all_dialog_title">مسح جميع بيانات EXIF الوصفية؟</string>
     <string name="exif_strip_all_dialog_desc">سيؤدي هذا إلى مسح كافة إعدادات الكاميرا والتعليقات ومعلومات المؤلف وعلامات الموقع من هذه الصورة.</string>
     <string name="exif_set_current_time">تعيين الوقت الحالي</string>
     <string name="exif_revert_changes">استعادة</string>
     <string name="toast_metadata_updated">تم تحديث البيانات الوصفية وعلامات EXIF</string>
-    <string name="toast_metadata_failed">تعذر تحديث البيانات الوصفية</string>
 
     <!-- Settings Additions -->
     <string name="settings_photos_tile_size">حجم مربعات شبكة الصور</string>
@@ -667,7 +564,6 @@
     <string name="viewer_rotate_tip">تلميح: يمكنك تدوير الصور بإصبعين. يمكنك تعطيل هذا في أي وقت من الإعدادات.</string>
 
     <!-- Storage & Sorting -->
-    <string name="storage_external">وحدة تخزين خارجية</string>
     <string name="action_sort">ترتيب</string>
     <string name="sort_date_desc">الأحدث أولاً</string>
     <string name="sort_date_asc">الأقدم أولاً</string>
@@ -727,20 +623,15 @@
     <string name="settings_secure_sharing_strip_location_desc">إزالة إحداثيات GPS وبيانات الموقع من الصور المشاركة</string>
     <string name="settings_secure_sharing_strip_all">إزالة كافة البيانات الوصفية</string>
     <string name="settings_secure_sharing_strip_all_desc">إزالة الموقع وتفاصيل الكاميرا والطوابع الزمنية ومعلومات الجهاز</string>
-    <string name="secure_sharing_preparing">جارٍ تجهيز الوسائط للمشاركة…</string>
 
     <string name="action_add_excluded_folder">إضافة مجلد</string>
     <string name="dialog_add_excluded_folder_title">استبعاد مجلد</string>
-    <string name="dialog_add_excluded_folder_message">أدخل اسم المجلد أو مساره. سيتم إخفاء جميع الوسائط داخل هذا المجلد ومجلداته الفرعية من المعرض.</string>
-    <string name="dialog_add_excluded_folder_hint">مثال: Music أو /Music</string>
-    <string name="dialog_excluded_folder_suggestions">اقتراحات:</string>
     <string name="dialog_folder_already_excluded">المجلد مستبعد بالفعل</string>
 
     <string name="filter_videos">الفيديوهات</string>
     <string name="empty_videos">لم يتم العثور على أي فيديوهات</string>
     <string name="filter_videos_count">%1$d فيديو</string>
 
-    <string name="viewer_secure_sharing_tip">المشاركة الآمنة: إزالة بيانات الموقع أو البيانات الوصفية قبل المشاركة. اضغط للضبط.</string>
     <string name="viewer_secure_sharing_tip_location">المشاركة الآمنة: يتم إزالة موقع GPS قبل المشاركة. اضغط للضبط.</string>
     <string name="viewer_secure_sharing_tip_all">المشاركة الآمنة: يتم إزالة كافة البيانات الوصفية قبل المشاركة. اضغط للضبط.</string>
     <string name="viewer_secure_sharing_tip_off">المشاركة الآمنة: تتم المشاركة بكافة البيانات الأصلية. اضغط للضبط.</string>
@@ -753,5 +644,4 @@
     <string name="settings_navigation_tabs_desc">اختر التبويبات المعروضة في شريط التنقل السفلي</string>
     <string name="settings_multi_stage_zoom_title">تكبير متعدد المراحل</string>
     <string name="settings_multi_stage_zoom_desc">النقر المزدوج يتنقل بين ملاءمة الشاشة، ملء الشاشة، والحجم الأصلي 1:1</string>
-    <string name="format_svg">SVG</string>
 </resources>

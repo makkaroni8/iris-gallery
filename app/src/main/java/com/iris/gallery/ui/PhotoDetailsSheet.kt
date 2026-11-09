@@ -1,12 +1,8 @@
-@file:OptIn(androidx.compose.foundation.ExperimentalFoundationApi::class)
-
 package com.iris.gallery.ui
 
 import android.content.Intent
 import android.media.MediaMetadataRetriever
-import android.net.Uri
 import android.os.Build
-import androidx.compose.foundation.Image
 import androidx.compose.material.icons.automirrored.outlined.Comment
 import androidx.compose.material.icons.outlined.Description
 import androidx.compose.foundation.text.selection.SelectionContainer
@@ -19,7 +15,6 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
@@ -28,12 +23,10 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.outlined.ArrowBack
-import androidx.compose.material.icons.outlined.ArrowBack
 import androidx.compose.material.icons.outlined.Edit
 import androidx.compose.material.icons.outlined.CameraAlt
 import androidx.compose.material.icons.outlined.LocationOn
 import androidx.compose.material.icons.outlined.Map
-import androidx.compose.material.icons.outlined.Comment
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
@@ -66,15 +59,11 @@ import com.iris.gallery.data.MediaImage
 import com.iris.gallery.data.ExifMetadata
 import com.iris.gallery.data.ExifEditRequest
 import com.iris.gallery.data.loadExifMetadata
-import com.iris.gallery.ui.ExifEditorSheet
 import com.iris.gallery.data.isSvg
-import com.iris.gallery.ui.ThumbnailCache
 import androidx.compose.material.icons.outlined.Image
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import com.iris.gallery.data.TimelineDateFormat
-import com.iris.gallery.ui.rememberAppLocale
-import com.iris.gallery.ui.getTimelineFormatter
 import com.iris.gallery.R
 import java.text.DateFormat
 import java.text.SimpleDateFormat
@@ -82,9 +71,9 @@ import java.util.Locale
 import java.util.Date
 import java.time.Instant
 import java.time.ZoneId
-import androidx.compose.ui.unit.dp
 import androidx.compose.foundation.shape.RoundedCornerShape
 import java.io.File
+import androidx.core.net.toUri
 
 @Composable
 @OptIn(ExperimentalMaterial3Api::class)
@@ -98,6 +87,7 @@ internal fun PhotoDetailsSheet(
     onNavigateNext: () -> Unit = {},
     onDismiss: () -> Unit,
     onSave: (ExifEditRequest) -> Unit,
+    @Suppress("Destructure")
     onRename: (MediaImage, String) -> Unit = { _, _ -> },
 ) {
     val context = LocalContext.current
@@ -132,14 +122,16 @@ internal fun PhotoDetailsSheet(
             value = null
         }
     }
-    var editing by remember { mutableStateOf(false) }
-    var showRenameDialog by remember { mutableStateOf(false) }
+    var editing by remember { mutableStateOf(value = false) }
+    var showRenameDialog by remember { mutableStateOf(value = false) }
     var dragOffset by remember { mutableFloatStateOf(0f) }
     val draggableState = rememberDraggableState { delta ->
         dragOffset += delta
     }
     val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
-    val screenHeightDp = androidx.compose.ui.platform.LocalConfiguration.current.screenHeightDp
+    val screenHeight = with(androidx.compose.ui.platform.LocalDensity.current) {
+        androidx.compose.ui.platform.LocalWindowInfo.current.containerSize.height.toDp()
+    }
     ModalBottomSheet(
         onDismissRequest = onDismiss,
         sheetState = sheetState,
@@ -147,19 +139,19 @@ internal fun PhotoDetailsSheet(
         Column(
             modifier = Modifier
                 .fillMaxWidth()
-                .heightIn(max = (screenHeightDp * 0.75f).dp)
+                .heightIn(max = screenHeight * 0.75f)
                 .navigationBarsPadding()
                 .draggable(
                     state = draggableState,
                     orientation = Orientation.Horizontal,
                     onDragStopped = { velocity ->
-                        if ((dragOffset > 80f || velocity > 300f) && canNavigatePrevious) {
+                        if (((dragOffset > 80f) || (velocity > 300f)) && canNavigatePrevious) {
                             onNavigatePrevious()
-                        } else if ((dragOffset < -80f || velocity < -300f) && canNavigateNext) {
+                        } else if (((dragOffset < -80f) || (velocity < -300f)) && canNavigateNext) {
                             onNavigateNext()
                         }
                         dragOffset = 0f
-                    }
+                    },
                 )
                 .padding(bottom = 24.dp),
         ) {
@@ -240,16 +232,19 @@ internal fun PhotoDetailsSheet(
                             Icon(Icons.AutoMirrored.Outlined.Comment, stringResource(R.string.details_section_description), tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(20.dp))
                             Text(stringResource(R.string.details_section_description), style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold)
                         }
-                        if (resolvedTitle != null) {
-                            DetailBlock(stringResource(R.string.details_title_field), resolvedTitle)
+                        resolvedTitle?.let {
+                            DetailBlock(stringResource(R.string.details_title_field), it)
                         }
-                        if (commentText != null) {
-                            DetailBlock(stringResource(R.string.details_exif_user_comment), commentText)
+                        commentText?.let {
+                            DetailBlock(stringResource(R.string.details_exif_user_comment), it)
                         }
-                        if (!currentExif?.xpComment.isNullOrBlank() && currentExif?.xpComment != commentText) {
-                            DetailBlock(stringResource(R.string.details_xp_comment), currentExif!!.xpComment!!)
+                        if (!currentExif?.xpComment.isNullOrBlank() && (currentExif.xpComment != commentText)) {
+                            DetailBlock(
+                                stringResource(R.string.details_xp_comment),
+                                currentExif.xpComment,
+                            )
                         }
-                        currentExif?.jpegComments?.filter { it != commentText && it != currentExif?.xpComment }?.let { comments ->
+                        currentExif?.jpegComments?.filter { it != commentText && it != currentExif.xpComment }?.let { comments ->
                             comments.forEachIndexed { idx, jc ->
                                 val label = if (comments.size > 1) {
                                     stringResource(R.string.details_jpeg_comment_numbered, idx + 1)
@@ -270,7 +265,7 @@ internal fun PhotoDetailsSheet(
             val parsedCapturedDate = remember(currentExif?.dateTimeOriginal, currentExif?.offsetTimeOriginal, currentLocale, timelineDateFormat, customTimelineDateFormat) {
                 val raw = currentExif?.dateTimeOriginal?.trim()
                 if (raw.isNullOrBlank()) return@remember null
-                val offset = currentExif?.offsetTimeOriginal?.trim()
+                val offset = currentExif.offsetTimeOriginal?.trim()
                 val tz = if (!offset.isNullOrBlank()) {
                     val prefix = if (offset.startsWith("+") || offset.startsWith("-")) "GMT" else "GMT+"
                     java.util.TimeZone.getTimeZone(prefix + offset)
@@ -278,7 +273,7 @@ internal fun PhotoDetailsSheet(
                     java.util.TimeZone.getDefault()
                 }
                 val dateMillis = runCatching {
-                    val parser = java.text.SimpleDateFormat("yyyy:MM:dd HH:mm:ss", java.util.Locale.US).apply {
+                    val parser = SimpleDateFormat("yyyy:MM:dd HH:mm:ss", Locale.US).apply {
                         timeZone = tz
                     }
                     parser.parse(raw)?.time
@@ -333,7 +328,8 @@ internal fun PhotoDetailsSheet(
                                     Text(locStr, style = MaterialTheme.typography.bodySmall, fontWeight = FontWeight.Medium)
                                 }
                                 TextButton(onClick = {
-                                    val uri = Uri.parse("geo:${currentExif.latitude},${currentExif.longitude}?q=${currentExif.latitude},${currentExif.longitude}(Photo+Location)")
+                                    val uri =
+                                        "geo:${currentExif.latitude},${currentExif.longitude}?q=${currentExif.latitude},${currentExif.longitude}(Photo+Location)".toUri()
                                     val intent = Intent(Intent.ACTION_VIEW, uri)
                                     runCatching { context.startActivity(intent) }
                                 }) {
@@ -345,13 +341,17 @@ internal fun PhotoDetailsSheet(
                         }
 
                         if (!currentExif?.artist.isNullOrBlank()) {
-                            DetailItem(stringResource(R.string.details_artist), currentExif.artist!!)
+                            DetailItem(stringResource(R.string.details_artist), currentExif.artist)
                         }
                         if (!currentExif?.copyright.isNullOrBlank()) {
-                            DetailItem(stringResource(R.string.details_copyright), currentExif.copyright!!)
+                            DetailItem(stringResource(R.string.details_copyright),
+                                currentExif.copyright
+                            )
                         }
                         if (!currentExif?.software.isNullOrBlank()) {
-                            DetailItem(stringResource(R.string.details_software), currentExif.software!!)
+                            DetailItem(stringResource(R.string.details_software),
+                                currentExif.software
+                            )
                         }
                     }
                 }
@@ -441,11 +441,13 @@ internal fun PhotoDetailsSheet(
                     }
                     DetailItem(stringResource(R.string.details_resolution), resText)
                     if (!currentExif?.imageUniqueId.isNullOrBlank()) {
-                        DetailBlock(stringResource(R.string.details_image_unique_id), currentExif.imageUniqueId!!)
+                        DetailBlock(stringResource(R.string.details_image_unique_id),
+                            currentExif.imageUniqueId
+                        )
                     }
                     if (image.orientation != 0) DetailItem(stringResource(R.string.details_orientation), "${image.orientation}°")
                     if (isVideo && image.durationMs > 0) DetailItem(stringResource(R.string.details_duration), formatMediaDuration(image.durationMs))
-                    if (!isVideo && (currentExif?.isUltraHdr == true || com.iris.gallery.ui.ThumbnailCache.isHdr(image.id) == true)) {
+                    if (!isVideo && (currentExif?.isUltraHdr == true || ThumbnailCache.isHdr(image.id) == true)) {
                         DetailItem(stringResource(R.string.details_dynamic_range), stringResource(R.string.details_ultra_hdr))
                     } else if (isVideo && videoHdrTransfer != null) {
                         DetailItem(stringResource(R.string.details_dynamic_range), videoHdrTransfer!!)
@@ -564,12 +566,11 @@ internal fun PhotoDetailsSheet(
             image = image,
             exif = currentExif,
             onDismiss = { editing = false },
-            onSave = { request ->
-                editing = false
-                onSave(request)
-                exifRevision++
-            },
-        )
+        ) { request ->
+            editing = false
+            onSave(request)
+            exifRevision++
+        }
     }
     if (showRenameDialog) {
         RenameFileDialog(
@@ -584,9 +585,9 @@ internal fun PhotoDetailsSheet(
 }
 
 private fun formatFileSize(bytes: Long): String = when {
-    bytes >= 1_000_000_000 -> "%.1f GB".format(java.util.Locale.US, bytes / 1_000_000_000.0)
-    bytes >= 1_000_000 -> "%.1f MB".format(java.util.Locale.US, bytes / 1_000_000.0)
-    bytes >= 1_000 -> "%.1f KB".format(java.util.Locale.US, bytes / 1_000.0)
+    bytes >= 1_000_000_000 -> "%.1f GB".format(Locale.US, bytes / 1_000_000_000.0)
+    bytes >= 1_000_000 -> "%.1f MB".format(Locale.US, bytes / 1_000_000.0)
+    bytes >= 1_000 -> "%.1f KB".format(Locale.US, bytes / 1_000.0)
     else -> "$bytes B"
 }
 

@@ -21,15 +21,11 @@
 
     <!-- Top Bar & Selection -->
     <string name="selected_count">%1$d 件選択中</string>
-    <string name="selected_count_format">%1$d 件選択中</string>
     <string name="action_clear_selection">選択を解除</string>
     <string name="action_restore">選択したアイテムを復元</string>
-    <string name="action_restore_selected">選択したアイテムを復元</string>
     <string name="action_share">共有</string>
-    <string name="action_share_selected">選択したアイテムを共有</string>
     <string name="action_share_media">メディアを共有</string>
     <string name="action_delete">削除</string>
-    <string name="action_delete_selected">選択したアイテムを削除</string>
     <string name="action_more">その他の選択操作</string>
     <string name="action_more_options">その他のオプション</string>
     <string name="action_select_all">すべて選択</string>
@@ -40,8 +36,6 @@
     <string name="action_favorited">お気に入り追加済み</string>
     <string name="action_unfavorite">お気に入りから削除</string>
     <string name="action_empty_trash">空にする</string>
-    <string name="action_comfortable_grid">ゆったりグリッド</string>
-    <string name="action_compact_grid">コンパクトグリッド</string>
     <string name="action_back">戻る</string>
     <string name="action_cancel">キャンセル</string>
     <string name="action_save">保存</string>
@@ -49,13 +43,11 @@
     <string name="action_saving">保存中…</string>
     <string name="action_grant">許可</string>
     <string name="action_grant_access">アクセスを許可</string>
-    <string name="action_use_system_popup">システムポップアップを使用</string>
     <string name="action_close">閉じる</string>
     <string name="action_continue">続行</string>
     <string name="action_edit">編集</string>
     <string name="action_unlock">ロック解除</string>
     <string name="action_lock">ロック</string>
-    <string name="action_details">詳細</string>
     <string name="action_backspace">削除</string>
     <string name="action_mute">ミュート</string>
     <string name="action_unmute">ミュート解除</string>
@@ -76,7 +68,6 @@
     <string name="settings_language_desc">表示言語を選択してください</string>
     <string name="first_launch_lang_title">アプリの言語</string>
     <string name="first_launch_lang_subtitle">言語を選択して続行してください</string>
-    <string name="first_launch_lang_detected">システムの言語</string>
 
     <!-- Permission Screen -->
     <string name="permission_title">あなただけの美しいギャラリー</string>
@@ -91,21 +82,13 @@
     <string name="empty_locked_locked_state">プライベートアイテムを表示するにはロックを解除してください</string>
     <string name="empty_memories">今日の思い出はまだありません</string>
     <string name="empty_editable">編集可能な画像がありません</string>
-    <string name="empty_formats">RAW、GIF、モーションフォト、パノラマは見つかりませんでした</string>
     <string name="empty_special_formats">RAW、GIF、モーションフォト、パノラマは見つかりませんでした</string>
-    <string name="empty_format_filter">%1$s は見つかりませんでした</string>
     <string name="empty_format_type">%1$s は見つかりませんでした</string>
     <string name="empty_search_albums">「%1$s」に一致するアルバムはありません</string>
-    <string name="empty_duplicates">重複した写真は見つかりませんでした</string>
 
     <!-- Dialogs -->
     <string name="empty_trash_dialog_title">ごみ箱を空にしますか？</string>
     <string name="empty_trash_dialog_desc">デバイスからすべてのアイテム（%1$d 件%2$s）を完全に削除しますか？この操作は元に戻せません。</string>
-    <string name="dialog_empty_trash_title">ごみ箱を空にしますか？</string>
-    <string name="dialog_empty_trash_message">デバイスからすべてのアイテム（%1$d 件）を完全に削除しますか？この操作は元に戻せません。</string>
-    <string name="dialog_empty_trash_confirm">ごみ箱を空にする</string>
-    <string name="dialog_delete_item_title">%1$s をごみ箱に移動しますか？</string>
-    <string name="dialog_delete_item_message">Android システムから確認メッセージが表示されます。</string>
     <string name="delete_trash_video_title">動画をごみ箱に移動しますか？</string>
     <string name="delete_trash_photo_title">写真をごみ箱に移動しますか？</string>
     <string name="delete_trash_desc">Android システムから確認メッセージが表示されます。</string>
@@ -113,19 +96,12 @@
     <string name="delete_permanent_photo_title">写真を完全に削除しますか？</string>
     <string name="delete_permanent_desc">このアイテムはお使いの端末から完全に削除されます。この操作は元に戻せません。</string>
     <string name="delete_vault_desc">このアイテムはプライベート保管庫から完全に削除されます。</string>
-    <string name="dialog_delete_vault_item_title">%1$s を完全に削除しますか？</string>
-    <string name="dialog_delete_vault_item_message">このアイテムはプライベート保管庫から完全に削除されます。</string>
     <string name="prompt_free_vault_title">確認なしで保管庫を利用</string>
     <string name="prompt_free_vault_desc">「すべてのファイルへのアクセス」を許可すると、Android の削除確認メッセージを表示することなく、写真をプライベート保管庫に移動して非表示にできます。\n\nIris は完全オフラインでインターネットアクセスを行わないため、ファイルが端末外に送信されることはありません。</string>
-    <string name="dialog_prompt_free_vault_title">確認なしで保管庫を利用</string>
-    <string name="dialog_prompt_free_vault_message">「すべてのファイルへのアクセス」を許可すると、Android の削除確認メッセージを表示することなく、写真をプライベート保管庫に移動して非表示にできます。\n\nIris は完全オフラインでインターネットアクセスを行わないため、ファイルが端末外に送信されることはありません。</string>
 
     <!-- Media Types & Titles -->
-    <string name="media_type_photo">写真</string>
-    <string name="media_type_video">動画</string>
     <string name="format_image">画像</string>
     <string name="format_video">動画</string>
-    <string name="media_page_indicator">%1$d / %2$d</string>
     <string name="viewer_page_count">%1$d / %2$d</string>
 
     <!-- Albums Screen -->
@@ -138,8 +114,6 @@
     <string name="album_items_count">%1$d 件</string>
     <string name="album_pin">アルバムを固定</string>
     <string name="album_unpin">アルバムの固定を解除</string>
-    <string name="action_move_up">上に移動</string>
-    <string name="action_move_down">下に移動</string>
 
     <!-- Library Screen Cards -->
     <string name="library_header">整理と再発見</string>
@@ -155,17 +129,10 @@
     <string name="library_editor_subtitle">元の写真を変更せずに美しいコピーを作成</string>
     <string name="library_formats_title">メディア形式</string>
     <string name="library_formats_subtitle">RAW、GIF、モーションフォト、パノラマ</string>
-    <string name="library_settings_title">設定とカスタマイズ</string>
-    <string name="library_settings_subtitle">テーマ、パレット、グリッドスタイル、ジェスチャー</string>
     <string name="library_about_title">Iris について</string>
     <string name="library_about_subtitle">開発者、オープンソースプロジェクト、アプリ詳細</string>
 
     <!-- Media Formats Filters -->
-    <string name="format_all">すべて (%1$d)</string>
-    <string name="format_raw">RAW (%1$d)</string>
-    <string name="format_gif">GIF (%1$d)</string>
-    <string name="format_panorama">パノラマ (%1$d)</string>
-    <string name="format_motion">モーションフォト (%1$d)</string>
     <string name="filter_all_count">すべて (%1$d)</string>
     <string name="filter_raw_count">RAW (%1$d)</string>
     <string name="filter_gifs_count">GIF (%1$d)</string>
@@ -173,13 +140,6 @@
     <string name="filter_motion_count">モーションフォト (%1$d)</string>
 
     <!-- Duplicates Review Screen -->
-    <string name="duplicates_title">重複・類似写真</string>
-    <string name="duplicates_desc">完全に一致するコピーや類似した写真をスキャン</string>
-    <string name="duplicates_scan_now">今すぐスキャン</string>
-    <string name="duplicates_scanning">スキャン中…</string>
-    <string name="duplicates_summary">%1$d グループ (%2$d 枚の写真)</string>
-    <string name="duplicates_keep_best_delete">ベストショットを残して %1$d 件を削除</string>
-    <string name="duplicates_scan_count">%1$d / %2$d</string>
     <string name="duplicates_hero_title">安心して空き容量を確保</string>
     <string name="duplicates_hero_desc">Iris はファイルおよび端末内で生成される軽量な視覚的特徴量を比較します。写真が端末外に送信されることはなく、Android の確認なしに削除されることもありません。</string>
     <string name="duplicates_comparing_progress">%1$d / %2$d を比較中</string>
@@ -204,41 +164,26 @@
     <string name="details_title">詳細</string>
     <string name="details_photo_details">写真の詳細</string>
     <string name="details_file_name">ファイル名</string>
-    <string name="details_title_label">タイトル</string>
     <string name="details_title_field">タイトル</string>
     <string name="details_desc_field">説明</string>
-    <string name="details_date_taken">撮影日</string>
     <string name="details_captured">撮影日時</string>
-    <string name="details_time">時刻</string>
     <string name="details_resolution">解像度</string>
-    <string name="details_file_size">ファイルサイズ</string>
     <string name="details_size">サイズ</string>
     <string name="details_location">撮影場所</string>
-    <string name="details_open_in_map">地図で開く</string>
     <string name="details_map">地図</string>
     <string name="details_camera">カメラ</string>
     <string name="details_camera_capture">撮影情報</string>
-    <string name="details_camera_lens">カメラとレンズ</string>
-    <string name="details_aperture">絞り</string>
-    <string name="details_shutter">シャッター速度</string>
-    <string name="details_iso">ISO感度</string>
-    <string name="details_focal_length">焦点距離</string>
-    <string name="details_dimensions">寸法</string>
     <string name="details_orientation">向き</string>
     <string name="details_duration">再生時間</string>
-    <string name="details_format">フォーマット</string>
     <string name="details_type">種類</string>
     <string name="details_path">パス</string>
     <string name="details_edit_metadata">メタデータを編集</string>
-    <string name="details_edit_filename">ファイル名</string>
     <string name="details_edit_title">タイトル</string>
     <string name="details_title_hint">任意のタイトル</string>
     <string name="details_edit_captured_hint">撮影日時 · yyyy-MM-dd HH:mm</string>
-    <string name="details_edit_orientation_hint">向き · 0、90、180 または 270</string>
     <string name="details_edit_permission_note">他のアプリが所有するメディアを変更する前に、Android から確認が求められます。</string>
 
     <!-- Settings Screen -->
-    <string name="settings_title">設定</string>
     <string name="settings_section_appearance">外観とテーマ</string>
     <string name="settings_theme_mode">テーマモード</string>
     <string name="settings_theme_system">システムに従う</string>
@@ -345,17 +290,11 @@
     <string name="app_lock_title">Iris Gallery のロックを解除</string>
     <string name="app_lock_picker_title">メディア選択のロックを解除</string>
     <string name="app_lock_welcome_back">おかえりなさい</string>
-    <string name="app_lock_select_media">メディアを選択</string>
     <string name="app_lock_unlocking">ロック解除中…</string>
-    <string name="app_lock_enter_pin_select">写真を選択するにはギャラリーPINを入力してください</string>
-    <string name="app_lock_enter_pin_unlock">ロックを解除するにはギャラリーPINを入力してください</string>
     <string name="app_lock_subtitle">ロックを解除するにはギャラリーPINを入力してください</string>
     <string name="app_lock_picker_subtitle">写真を選択するにはギャラリーPINを入力してください</string>
     <string name="app_lock_wrong_pin">PINが正しくありません。もう一度お試しください。</string>
-    <string name="app_lock_biometric_title">Iris Gallery のロックを解除</string>
-    <string name="app_lock_biometric_subtitle">続行するには指紋をスキャンしてください</string>
     <string name="app_lock_scan_fingerprint">続行するには指紋をスキャンしてください</string>
-    <string name="app_lock_biometric_negative">PIN を使用</string>
     <string name="app_lock_auth_cancelled">認証がキャンセルされました</string>
     <string name="app_lock_biometrics_unavailable">生体認証が利用できません</string>
     <string name="pin_keypad_use_pin">PIN を使用</string>
@@ -381,22 +320,10 @@
     <string name="editor_title">コピーを編集</string>
     <string name="editor_close">エディタを閉じる</string>
     <string name="editor_preparing">エディタを準備中…</string>
-    <string name="editor_tool_adjust">調整</string>
-    <string name="editor_tool_crop">切り抜き</string>
-    <string name="editor_tool_transform">変形</string>
-    <string name="editor_tool_resize">サイズ変更</string>
-    <string name="editor_tool_pixelate">モザイク</string>
-    <string name="editor_tool_blur">ぼかし</string>
-    <string name="editor_rotate_flip">回転と反転</string>
     <string name="editor_rotate_left">左に90°回転</string>
     <string name="editor_rotate_right">右に90°回転</string>
-    <string name="editor_flip_h">左右反転 ⇄</string>
-    <string name="editor_flip_v">上下反転 ⇅</string>
     <string name="editor_reset_orientation">向きをリセット</string>
-    <string name="editor_crop_manual_hint">四隅をドラッグして手動で切り抜きます</string>
-    <string name="editor_crop_help">枠内をドラッグして位置を調整し、白いハンドルをドラッグしてサイズを変更します。</string>
     <string name="editor_crop_manual">カスタム</string>
-    <string name="editor_crop_square">正方形</string>
     <string name="editor_width_px">幅 px</string>
     <string name="editor_height_px">高さ px</string>
     <string name="editor_lock_aspect">縦横比を固定</string>
@@ -417,7 +344,6 @@
     <string name="editor_warmth">色温度</string>
 
     <!-- About Screen -->
-    <string name="about_title">Iris について</string>
     <string name="about_developer_project">開発者とプロジェクト</string>
     <string name="about_developer_label">開発者</string>
     <string name="about_developer_name">Mohamad Oday (@MohamadOday)</string>
@@ -443,10 +369,6 @@
     <string name="notification_channel_desc">過去の同じ日に撮影された写真や動画</string>
     <string name="notification_memory_waiting">%1$d 件の思い出があります</string>
     <string name="notification_memories_waiting">%1$d 件の思い出があります</string>
-    <string name="memories_phrase_1">この日の思い出</string>
-    <string name="memories_phrase_2">過去を振り返る</string>
-    <string name="memories_phrase_3">この日を覚えていますか？</string>
-    <string name="memories_phrase_4">今日までの物語</string>
     <string name="settings_section_memories">思い出と通知</string>
     <string name="setting_memories_notifications">毎日の思い出通知</string>
     <string name="setting_memories_notifications_desc">過去の同じ日の写真や動画があるときに通知を受け取ります</string>
@@ -457,15 +379,11 @@
 
     <!-- Toasts -->
     <string name="toast_items_vaulted">%1$d 件のアイテムを保管庫に移動しました</string>
-    <string name="toast_vault_items_moved">%1$d 件のアイテムを保管庫に移動しました</string>
     <string name="toast_vault_items_locked_gallery">%1$d 件のアイテムを Iris Gallery 内で非表示にしました</string>
     <string name="toast_vault_items_restored">%1$d 件のアイテムを保管庫から復元しました</string>
-    <string name="toast_vault_items_deleted">%1$d 件のアイテムを完全に削除しました</string>
     <string name="toast_lock_cancelled">ロックをキャンセルしました</string>
     <string name="toast_could_not_request_removal">ストレージ削除権限を要求できませんでした</string>
     <string name="toast_could_not_request_metadata">メタデータアクセス権限を要求できませんでした</string>
-    <string name="toast_error_storage_removal">ストレージ削除権限を要求できませんでした</string>
-    <string name="toast_error_original_removal">元のファイルをストレージから削除できませんでした</string>
     <string name="toast_cache_cleared">サムネイルキャッシュを削除しました</string>
     <string name="toast_settings_reset">すべての設定を初期値に戻しました</string>
     <string name="toast_pin_enabled">ギャラリーPINを有効にしました</string>
@@ -473,8 +391,6 @@
     <string name="toast_pin_disabled">ギャラリーPINを解除しました</string>
     <string name="toast_edited_saved">編集したコピーを Pictures/Iris に保存しました</string>
     <string name="toast_edited_failed">編集したコピーを保存できませんでした</string>
-    <string name="toast_editor_saved">編集したコピーを Pictures/Iris に保存しました</string>
-    <string name="toast_editor_failed">編集したコピーを保存できませんでした</string>
     <string name="toast_optics_unlocked">イブン・アル＝ハイサム光学がアンロックされました！</string>
     <string name="toast_item_moved_to_trash">ゴミ箱に移動しました（30日間保持）</string>
     <string name="toast_items_moved_to_trash">%1$d 件の項目をゴミ箱に移動しました（30日間保持）</string>

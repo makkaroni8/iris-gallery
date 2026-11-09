@@ -1,12 +1,10 @@
 package com.iris.gallery.ui
 
 import androidx.compose.foundation.background
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
@@ -16,7 +14,6 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
@@ -75,7 +72,7 @@ fun DateFormatBottomSheet(
     val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
     val locale = rememberAppLocale()
     val sampleDatePast = remember { LocalDate.of(2024, 8, 31) }
-    var showCustomPatternDialog by remember { mutableStateOf(false) }
+    var showCustomPatternDialog by remember { mutableStateOf(value = false) }
 
     ModalBottomSheet(
         onDismissRequest = onDismiss,
@@ -83,27 +80,27 @@ fun DateFormatBottomSheet(
         dragHandle = { BottomSheetDefaults.DragHandle() },
         containerColor = MaterialTheme.colorScheme.surface,
         tonalElevation = 6.dp,
-        shape = RoundedCornerShape(topStart = 28.dp, topEnd = 28.dp)
+        shape = RoundedCornerShape(topStart = 28.dp, topEnd = 28.dp),
     ) {
         Column(
             modifier = Modifier
                 .fillMaxWidth()
                 .navigationBarsPadding()
-                .padding(bottom = 16.dp)
+                .padding(bottom = 16.dp),
         ) {
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
                     .padding(horizontal = 24.dp, vertical = 8.dp),
                 verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(16.dp)
+                horizontalArrangement = Arrangement.spacedBy(16.dp),
             ) {
                 Box(
                     modifier = Modifier
                         .size(44.dp)
                         .clip(CircleShape)
                         .background(MaterialTheme.colorScheme.primaryContainer),
-                    contentAlignment = Alignment.Center
+                    contentAlignment = Alignment.Center,
                 ) {
                     Icon(
                         imageVector = Icons.Outlined.CalendarMonth,
@@ -263,17 +260,15 @@ fun DateFormatBottomSheet(
             initialPattern = customPattern,
             locale = locale,
             onDismiss = { showCustomPatternDialog = false },
-            onConfirm = { pattern ->
-                onCustomPatternChange(pattern)
-                onFormatSelected(TimelineDateFormat.CUSTOM)
-                showCustomPatternDialog = false
-                onDismiss()
-            }
-        )
+        ) { pattern ->
+            onCustomPatternChange(pattern)
+            onFormatSelected(TimelineDateFormat.CUSTOM)
+            showCustomPatternDialog = false
+            onDismiss()
+        }
     }
 }
 
-@OptIn(ExperimentalLayoutApi::class)
 @Composable
 fun CustomDateFormatDialog(
     initialPattern: String,
@@ -286,23 +281,20 @@ fun CustomDateFormatDialog(
     val sampleDate = remember { LocalDate.of(2024, 8, 31) }
 
     val isValid = remember(patternText, locale, sampleDate) {
-        if (patternText.isBlank()) false
-        else {
-            runCatching {
-                val trimmed = patternText.trim()
-                val formatter = DateTimeFormatter.ofPattern(trimmed, locale)
-                sampleDate.format(formatter)
-                val sameYearFormatter = getTimelineFormatter(
-                    format = TimelineDateFormat.CUSTOM,
-                    isSameYear = true,
-                    showDayOfWeek = false,
-                    locale = locale,
-                    customPattern = trimmed
-                )
-                sampleDate.format(sameYearFormatter)
-                true
-            }.getOrDefault(false)
-        }
+        patternText.isNotBlank() && runCatching {
+            val trimmed = patternText.trim()
+            val formatter = DateTimeFormatter.ofPattern(trimmed, locale)
+            sampleDate.format(formatter)
+            val sameYearFormatter = getTimelineFormatter(
+                format = TimelineDateFormat.CUSTOM,
+                isSameYear = true,
+                showDayOfWeek = false,
+                locale = locale,
+                customPattern = trimmed,
+            )
+            sampleDate.format(sameYearFormatter)
+            true
+        }.getOrDefault(defaultValue = false)
     }
 
     val previewToday = remember(patternText, locale, isValid, today) {

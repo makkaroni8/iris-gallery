@@ -6,7 +6,6 @@ import android.os.Build
 import android.os.CancellationSignal
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
-import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.FastOutSlowInEasing
@@ -15,11 +14,6 @@ import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.keyframes
 import androidx.compose.animation.core.spring
 import androidx.compose.animation.core.tween
-import androidx.compose.animation.fadeIn
-import androidx.compose.animation.fadeOut
-import androidx.compose.animation.scaleIn
-import androidx.compose.animation.scaleOut
-import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -37,7 +31,6 @@ import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.statusBarsPadding
-import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -85,23 +78,25 @@ import com.iris.gallery.R
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import kotlin.math.roundToInt
+import kotlin.time.Duration.Companion.milliseconds
 
+@Suppress("DEPRECATION")
 fun isBiometricHardwareAvailable(context: Context): Boolean {
     return runCatching {
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
             val bm = context.getSystemService(android.hardware.biometrics.BiometricManager::class.java)
             bm?.canAuthenticate(
                 android.hardware.biometrics.BiometricManager.Authenticators.BIOMETRIC_WEAK or
-                android.hardware.biometrics.BiometricManager.Authenticators.BIOMETRIC_STRONG
+                android.hardware.biometrics.BiometricManager.Authenticators.BIOMETRIC_STRONG,
             ) == android.hardware.biometrics.BiometricManager.BIOMETRIC_SUCCESS
-        } else if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+        } else if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
             @Suppress("DEPRECATION")
-            val fm = context.getSystemService(android.hardware.fingerprint.FingerprintManager::class.java)
-            fm?.isHardwareDetected == true && fm.hasEnrolledFingerprints()
+            val bm = context.getSystemService(android.hardware.biometrics.BiometricManager::class.java)
+            bm?.canAuthenticate() == android.hardware.biometrics.BiometricManager.BIOMETRIC_SUCCESS
         } else {
             false
         }
-    }.getOrDefault(false)
+    }.getOrDefault(defaultValue = false)
 }
 
 fun triggerBiometricPrompt(
@@ -109,7 +104,7 @@ fun triggerBiometricPrompt(
     title: String? = null,
     subtitle: String? = null,
     onSuccess: () -> Unit,
-    onError: (String) -> Unit = {}
+    onError: (String) -> Unit = {},
 ) {
     if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
         runCatching {
@@ -164,7 +159,7 @@ fun AppLockScreen(
         if (isUnlockedSuccess) return
         isUnlockedSuccess = true
         scope.launch {
-            delay(160) // Visual celebration with green dots pop
+            delay(160.milliseconds) // Visual celebration with green dots pop
             onUnlocked()
         }
     }
@@ -176,62 +171,62 @@ fun AppLockScreen(
             onResetLock?.invoke()
             performUnlock()
         } else {
-            errorMessage = context.getString(R.string.app_lock_auth_cancelled)
+            errorMessage = context.applicationContext.getString(R.string.app_lock_auth_cancelled)
         }
     }
 
     fun triggerDeviceCredential() {
         if (isUnlockedSuccess) return
         val keyguard = context.getSystemService(android.app.KeyguardManager::class.java)
+        @Suppress("DEPRECATION")
         val intent = runCatching {
             keyguard?.createConfirmDeviceCredentialIntent(
-                context.getString(R.string.app_lock_reset_title),
-                context.getString(R.string.app_lock_reset_subtitle)
+                context.applicationContext.getString(R.string.app_lock_reset_title),
+                context.applicationContext.getString(R.string.app_lock_reset_subtitle),
             )
         }.getOrNull()
         if (intent == null) {
-            errorMessage = context.getString(R.string.app_lock_reset_unavailable)
+            errorMessage = context.applicationContext.getString(R.string.app_lock_reset_unavailable)
             return
         }
         runCatching { deviceCredentialLauncher.launch(intent) }
-            .onFailure { errorMessage = context.getString(R.string.app_lock_reset_unavailable) }
+            .onFailure { errorMessage = context.applicationContext.getString(R.string.app_lock_reset_unavailable) }
     }
 
     fun triggerBiometrics() {
-        if (activity != null && hasBiometrics && !activity.isFinishing && !activity.isDestroyed && !isUnlockedSuccess) {
+        if ((activity != null) && hasBiometrics && !activity.isFinishing && !activity.isDestroyed && !isUnlockedSuccess) {
             triggerBiometricPrompt(
                 activity = activity,
-                title = if (isPicker) context.getString(R.string.app_lock_picker_title) else context.getString(R.string.app_lock_title),
-                subtitle = context.getString(R.string.app_lock_scan_fingerprint),
+                title = if (isPicker) context.applicationContext.getString(R.string.app_lock_picker_title) else context.applicationContext.getString(R.string.app_lock_title),
+                subtitle = context.applicationContext.getString(R.string.app_lock_scan_fingerprint),
                 onSuccess = ::performUnlock,
-                onError = { /* stay on PIN screen gracefully */ }
-            )
+            ) { /* stay on PIN screen gracefully */ }
         }
     }
 
     // Auto-prompt fingerprint safely after window initialization
     LaunchedEffect(Unit) {
         if (hasBiometrics) {
-            delay(300)
+            delay(300.milliseconds)
             triggerBiometrics()
         }
     }
 
     fun triggerWrongPinAnimation() {
-        errorMessage = context.getString(R.string.app_lock_wrong_pin)
+        errorMessage = context.applicationContext.getString(R.string.app_lock_wrong_pin)
         haptic.performHapticFeedback(HapticFeedbackType.LongPress)
         scope.launch {
             shakeOffset.animateTo(
                 targetValue = 0f,
                 animationSpec = keyframes {
                     durationMillis = 450
-                    -30f at 40 using FastOutSlowInEasing
+                    30f at 40 using FastOutSlowInEasing
                     30f at 90 using FastOutSlowInEasing
-                    -24f at 140 using FastOutSlowInEasing
+                    24f at 140 using FastOutSlowInEasing
                     24f at 190 using FastOutSlowInEasing
-                    -16f at 240 using FastOutSlowInEasing
+                    16f at 240 using FastOutSlowInEasing
                     16f at 290 using FastOutSlowInEasing
-                    -8f at 340 using FastOutSlowInEasing
+                    8f at 340 using FastOutSlowInEasing
                     8f at 390 using FastOutSlowInEasing
                     0f at 450
                 }
@@ -242,7 +237,7 @@ fun AppLockScreen(
 
     fun showPinLockout() {
         val remainingMs = pinLockoutRemainingMs()
-        errorMessage = context.getString(R.string.app_lock_too_many_attempts, ((remainingMs + 999L) / 1000L).toInt().coerceAtLeast(1))
+        errorMessage = context.applicationContext.getString(R.string.app_lock_too_many_attempts, ((remainingMs + 999L) / 1000L).toInt().coerceAtLeast(1))
         haptic.performHapticFeedback(HapticFeedbackType.LongPress)
         enteredPin = ""
     }
@@ -544,16 +539,16 @@ private fun KeypadButton(
 @Composable
 fun PinSetupBottomSheet(
     onDismiss: () -> Unit,
-    onPinConfirmed: (String) -> Unit
+    onPinConfirmed: (String) -> Unit,
 ) {
     val context = LocalContext.current
     val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
     val haptic = LocalHapticFeedback.current
-    var step by remember { mutableStateOf(1) } // 1: Enter, 2: Confirm
+    var step by remember { mutableIntStateOf(1) } // 1: Enter, 2: Confirm
     var firstPin by remember { mutableStateOf("") }
     var confirmPin by remember { mutableStateOf("") }
     var errorMessage by remember { mutableStateOf<String?>(null) }
-    var isSuccess by remember { mutableStateOf(false) }
+    var isSuccess by remember { mutableStateOf(value = false) }
     val shakeOffset = remember { Animatable(0f) }
     val scope = rememberCoroutineScope()
 
@@ -565,13 +560,13 @@ fun PinSetupBottomSheet(
                 targetValue = 0f,
                 animationSpec = keyframes {
                     durationMillis = 450
-                    -30f at 40 using FastOutSlowInEasing
+                    30f at 40 using FastOutSlowInEasing
                     30f at 90 using FastOutSlowInEasing
-                    -24f at 140 using FastOutSlowInEasing
+                    24f at 140 using FastOutSlowInEasing
                     24f at 190 using FastOutSlowInEasing
-                    -16f at 240 using FastOutSlowInEasing
+                    16f at 240 using FastOutSlowInEasing
                     16f at 290 using FastOutSlowInEasing
-                    -8f at 340 using FastOutSlowInEasing
+                    8f at 340 using FastOutSlowInEasing
                     8f at 390 using FastOutSlowInEasing
                     0f at 450
                 }
@@ -597,11 +592,11 @@ fun PinSetupBottomSheet(
                     if (next == firstPin) {
                         isSuccess = true
                         scope.launch {
-                            delay(160)
+                            delay(160.milliseconds)
                             onPinConfirmed(firstPin)
                         }
                     } else {
-                        triggerShake(context.getString(R.string.pin_setup_mismatch))
+                        triggerShake(context.applicationContext.getString(R.string.pin_setup_mismatch))
                         confirmPin = ""
                         firstPin = ""
                         step = 1
@@ -695,7 +690,7 @@ fun PinSetupBottomSheet(
                     onClick = { step = 2 },
                     modifier = Modifier.padding(bottom = 8.dp)
                 ) {
-                    Text(androidx.compose.ui.res.stringResource(R.string.pin_continue_with_digits, firstPin.length))
+                    Text(stringResource(R.string.pin_continue_with_digits, firstPin.length))
                 }
             }
 
@@ -735,13 +730,13 @@ fun PinChangeBottomSheet(
                 targetValue = 0f,
                 animationSpec = keyframes {
                     durationMillis = 450
-                    -30f at 40 using FastOutSlowInEasing
+                    30f at 40 using FastOutSlowInEasing
                     30f at 90 using FastOutSlowInEasing
-                    -24f at 140 using FastOutSlowInEasing
+                    24f at 140 using FastOutSlowInEasing
                     24f at 190 using FastOutSlowInEasing
-                    -16f at 240 using FastOutSlowInEasing
+                    16f at 240 using FastOutSlowInEasing
                     16f at 290 using FastOutSlowInEasing
-                    -8f at 340 using FastOutSlowInEasing
+                    8f at 340 using FastOutSlowInEasing
                     8f at 390 using FastOutSlowInEasing
                     0f at 450
                 }
@@ -759,7 +754,7 @@ fun PinChangeBottomSheet(
                     if (next.length >= 4 && onVerifyOldPin(next)) {
                         step = 2
                     } else if (next.length == 6) {
-                        triggerShake(context.getString(R.string.pin_incorrect_current))
+                        triggerShake(context.applicationContext.getString(R.string.pin_incorrect_current))
                         oldPin = ""
                     }
                 }
@@ -779,11 +774,11 @@ fun PinChangeBottomSheet(
                         if (next == newPin) {
                             isSuccess = true
                             scope.launch {
-                                delay(160)
+                                delay(160.milliseconds)
                                 onNewPinConfirmed(newPin)
                             }
                         } else {
-                            triggerShake(context.getString(R.string.pin_mismatch_new))
+                            triggerShake(context.applicationContext.getString(R.string.pin_mismatch_new))
                             confirmNewPin = ""
                             newPin = ""
                             step = 2
@@ -890,7 +885,7 @@ fun PinChangeBottomSheet(
                     onClick = { step = 3 },
                     modifier = Modifier.padding(bottom = 8.dp)
                 ) {
-                    Text(androidx.compose.ui.res.stringResource(R.string.pin_continue_with_digits, newPin.length))
+                    Text(stringResource(R.string.pin_continue_with_digits, newPin.length))
                 }
             }
 
@@ -927,13 +922,13 @@ fun PinDisableBottomSheet(
                 targetValue = 0f,
                 animationSpec = keyframes {
                     durationMillis = 450
-                    -30f at 40 using FastOutSlowInEasing
+                    30f at 40 using FastOutSlowInEasing
                     30f at 90 using FastOutSlowInEasing
-                    -24f at 140 using FastOutSlowInEasing
+                    24f at 140 using FastOutSlowInEasing
                     24f at 190 using FastOutSlowInEasing
-                    -16f at 240 using FastOutSlowInEasing
+                    16f at 240 using FastOutSlowInEasing
                     16f at 290 using FastOutSlowInEasing
-                    -8f at 340 using FastOutSlowInEasing
+                    8f at 340 using FastOutSlowInEasing
                     8f at 390 using FastOutSlowInEasing
                     0f at 450
                 }
@@ -949,11 +944,11 @@ fun PinDisableBottomSheet(
             if (next.length >= 4 && onVerifyPin(next)) {
                 isSuccess = true
                 scope.launch {
-                    delay(160)
+                    delay(160.milliseconds)
                     onSuccess()
                 }
             } else if (next.length == 6) {
-                triggerShake(context.getString(R.string.pin_incorrect))
+                triggerShake(context.applicationContext.getString(R.string.pin_incorrect))
                 pin = ""
             }
         }

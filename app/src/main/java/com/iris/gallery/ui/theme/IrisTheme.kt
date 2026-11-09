@@ -116,7 +116,7 @@ fun IrisTheme(
 
     val colors = if (accentColor == AccentColor.MONOCHROME) {
         if (isDark) createMonochromeDarkPalette(amoledBlack) else createMonochromeLightPalette()
-    } else if (accentColor == AccentColor.MATERIAL_YOU && Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+    } else if ((accentColor == AccentColor.MATERIAL_YOU) && (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S)) {
         val dynamicScheme = if (isDark) dynamicDarkColorScheme(context) else dynamicLightColorScheme(context)
         if (isDark && amoledBlack) {
             dynamicScheme.copy(
@@ -125,7 +125,7 @@ fun IrisTheme(
                 surfaceContainer = Color.Black,
                 surfaceContainerLow = Color.Black,
                 surfaceContainerLowest = Color.Black,
-                surfaceVariant = Color(0xFF141414)
+                surfaceVariant = Color(0xFF141414),
             )
         } else dynamicScheme
     } else {
@@ -135,7 +135,7 @@ fun IrisTheme(
             AccentColor.EMERALD -> Triple(Color(0xFF00897B), Color(0xFF26A69A), Color(0xFF80CBC4))
             AccentColor.ISHTAR_AMBER -> Triple(Color(0xFFF57C00), Color(0xFFFFA726), Color(0xFFFFD54F))
             AccentColor.ROSE -> Triple(Color(0xFFD81B60), Color(0xFFEC407A), Color(0xFFFF80AB))
-            AccentColor.MATERIAL_YOU, AccentColor.MONOCHROME -> Triple(Color(0xFF8A4AF3), Color(0xFF6C5CE7), Color(0xFFD0BCFF))
+            AccentColor.MATERIAL_YOU -> Triple(Color(0xFF8A4AF3), Color(0xFF6C5CE7), Color(0xFFD0BCFF))
         }
 
         if (isDark) {

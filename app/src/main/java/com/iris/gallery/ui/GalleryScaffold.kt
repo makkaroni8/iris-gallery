@@ -15,8 +15,6 @@ import androidx.compose.animation.core.LinearOutSlowInEasing
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.isSystemInDarkTheme
-import androidx.compose.foundation.border
-import androidx.compose.foundation.LocalOverscrollConfiguration
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.combinedClickable
@@ -48,13 +46,11 @@ import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.foundation.lazy.grid.rememberLazyGridState
 import androidx.compose.foundation.lazy.LazyRow
-import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.pager.HorizontalPager
 import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.outlined.ArrowBack
 import androidx.compose.material.icons.automirrored.outlined.Sort
-import androidx.compose.material.icons.outlined.ArrowBack
 import androidx.compose.material.icons.outlined.PhotoAlbum
 import androidx.compose.material.icons.outlined.Dashboard
 import androidx.compose.material.icons.outlined.RestoreFromTrash
@@ -78,14 +74,11 @@ import androidx.compose.material.icons.outlined.SelectAll
 import androidx.compose.material.icons.outlined.PermMedia
 import androidx.compose.material.icons.outlined.PhotoLibrary
 import androidx.compose.material.icons.outlined.VideoLibrary
-import androidx.compose.material.icons.outlined.DriveFileMove
 import androidx.compose.material.icons.outlined.ContentCopy
 import androidx.compose.material.icons.outlined.Search
 import androidx.compose.material.icons.outlined.FilterList
-import androidx.compose.material.icons.outlined.GridView
 import androidx.compose.material.icons.outlined.Share
 import androidx.compose.material.icons.outlined.DeleteForever
-import androidx.compose.material.icons.outlined.Map
 import androidx.compose.material.icons.filled.Clear
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.OutlinedTextFieldDefaults
@@ -112,7 +105,6 @@ import androidx.compose.material3.NavigationBarItem
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Tab
-import androidx.compose.material3.TabRow
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
@@ -125,6 +117,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.mutableIntStateOf
+import androidx.compose.runtime.mutableLongStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
@@ -139,9 +132,6 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.input.nestedscroll.NestedScrollConnection
-import androidx.compose.ui.input.nestedscroll.nestedScroll
-import androidx.compose.ui.unit.Velocity
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
@@ -156,31 +146,15 @@ import androidx.compose.animation.scaleIn
 import androidx.compose.animation.scaleOut
 import androidx.compose.animation.slideInVertically
 import androidx.compose.animation.slideOutVertically
-import androidx.compose.animation.core.tween
-import androidx.compose.animation.core.FastOutSlowInEasing
-import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.ui.res.stringResource
 import com.iris.gallery.data.MediaImage
 import com.iris.gallery.data.ExifEditRequest
 import com.iris.gallery.data.resolveMediaUri
-import com.iris.gallery.data.isRaw
-import com.iris.gallery.data.isGif
-import com.iris.gallery.data.isPanorama
-import com.iris.gallery.data.isMotionPhoto
-import com.iris.gallery.ui.DuplicateScanState
-import com.iris.gallery.ui.MediaThumbnail
-import com.iris.gallery.ui.AlbumsGrid
-import com.iris.gallery.ui.MediaAlbum
-import com.iris.gallery.ui.LibraryScreen
-import com.iris.gallery.ui.FolderBrowserScreen
-import com.iris.gallery.ui.EditorScreen
 import com.iris.gallery.data.SettingsPreferences
 import com.iris.gallery.data.SettingsState
 import com.iris.gallery.data.DeleteMode
 import com.iris.gallery.data.StartupTab
 import com.iris.gallery.data.ThemeMode
-import com.iris.gallery.ui.SettingsScreen
-import com.iris.gallery.ui.AboutScreen
 import androidx.compose.material.icons.outlined.Settings
 import androidx.compose.material.icons.filled.Check
 import kotlinx.coroutines.Dispatchers
@@ -190,23 +164,15 @@ import kotlinx.coroutines.withContext
 import java.time.Instant
 import java.time.LocalDate
 import java.time.ZoneId
-import androidx.compose.ui.unit.dp
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.animation.AnimatedContent
-import androidx.compose.animation.AnimatedVisibility
-import androidx.compose.animation.fadeIn
-import androidx.compose.animation.fadeOut
-import androidx.compose.animation.slideInVertically
-import androidx.compose.animation.slideOutVertically
-import androidx.compose.animation.core.tween
-import androidx.compose.animation.scaleIn
-import androidx.compose.animation.scaleOut
-import androidx.compose.animation.core.FastOutSlowInEasing
+import androidx.compose.foundation.LocalOverscrollFactory
+import androidx.compose.material.icons.automirrored.outlined.DriveFileMove
+import androidx.compose.material3.SecondaryTabRow
 import com.iris.gallery.data.AlbumAction
 import com.iris.gallery.data.AlbumOperationResult
-import com.iris.gallery.ui.AlbumPickerSheet
 import com.iris.gallery.R
 import java.io.File
+import kotlin.time.Duration.Companion.milliseconds
 
 private enum class MediaFormatFilter(val label: String) {
     ALL("All"),
@@ -217,7 +183,6 @@ private enum class MediaFormatFilter(val label: String) {
     MOTION("Motion Photos"),
 }
 
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun BoxScope.IrisPullToRefreshIndicator(
     state: PullToRefreshState,
@@ -226,8 +191,8 @@ private fun BoxScope.IrisPullToRefreshIndicator(
 ) {
     var wasRefreshing by remember { mutableStateOf(false) }
     var isDismissingInPlace by remember { mutableStateOf(false) }
-    val dismissAlpha = remember { androidx.compose.animation.core.Animatable(1f) }
-    val dismissScale = remember { androidx.compose.animation.core.Animatable(1f) }
+    val dismissAlpha = remember { Animatable(1f) }
+    val dismissScale = remember { Animatable(1f) }
 
     val restingState = remember {
         object : PullToRefreshState {
@@ -312,8 +277,8 @@ internal fun GalleryScaffold(
     albumCovers: Map<Long, Long>,
     albumSort: com.iris.gallery.data.AlbumSort,
     albumOrder: List<Long>,
-    albumMediaSort: com.iris.gallery.data.MediaSort = com.iris.gallery.data.MediaSort.DATE_DESC,
-    albumMediaSortOverrides: Map<Long, com.iris.gallery.data.MediaSort> = emptyMap(),
+    albumMediaSort: MediaSort = MediaSort.DATE_DESC,
+    albumMediaSortOverrides: Map<Long, MediaSort> = emptyMap(),
     lockedAuthorized: Boolean,
     onLockVault: () -> Unit = {},
     loading: Boolean,
@@ -327,18 +292,18 @@ internal fun GalleryScaffold(
     onSetAlbumCover: (Long, Long) -> Unit,
     onSetAlbumSort: (com.iris.gallery.data.AlbumSort) -> Unit,
     onSetAlbumOrder: (List<Long>) -> Unit,
-    onSetAlbumMediaSort: (com.iris.gallery.data.MediaSort) -> Unit = {},
-    onSetAlbumMediaSortOverride: (Long, com.iris.gallery.data.MediaSort?) -> Unit = { _, _ -> },
+    onSetAlbumMediaSort: (MediaSort) -> Unit = {},
+    onSetAlbumMediaSortOverride: (Long, MediaSort?) -> Unit = { _, _ -> },
     onRequestUnlock: () -> Unit,
     onPick: ((MediaImage) -> Unit)?,
     onTrash: (List<MediaImage>, onConfirmed: (() -> Unit)?) -> Unit,
     onRestore: (List<MediaImage>) -> Unit,
     onDeletePermanently: (List<MediaImage>, onConfirmed: (() -> Unit)?) -> Unit,
     onEditMetadata: (MediaImage, ExifEditRequest, (MediaImage?) -> Unit) -> Unit = { _, _, _ -> },
-    onMoveToAlbum: (List<MediaImage>, java.io.File, String, (AlbumOperationResult) -> Unit) -> Unit,
-    onCopyToAlbum: (List<MediaImage>, java.io.File, String, (AlbumOperationResult) -> Unit) -> Unit,
-    getAlbumDir: (MediaAlbum) -> java.io.File,
-    createAlbumDir: (String) -> java.io.File,
+    onMoveToAlbum: (List<MediaImage>, File, String, (AlbumOperationResult) -> Unit) -> Unit,
+    onCopyToAlbum: (List<MediaImage>, File, String, (AlbumOperationResult) -> Unit) -> Unit,
+    getAlbumDir: (MediaAlbum) -> File,
+    createAlbumDir: (String) -> File,
     duplicateState: DuplicateScanState,
     onScanDuplicates: () -> Unit,
     onCancelDuplicateScan: () -> Unit,
@@ -396,7 +361,7 @@ internal fun GalleryScaffold(
     var viewerImages by remember { mutableStateOf<List<MediaImage>?>(null) }
     var selectedAlbumId by remember { mutableStateOf<Long?>(null) }
     var selectedLockedAlbum by remember { mutableStateOf<String?>(null) }
-    var librarySection by remember { mutableStateOf<String?>(if (initialMemories) "memories" else null) }
+    var librarySection by remember { mutableStateOf(if (initialMemories) "memories" else null) }
     var editorImage by remember { mutableStateOf<MediaImage?>(null) }
     var isEditingAlbumOrder by remember { mutableStateOf(false) }
 
@@ -406,7 +371,7 @@ internal fun GalleryScaffold(
         }
     }
 
-    var handledIntentGeneration by remember { mutableStateOf(-1L) }
+    var handledIntentGeneration by remember { mutableLongStateOf(-1L) }
     LaunchedEffect(initialViewUri, initialEditMode, initialOpenLatest, images, initialIntentGeneration) {
         if (handledIntentGeneration != initialIntentGeneration) {
             if (initialViewUri != null) {
@@ -568,21 +533,24 @@ internal fun GalleryScaffold(
             }
         } ?: emptyList()
     }
-    val activeMedia = when {
-        destination == 3 && librarySection == "trash" -> trashed
-        destination == 3 && librarySection == "locked" -> lockedMedia
-        destination == 1 && selectedAlbum != null -> displayedAlbumPhotos
-        destination == 2 -> displayedFavoritePhotos
+    val activeMedia = when (destination) {
+        3 -> when (librarySection) {
+            "trash" -> trashed
+            "locked" -> lockedMedia
+            else -> displayedItems
+        }
+        1 -> if (selectedAlbum != null) displayedAlbumPhotos else displayedItems
+        2 -> displayedFavoritePhotos
         else -> displayedItems
     }
     val isLockedActive = destination == 3 && librarySection == "locked"
     DisposableEffect(isLockedActive) {
-        val window = (context as? android.app.Activity)?.window
+        val window = (context as? Activity)?.window
         if (isLockedActive) {
-            window?.addFlags(android.view.WindowManager.LayoutParams.FLAG_SECURE)
+            window?.addFlags(WindowManager.LayoutParams.FLAG_SECURE)
         }
         onDispose {
-            window?.clearFlags(android.view.WindowManager.LayoutParams.FLAG_SECURE)
+            window?.clearFlags(WindowManager.LayoutParams.FLAG_SECURE)
         }
     }
     fun toggleSelection(id: Long) {
@@ -601,7 +569,7 @@ internal fun GalleryScaffold(
         tabScope.launch {
             val uris = prepareShareUris(context, selected, settings.secureSharingMode)
             if (uris.isEmpty()) {
-                android.widget.Toast.makeText(context, context.getString(R.string.toast_share_failed), android.widget.Toast.LENGTH_SHORT).show()
+                Toast.makeText(context, context.applicationContext.getString(R.string.toast_share_failed), Toast.LENGTH_SHORT).show()
                 return@launch
             }
             val mimeType = selected.map { it.mimeType.ifBlank { if (it.isVideo) "video/*" else "image/*" } }
@@ -627,7 +595,7 @@ internal fun GalleryScaffold(
                 }
                 addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
             }
-            context.startActivity(Intent.createChooser(intent, context.getString(R.string.action_share_media)))
+            context.startActivity(Intent.createChooser(intent, context.applicationContext.getString(R.string.action_share_media)))
         }
     }
     val availableAlbums = remember(images, albumCovers) {
@@ -650,7 +618,7 @@ internal fun GalleryScaffold(
     var pendingPermanentDeleteItems by remember { mutableStateOf<List<MediaImage>?>(null) }
     LaunchedEffect(trashFeedback) {
         if (trashFeedback != null) {
-            kotlinx.coroutines.delay(1800)
+            delay(1800.milliseconds)
             onTrashFeedbackChange(null)
         }
     }
@@ -673,11 +641,10 @@ internal fun GalleryScaffold(
 
     val configuration = androidx.compose.ui.platform.LocalConfiguration.current
     val isLandscape = configuration.orientation == android.content.res.Configuration.ORIENTATION_LANDSCAPE
-    val isWideScreen = configuration.screenWidthDp >= 600
     val isDarkTheme = when (settings.themeMode) {
-        com.iris.gallery.data.ThemeMode.LIGHT -> false
-        com.iris.gallery.data.ThemeMode.DARK -> true
-        com.iris.gallery.data.ThemeMode.SYSTEM -> isSystemInDarkTheme()
+        ThemeMode.LIGHT -> false
+        ThemeMode.DARK -> true
+        ThemeMode.SYSTEM -> isSystemInDarkTheme()
     }
     val isAmoled = isDarkTheme && settings.amoledBlack
 
@@ -758,19 +725,20 @@ internal fun GalleryScaffold(
                         )
                     } else {
                         val count = if (selectedIds.isNotEmpty()) stringResource(R.string.selected_count, selectedIds.size)
-                            else when {
-                                destination == 1 && selectedAlbum != null -> selectedAlbum!!.name
-                                destination == 3 && librarySection == "trash" -> stringResource(R.string.section_trash)
-                                destination == 3 && librarySection == "locked" -> if (selectedLockedAlbum != null) selectedLockedAlbum!! else stringResource(R.string.section_locked)
-                                destination == 3 && librarySection == "duplicates" -> stringResource(R.string.section_duplicates)
-                                destination == 3 && librarySection == "memories" -> stringResource(R.string.section_memories)
-                                destination == 3 && librarySection == "formats" -> stringResource(R.string.library_formats_title)
-                                destination == 3 && librarySection == "editor" -> stringResource(R.string.library_editor_title)
-                                destination == 3 && librarySection == "folder_view" -> stringResource(R.string.section_folder_view)
-                                destination == 3 && librarySection != null -> librarySection!!.replaceFirstChar { it.uppercase() }
-                                destination == 2 -> favoritesTabLabel
-                                destination == 1 -> albumsTabLabel
-                                destination == 3 -> libraryTabLabel
+                            else when (destination) {
+                                1 -> selectedAlbum?.name ?: albumsTabLabel
+                                3 -> when (librarySection) {
+                                    "trash" -> stringResource(R.string.section_trash)
+                                    "locked" -> selectedLockedAlbum ?: stringResource(R.string.section_locked)
+                                    "duplicates" -> stringResource(R.string.section_duplicates)
+                                    "memories" -> stringResource(R.string.section_memories)
+                                    "formats" -> stringResource(R.string.library_formats_title)
+                                    "editor" -> stringResource(R.string.library_editor_title)
+                                    "folder_view" -> stringResource(R.string.section_folder_view)
+                                    null -> libraryTabLabel
+                                    else -> librarySection!!.replaceFirstChar { it.uppercase() }
+                                }
+                                2 -> favoritesTabLabel
                                 else -> mediaTabLabel
                             }
                         if (selectedIds.isNotEmpty()) {
@@ -842,12 +810,13 @@ internal fun GalleryScaffold(
                                     onClick = { selectionMenuExpanded = false; selectedIds = activeMedia.mapTo(mutableSetOf()) { it.id } })
                                 if (destination == 1 && selectedAlbum != null && selectedIds.size == 1) {
                                     DropdownMenuItem(text = { Text(stringResource(R.string.action_set_album_cover)) }, leadingIcon = { Icon(Icons.Outlined.Wallpaper, null) },
-                                        onClick = { selectionMenuExpanded = false; onSetAlbumCover(selectedAlbum!!.id, selectedIds.first()); clearSelection() })
+                                        onClick = { selectionMenuExpanded = false; onSetAlbumCover(
+                                            selectedAlbum.id, selectedIds.first()); clearSelection() })
                                 }
                                 if (!(destination == 3 && (librarySection == "trash" || librarySection == "locked"))) {
                                     DropdownMenuItem(
                                         text = { Text(stringResource(R.string.action_move_to_album)) },
-                                        leadingIcon = { Icon(Icons.Outlined.DriveFileMove, null) },
+                                        leadingIcon = { Icon(Icons.AutoMirrored.Outlined.DriveFileMove, null) },
                                         onClick = {
                                             selectionMenuExpanded = false
                                             val selected = activeMedia.filter { it.id in selectedIds }
@@ -995,11 +964,10 @@ internal fun GalleryScaffold(
                             }
                         }
                         if (destination == 1 && selectedAlbum != null) {
-                            val activeAlbum = selectedAlbum!!
-                            val albumOverride = albumMediaSortOverrides[activeAlbum.id]
+                            val albumOverride = albumMediaSortOverrides[selectedAlbum.id]
                             val effectiveSort = albumOverride ?: albumMediaSort
                             var albumSortMenuExpanded by remember { mutableStateOf(false) }
-                            var applyToThisAlbumOnly by remember(albumSortMenuExpanded, activeAlbum.id, albumOverride != null) {
+                            var applyToThisAlbumOnly by remember(albumSortMenuExpanded, selectedAlbum.id, albumOverride != null) {
                                 mutableStateOf(albumOverride != null)
                             }
                             Box {
@@ -1014,9 +982,9 @@ internal fun GalleryScaffold(
                                         val next = !applyToThisAlbumOnly
                                         applyToThisAlbumOnly = next
                                         if (next) {
-                                            onSetAlbumMediaSortOverride(activeAlbum.id, effectiveSort)
+                                            onSetAlbumMediaSortOverride(selectedAlbum.id, effectiveSort)
                                         } else {
-                                            onSetAlbumMediaSortOverride(activeAlbum.id, null)
+                                            onSetAlbumMediaSortOverride(selectedAlbum.id, null)
                                         }
                                     }
                                     DropdownMenuItem(
@@ -1052,9 +1020,9 @@ internal fun GalleryScaffold(
                                             onClick = {
                                                 albumSortMenuExpanded = false
                                                 if (applyToThisAlbumOnly) {
-                                                    onSetAlbumMediaSortOverride(activeAlbum.id, sortOption)
+                                                    onSetAlbumMediaSortOverride(selectedAlbum.id, sortOption)
                                                 } else {
-                                                    onSetAlbumMediaSortOverride(activeAlbum.id, null)
+                                                    onSetAlbumMediaSortOverride(selectedAlbum.id, null)
                                                     onSetAlbumMediaSort(sortOption)
                                                 }
                                             }
@@ -1071,7 +1039,7 @@ internal fun GalleryScaffold(
                                     expanded = albumOptionsMenuExpanded,
                                     onDismissRequest = { albumOptionsMenuExpanded = false }
                                 ) {
-                                    val isPinned = selectedAlbum!!.id in pinnedAlbums
+                                    val isPinned = selectedAlbum.id in pinnedAlbums
                                     DropdownMenuItem(
                                         text = { Text(stringResource(R.string.action_lock_album)) },
                                         leadingIcon = { Icon(Icons.Outlined.Lock, null) },
@@ -1081,7 +1049,7 @@ internal fun GalleryScaffold(
                                             // vault prompt and the system delete dialog can still be
                                             // cancelled, and the album drops out below by itself once
                                             // its images are filtered out.
-                                            onLockMedia(selectedAlbum!!.images)
+                                            onLockMedia(selectedAlbum.images)
                                         }
                                     )
                                     DropdownMenuItem(
@@ -1089,7 +1057,7 @@ internal fun GalleryScaffold(
                                         leadingIcon = { Icon(Icons.Outlined.FolderOff, null) },
                                         onClick = {
                                             albumOptionsMenuExpanded = false
-                                            val samplePath = selectedAlbum!!.images.firstOrNull { it.path.isNotBlank() }?.path.orEmpty()
+                                            val samplePath = selectedAlbum.images.firstOrNull { it.path.isNotBlank() }?.path.orEmpty()
                                             val folderPath = if (samplePath.contains('/')) samplePath.substringBeforeLast('/') else ""
                                             if (folderPath.isNotBlank()) {
                                                 onAddExcludedFolder(folderPath)
@@ -1107,7 +1075,7 @@ internal fun GalleryScaffold(
                                         },
                                         onClick = {
                                             albumOptionsMenuExpanded = false
-                                            onTogglePinnedAlbum(selectedAlbum!!.id)
+                                            onTogglePinnedAlbum(selectedAlbum.id)
                                         }
                                     )
                                 }
@@ -1233,7 +1201,7 @@ internal fun GalleryScaffold(
                   )
                 }
               ) {
-                CompositionLocalProvider(LocalOverscrollConfiguration provides null) {
+                CompositionLocalProvider(LocalOverscrollFactory provides null) {
                   if (displayedItems.isNotEmpty()) PhotoGrid(
                     displayedItems, gridPadding, photoGridState, cellSize = photoCellSize, onCellSizeChange = onCellSizeChange,
                     showTimeline = settings.showTimelineHeaders && fileSearchQuery.isBlank(),
@@ -1249,8 +1217,7 @@ internal fun GalleryScaffold(
                     showFormatBadge = settings.showMediaFormatBadge,
                     selectedIds = selectedIds,
                     favorites = favorites,
-                    onToggleSelection = if (onPick == null) ::toggleSelection else null,
-                    onSetSelection = if (onPick == null) ::setSelection else null,
+                      onSetSelection = if (onPick == null) ::setSelection else null,
                     onSetDateSelection = if (onPick == null) ::setDateSelection else null,
                     onInvalidMedia = onInvalidMedia,
                   ) { if (selectedIds.isNotEmpty()) toggleSelection(it.id) else if (onPick != null) onPick(it) else { viewerImages = displayedItems; selectedId = it.id } }
@@ -1286,7 +1253,7 @@ internal fun GalleryScaffold(
                   )
                 }
               ) {
-                CompositionLocalProvider(LocalOverscrollConfiguration provides null) {
+                CompositionLocalProvider(LocalOverscrollFactory provides null) {
                   if (selectedAlbum != null) {
                     if (displayedAlbumPhotos.isNotEmpty()) PhotoGrid(
                       displayedAlbumPhotos, gridPadding, albumPhotoGridState, cellSize = photoCellSize, onCellSizeChange = onCellSizeChange,
@@ -1303,8 +1270,7 @@ internal fun GalleryScaffold(
                       showFormatBadge = settings.showMediaFormatBadge,
                       selectedIds = selectedIds,
                       favorites = favorites,
-                      onToggleSelection = if (onPick == null) ::toggleSelection else null,
-                      onSetSelection = if (onPick == null) ::setSelection else null,
+                        onSetSelection = if (onPick == null) ::setSelection else null,
                       onSetDateSelection = if (onPick == null) ::setDateSelection else null,
                     ) { if (selectedIds.isNotEmpty()) toggleSelection(it.id) else if (onPick != null) onPick(it) else { viewerImages = displayedAlbumPhotos; selectedId = it.id } }
                     else if (fileSearchQuery.isNotBlank()) EmptyState(stringResource(R.string.empty_search_files, fileSearchQuery), gridPadding)
@@ -1354,7 +1320,6 @@ internal fun GalleryScaffold(
                             selectedIds = selectedIds,
                             favorites = favorites,
                             showFavoriteBadge = false,
-                            onToggleSelection = ::toggleSelection,
                             onSetSelection = ::setSelection,
                         ) {
                             if (selectedIds.isNotEmpty()) toggleSelection(it.id)
@@ -1367,9 +1332,8 @@ internal fun GalleryScaffold(
                             LaunchedEffect(Unit) { onRequestUnlock() }
                             EmptyState(stringResource(R.string.empty_locked_locked_state), padding)
                         } else {
-                            val locked = lockedMedia
-                            val lockedAlbumList = remember(locked) {
-                                locked.groupBy { it.bucketName.ifBlank { "Locked" } }
+                            val lockedAlbumList = remember(lockedMedia) {
+                                lockedMedia.groupBy { it.bucketName.ifBlank { "Locked" } }
                                     .map { (name, items) ->
                                         MediaAlbum(
                                             id = items.firstOrNull()?.bucketId ?: name.hashCode().toLong(),
@@ -1380,11 +1344,11 @@ internal fun GalleryScaffold(
                                         )
                                     }.sortedWith(compareByDescending<MediaAlbum> { it.images.size }.thenBy { it.name.lowercase() })
                             }
-                            if (locked.isEmpty()) {
+                            if (lockedMedia.isEmpty()) {
                                 EmptyState(stringResource(R.string.empty_locked), padding)
                             } else if (selectedLockedAlbum != null) {
-                                val albumImages = remember(locked, selectedLockedAlbum) {
-                                    locked.filter { it.bucketName.ifBlank { "Locked" } == selectedLockedAlbum }
+                                val albumImages = remember(lockedMedia, selectedLockedAlbum) {
+                                    lockedMedia.filter { it.bucketName.ifBlank { "Locked" } == selectedLockedAlbum }
                                 }
                                 PhotoGrid(
                                     images = albumImages,
@@ -1398,7 +1362,6 @@ internal fun GalleryScaffold(
                                     showFormatBadge = settings.showMediaFormatBadge,
                                     selectedIds = selectedIds,
                                     favorites = favorites,
-                                    onToggleSelection = ::toggleSelection,
                                     onSetSelection = ::setSelection,
                                 ) {
                                     if (selectedIds.isNotEmpty()) toggleSelection(it.id)
@@ -1410,11 +1373,11 @@ internal fun GalleryScaffold(
                             } else if (lockedAlbumList.size > 1) {
                                 var vaultTab by remember { mutableIntStateOf(0) }
                                 Column(Modifier.fillMaxSize().padding(padding)) {
-                                    TabRow(
+                                    SecondaryTabRow(
                                         selectedTabIndex = vaultTab,
+                                        modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 4.dp),
                                         containerColor = Color.Transparent,
                                         contentColor = MaterialTheme.colorScheme.primary,
-                                        modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 4.dp)
                                     ) {
                                         Tab(
                                             selected = vaultTab == 0,
@@ -1424,7 +1387,7 @@ internal fun GalleryScaffold(
                                         Tab(
                                             selected = vaultTab == 1,
                                             onClick = { vaultTab = 1 },
-                                            text = { Text(stringResource(R.string.vault_tab_all_photos) + " (${locked.size})") }
+                                            text = { Text(stringResource(R.string.vault_tab_all_photos) + " (${lockedMedia.size})") }
                                         )
                                     }
                                     if (vaultTab == 0) {
@@ -1486,7 +1449,7 @@ internal fun GalleryScaffold(
                                         }
                                     } else {
                                         PhotoGrid(
-                                            images = locked,
+                                            images = lockedMedia,
                                             padding = PaddingValues(0.dp),
                                             gridState = libraryGridState,
                                             cellSize = photoCellSize,
@@ -1497,12 +1460,11 @@ internal fun GalleryScaffold(
                                             showFormatBadge = settings.showMediaFormatBadge,
                                              selectedIds = selectedIds,
                                             favorites = favorites,
-                                            onToggleSelection = ::toggleSelection,
                                             onSetSelection = ::setSelection,
                                         ) {
                                             if (selectedIds.isNotEmpty()) toggleSelection(it.id)
                                             else {
-                                                viewerImages = locked
+                                                viewerImages = lockedMedia
                                                 selectedId = it.id
                                             }
                                         }
@@ -1510,7 +1472,7 @@ internal fun GalleryScaffold(
                                 }
                             } else {
                                 PhotoGrid(
-                                    images = locked,
+                                    images = lockedMedia,
                                     padding = padding,
                                     gridState = libraryGridState,
                                     cellSize = photoCellSize,
@@ -1521,12 +1483,11 @@ internal fun GalleryScaffold(
                                     showFormatBadge = settings.showMediaFormatBadge,
                                     selectedIds = selectedIds,
                                     favorites = favorites,
-                                    onToggleSelection = ::toggleSelection,
                                     onSetSelection = ::setSelection,
                                 ) {
                                     if (selectedIds.isNotEmpty()) toggleSelection(it.id)
                                     else {
-                                        viewerImages = locked
+                                        viewerImages = lockedMedia
                                         selectedId = it.id
                                     }
                                 }
@@ -1541,8 +1502,8 @@ internal fun GalleryScaffold(
                             Column(Modifier.fillMaxSize().padding(padding)) {
                                 androidx.compose.animation.AnimatedVisibility(
                                     visible = !settings.dismissedMemoriesTip,
-                                    enter = androidx.compose.animation.fadeIn() + androidx.compose.animation.expandVertically(),
-                                    exit = androidx.compose.animation.fadeOut() + androidx.compose.animation.shrinkVertically()
+                                    enter = fadeIn() + androidx.compose.animation.expandVertically(),
+                                    exit = fadeOut() + androidx.compose.animation.shrinkVertically()
                                 ) {
                                     Card(
                                         shape = RoundedCornerShape(16.dp),
@@ -1604,7 +1565,6 @@ internal fun GalleryScaffold(
                                     showFormatBadge = settings.showMediaFormatBadge,
                                     selectedIds = selectedIds,
                                     favorites = favorites,
-                                    onToggleSelection = ::toggleSelection,
                                     onSetSelection = ::setSelection,
                                 ) {
                                     if (selectedIds.isNotEmpty()) toggleSelection(it.id)
@@ -1705,7 +1665,6 @@ internal fun GalleryScaffold(
                                              showFormatBadge = settings.showMediaFormatBadge,
                                             selectedIds = selectedIds,
                                             favorites = favorites,
-                                            onToggleSelection = if (onPick == null) ::toggleSelection else null,
                                             onSetSelection = if (onPick == null) ::setSelection else null,
                                         ) {
                                             if (selectedIds.isNotEmpty()) toggleSelection(it.id)
@@ -1751,12 +1710,10 @@ internal fun GalleryScaffold(
                             onBack = { librarySection = null }
                         )
                         else -> LibraryScreen(padding, trashed.size, lockedMedia.size) {
-                            if (it == "rescan") {
-                                onRescanMedia()
-                            } else if (it == "excluded_folders") {
-                                showExcludedFoldersDialog = true
-                            } else {
-                                librarySection = it
+                            when (it) {
+                                "rescan" -> onRescanMedia()
+                                "excluded_folders" -> showExcludedFoldersDialog = true
+                                else -> librarySection = it
                             }
                         }
                     }
@@ -1783,7 +1740,6 @@ internal fun GalleryScaffold(
                     selectedIds = selectedIds,
                     favorites = favorites,
                     showFavoriteBadge = false,
-                    onToggleSelection = if (onPick == null) ::toggleSelection else null,
                     onSetSelection = if (onPick == null) ::setSelection else null,
                     onSetDateSelection = if (onPick == null) ::setDateSelection else null,
                     onInvalidMedia = onInvalidMedia,
@@ -1870,7 +1826,7 @@ internal fun GalleryScaffold(
     }
 
     if (showExcludedFoldersDialog) {
-        com.iris.gallery.ui.ExcludedFoldersDialog(
+        ExcludedFoldersDialog(
             excludedFolders = excludedFolders,
             availableAlbums = availableAlbums,
             onRemoveExcludedFolder = onRemoveExcludedFolder,
@@ -1950,17 +1906,16 @@ internal fun GalleryScaffold(
             },
             confirmButton = {
                 TextButton(onClick = {
-                    val toDelete = items
                     pendingDeleteItems = null
                     clearSelection()
                     if (isLockedSection) {
-                        onDeleteFromLocked(toDelete) {
-                            onTrashFeedbackChange(TrashFeedback(TrashFeedbackType.PERMANENTLY_DELETED, toDelete.size))
+                        onDeleteFromLocked(items) {
+                            onTrashFeedbackChange(TrashFeedback(TrashFeedbackType.PERMANENTLY_DELETED, items.size))
                         }
                     } else if (isInTrash || deletePermanently) {
-                        handleDeletePermanently(toDelete)
+                        handleDeletePermanently(items)
                     } else {
-                        handleTrash(toDelete)
+                        handleTrash(items)
                     }
                 }) {
                     Text(
@@ -1990,10 +1945,9 @@ internal fun GalleryScaffold(
             },
             confirmButton = {
                 TextButton(onClick = {
-                    val toDelete = items
                     pendingPermanentDeleteItems = null
                     clearSelection()
-                    handleDeletePermanently(toDelete)
+                    handleDeletePermanently(items)
                 }) {
                     Text(
                         stringResource(R.string.action_delete_permanently),
@@ -2139,7 +2093,7 @@ internal fun GalleryScaffold(
                 onRenameMedia(media, newName) { updated ->
                     if (updated != null) {
                         externalMedia = updated
-                        Toast.makeText(context, context.getString(R.string.toast_rename_success, updated.name), Toast.LENGTH_SHORT).show()
+                        Toast.makeText(context, context.applicationContext.getString(R.string.toast_rename_success, updated.name), Toast.LENGTH_SHORT).show()
                     } else {
                         Toast.makeText(context, R.string.toast_rename_failed, Toast.LENGTH_SHORT).show()
                     }
@@ -2234,7 +2188,7 @@ internal fun GalleryScaffold(
                 onRenameMedia(media, newName) { updated ->
                     if (updated != null) {
                         viewerImages = viewerImages?.map { if (it.id == media.id) updated else it }
-                        Toast.makeText(context, context.getString(R.string.toast_rename_success, updated.name), Toast.LENGTH_SHORT).show()
+                        Toast.makeText(context, context.applicationContext.getString(R.string.toast_rename_success, updated.name), Toast.LENGTH_SHORT).show()
                     } else {
                         Toast.makeText(context, R.string.toast_rename_failed, Toast.LENGTH_SHORT).show()
                     }
@@ -2303,24 +2257,24 @@ internal fun GalleryScaffold(
     }
     AnimatedVisibility(
         visible = editorImage != null,
-        enter = fadeIn(animationSpec = androidx.compose.animation.core.tween(220)) + slideInVertically(
+        enter = fadeIn(animationSpec = tween(220)) + slideInVertically(
             initialOffsetY = { it / 10 },
-            animationSpec = androidx.compose.animation.core.tween(220, easing = androidx.compose.animation.core.FastOutSlowInEasing)
+            animationSpec = tween(220, easing = FastOutSlowInEasing)
         ),
-        exit = fadeOut(animationSpec = androidx.compose.animation.core.tween(180)) + androidx.compose.animation.slideOutVertically(
+        exit = fadeOut(animationSpec = tween(180)) + slideOutVertically(
             targetOffsetY = { it / 10 },
-            animationSpec = androidx.compose.animation.core.tween(180, easing = androidx.compose.animation.core.FastOutSlowInEasing)
+            animationSpec = tween(180, easing = FastOutSlowInEasing)
         )
     ) {
         editorImage?.let { image ->
             EditorScreen(image, onClose = { editorImage = null }, onSaved = { saved, overwritten ->
                 if (saved) editorImage = null
                 val msg = if (!saved) {
-                    context.getString(R.string.toast_edited_failed)
+                    context.applicationContext.getString(R.string.toast_edited_failed)
                 } else if (overwritten) {
-                    context.getString(R.string.toast_edited_overwritten)
+                    context.applicationContext.getString(R.string.toast_edited_overwritten)
                 } else {
-                    context.getString(R.string.toast_edited_saved)
+                    context.applicationContext.getString(R.string.toast_edited_saved)
                 }
                 Toast.makeText(context, msg, Toast.LENGTH_SHORT).show()
             })
@@ -2354,7 +2308,7 @@ internal fun GalleryScaffold(
                     color = MaterialTheme.colorScheme.surfaceContainerHigh.copy(alpha = 0.96f),
                     tonalElevation = 8.dp,
                     shadowElevation = 6.dp,
-                    border = androidx.compose.foundation.BorderStroke(
+                    border = BorderStroke(
                         width = 1.dp,
                         color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.35f)
                     ),
@@ -2368,7 +2322,7 @@ internal fun GalleryScaffold(
                             TrashFeedbackType.MOVED_TO_TRASH -> Icons.Outlined.DeleteOutline
                             TrashFeedbackType.RESTORED -> Icons.Outlined.RestoreFromTrash
                             TrashFeedbackType.PERMANENTLY_DELETED -> Icons.Outlined.DeleteForever
-                            TrashFeedbackType.MOVED_TO_ALBUM -> Icons.Outlined.DriveFileMove
+                            TrashFeedbackType.MOVED_TO_ALBUM -> Icons.AutoMirrored.Outlined.DriveFileMove
                             TrashFeedbackType.COPIED_TO_ALBUM -> Icons.Outlined.ContentCopy
                         }
                         val tint = when (feedback.type) {
@@ -2418,13 +2372,13 @@ internal fun GalleryScaffold(
 
         AnimatedVisibility(
             visible = activeOverlayScreen == "settings",
-            enter = fadeIn(animationSpec = androidx.compose.animation.core.tween(220)) + slideInVertically(
+            enter = fadeIn(animationSpec = tween(220)) + slideInVertically(
                 initialOffsetY = { it / 10 },
-                animationSpec = androidx.compose.animation.core.tween(220, easing = androidx.compose.animation.core.FastOutSlowInEasing)
+                animationSpec = tween(220, easing = FastOutSlowInEasing)
             ),
-            exit = fadeOut(animationSpec = androidx.compose.animation.core.tween(180)) + androidx.compose.animation.slideOutVertically(
+            exit = fadeOut(animationSpec = tween(180)) + slideOutVertically(
                 targetOffsetY = { it / 10 },
-                animationSpec = androidx.compose.animation.core.tween(180, easing = androidx.compose.animation.core.FastOutSlowInEasing)
+                animationSpec = tween(180, easing = FastOutSlowInEasing)
             )
         ) {
             BackHandler(enabled = true) { activeOverlayScreen = null }
@@ -2443,13 +2397,13 @@ internal fun GalleryScaffold(
 
         AnimatedVisibility(
             visible = activeOverlayScreen == "about",
-            enter = fadeIn(animationSpec = androidx.compose.animation.core.tween(220)) + slideInVertically(
+            enter = fadeIn(animationSpec = tween(220)) + slideInVertically(
                 initialOffsetY = { it / 10 },
-                animationSpec = androidx.compose.animation.core.tween(220, easing = androidx.compose.animation.core.FastOutSlowInEasing)
+                animationSpec = tween(220, easing = FastOutSlowInEasing)
             ),
-            exit = fadeOut(animationSpec = androidx.compose.animation.core.tween(180)) + androidx.compose.animation.slideOutVertically(
+            exit = fadeOut(animationSpec = tween(180)) + slideOutVertically(
                 targetOffsetY = { it / 10 },
-                animationSpec = androidx.compose.animation.core.tween(180, easing = androidx.compose.animation.core.FastOutSlowInEasing)
+                animationSpec = tween(180, easing = FastOutSlowInEasing)
             )
         ) {
             BackHandler(enabled = true) { activeOverlayScreen = "settings" }

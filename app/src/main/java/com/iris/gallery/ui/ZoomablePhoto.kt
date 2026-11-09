@@ -1,5 +1,3 @@
-@file:OptIn(androidx.compose.foundation.ExperimentalFoundationApi::class)
-
 package com.iris.gallery.ui
 
 import android.net.Uri
@@ -7,7 +5,9 @@ import android.os.Build
 import android.os.SystemClock
 import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.FastOutSlowInEasing
+import androidx.compose.animation.core.Spring
 import androidx.compose.animation.core.VectorConverter
+import androidx.compose.animation.core.spring
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.gestures.awaitEachGesture
@@ -19,75 +19,60 @@ import androidx.compose.foundation.gestures.calculateZoom
 import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.layout.navigationBarsPadding
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.PlayArrow
-import com.iris.gallery.data.isRaw
-import com.iris.gallery.data.livpJpegCacheFile
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Surface
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
-import androidx.compose.ui.draw.clipToBounds
-import androidx.compose.ui.draw.scale
-import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.animation.core.spring
-import androidx.compose.animation.core.Spring
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clipToBounds
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.geometry.isSpecified
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.asImageBitmap
+import androidx.compose.ui.graphics.drawscope.withTransform
 import androidx.compose.ui.graphics.graphicsLayer
-import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.graphics.painter.BitmapPainter
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.onSizeChanged
-import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.IntSize
-import androidx.compose.animation.core.tween
-import androidx.compose.animation.core.FastOutSlowInEasing
-import androidx.compose.runtime.collectAsState
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.setValue
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
-import coil3.compose.rememberAsyncImagePainter
+import androidx.compose.ui.unit.IntSize
+import androidx.compose.ui.unit.dp
+import androidx.compose.ui.viewinterop.AndroidView
+import androidx.media3.common.Player
+import androidx.media3.ui.PlayerView
+import coil3.BitmapImage
 import coil3.compose.AsyncImagePainter
+import coil3.compose.rememberAsyncImagePainter
 import coil3.request.ImageRequest
 import coil3.size.Precision
-import coil3.BitmapImage
-import androidx.compose.ui.graphics.asImageBitmap
-import androidx.compose.ui.graphics.painter.BitmapPainter
-import androidx.compose.ui.graphics.drawscope.withTransform
+import com.iris.gallery.R
 import com.iris.gallery.data.MediaImage
 import com.iris.gallery.data.isRaw
 import com.iris.gallery.data.isSvg
-import com.iris.gallery.ui.ThumbnailCache
+import com.iris.gallery.data.livpJpegCacheFile
 import com.iris.gallery.decoder.MotionPhotoExtractor
 import com.iris.gallery.decoder.MotionVideo
-import com.iris.gallery.R
-import androidx.media3.common.Player
-import androidx.media3.common.util.UnstableApi
-import androidx.compose.ui.viewinterop.AndroidView
-import androidx.media3.ui.PlayerView
 import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
-import java.time.Instant
-import androidx.compose.ui.unit.dp
-import androidx.compose.animation.core.tween
-import androidx.compose.animation.core.FastOutSlowInEasing
 
-@OptIn(UnstableApi::class)
+@androidx.annotation.OptIn(androidx.media3.common.util.UnstableApi::class)
 @Composable
 internal fun ZoomablePhoto(
     image: MediaImage,
@@ -119,7 +104,7 @@ internal fun ZoomablePhoto(
     var containerSize by remember(image.id) { mutableStateOf(IntSize.Zero) }
 
     LaunchedEffect(active) {
-        if (!active && (scaleAnim.value > 1.01f || offsetAnim.value != Offset.Zero || rotationAnim.value != 0f)) {
+        if (!active && ((scaleAnim.value > 1.01f) || (offsetAnim.value != Offset.Zero) || (rotationAnim.value != 0f))) {
             scaleAnim.snapTo(1f)
             offsetAnim.snapTo(Offset.Zero)
             rotationAnim.snapTo(0f)
@@ -128,11 +113,11 @@ internal fun ZoomablePhoto(
     }
 
     // Instant zero-delay preview from memory cache while full image decodes
-    var cachedThumb by remember(image.id) { mutableStateOf(com.iris.gallery.ui.ThumbnailCache.findForImage(image.id)) }
+    var cachedThumb by remember(image.id) { mutableStateOf(ThumbnailCache.findForImage(image.id)) }
     if (cachedThumb == null) {
         LaunchedEffect(image.id, image.uri) {
-            val thumb = withContext(Dispatchers.IO) { com.iris.gallery.ui.loadThumbnailSync(context, image, 512) }
-            if (thumb != null) cachedThumb = thumb
+            val thumb = withContext(Dispatchers.IO) { loadThumbnailSync(context, image, 512) }
+            thumb?.let { cachedThumb = it }
         }
     }
     val thumbPainter = remember(cachedThumb) {
@@ -143,7 +128,7 @@ internal fun ZoomablePhoto(
     // Extract it to a temp cache file and use that URI for Coil so the image displays.
     val livpJpeg = remember(image.id, image.path) { image.livpJpegCacheFile(context) }
     LaunchedEffect(image.id, image.path) {
-        if (livpJpeg != null && (!livpJpeg.exists() || livpJpeg.length() == 0L)) {
+        if ((livpJpeg != null) && (!livpJpeg.exists() || (livpJpeg.length() == 0L))) {
             withContext(Dispatchers.IO) {
                 // Force motion extraction which also writes the JPEG cache file.
                 MotionPhotoExtractor.detectMotionPhoto(context, image)
@@ -151,15 +136,15 @@ internal fun ZoomablePhoto(
         }
     }
     val displayUri = remember(image.id, image.uri, livpJpeg?.length()) {
-        val cachedJpeg = livpJpeg
-        if (cachedJpeg != null && cachedJpeg.exists() && cachedJpeg.length() > 0) {
-            Uri.fromFile(cachedJpeg)
+        if ((livpJpeg != null) && livpJpeg.exists() && (livpJpeg.length() > 0)) {
+            Uri.fromFile(livpJpeg)
         } else image.uri
     }
 
     val imageRequest: ImageRequest = remember(image.id, displayUri) {
         val reqBuilder = ImageRequest.Builder(context).data(displayUri)
         if (image.isSvg) {
+            @Suppress("LocalContextResourcesRead")
             val metrics = context.resources.displayMetrics
             val maxScreen = maxOf(metrics.widthPixels, metrics.heightPixels, 2560)
             val targetDim = maxOf(maxScreen, 2880).coerceAtMost(3840)
@@ -184,7 +169,7 @@ internal fun ZoomablePhoto(
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE) {
             val success = painterState as? AsyncImagePainter.State.Success
             val bmp = (success?.result?.image as? BitmapImage)?.bitmap
-            if (bmp != null && !bmp.isRecycled && bmp.hasGainmap()) {
+            if ((bmp != null) && !bmp.isRecycled && bmp.hasGainmap()) {
                 onGainmapDetected(true)
             }
         }
@@ -197,13 +182,13 @@ internal fun ZoomablePhoto(
         val hasThumbIntrinsic = thumbIntrinsic != null && thumbIntrinsic.isSpecified && thumbIntrinsic.width > 0f && thumbIntrinsic.height > 0f
         val imgWidth = when {
             hasIntrinsic -> intrinsic.width
-            hasThumbIntrinsic -> thumbIntrinsic!!.width
+            hasThumbIntrinsic -> thumbIntrinsic.width
             image.width > 0 -> image.width.toFloat()
             else -> 1080f
         }
         val imgHeight = when {
             hasIntrinsic -> intrinsic.height
-            hasThumbIntrinsic -> thumbIntrinsic!!.height
+            hasThumbIntrinsic -> thumbIntrinsic.height
             image.height > 0 -> image.height.toFloat()
             else -> 1080f
         }
@@ -273,7 +258,7 @@ internal fun ZoomablePhoto(
                                     val (displayedWidth, displayedHeight, imgWidth) = computeImageMetrics()
                                     val fillScale = maxOf(
                                         containerSize.width.toFloat() / displayedWidth.coerceAtLeast(1f),
-                                        containerSize.height.toFloat() / displayedHeight.coerceAtLeast(1f)
+                                        containerSize.height.toFloat() / displayedHeight.coerceAtLeast(1f),
                                     ).coerceIn(1f, 50f)
                                     val defaultTapZoomLevel = if (doubleTapZoomLevel == -1.0f) 2.5f else doubleTapZoomLevel
                                     val originalScale = if (image.isSvg) defaultTapZoomLevel else (imgWidth / displayedWidth.coerceAtLeast(1f)).coerceIn(0.1f, 50f)
@@ -435,9 +420,12 @@ internal fun ZoomablePhoto(
                             coroutineScope.launch {
                                 rotationAnim.animateTo(
                                     targetValue = snapTarget,
-                                    animationSpec = spring(dampingRatio = 0.8f, stiffness = Spring.StiffnessMediumLow)
+                                    animationSpec = spring(
+                                        dampingRatio = 0.8f,
+                                        stiffness = Spring.StiffnessMediumLow,
+                                    ),
                                 )
-                                onZoomChanged(scaleAnim.value > 1.01f || kotlin.math.abs(snapTarget % 360f) > 2f)
+                                onZoomChanged((scaleAnim.value > 1.01f) || (kotlin.math.abs(snapTarget % 360f) > 2f))
                             }
                         }
                     }
@@ -451,13 +439,13 @@ internal fun ZoomablePhoto(
             val hasThumbIntrinsic = thumbIntrinsic != null && thumbIntrinsic.isSpecified && thumbIntrinsic.width > 0f && thumbIntrinsic.height > 0f
             val imgWidth = when {
                 hasValidIntrinsic -> intrinsic.width
-                hasThumbIntrinsic -> thumbIntrinsic!!.width
+                hasThumbIntrinsic -> thumbIntrinsic.width
                 image.width > 0 -> image.width.toFloat()
                 else -> 1080f
             }
             val imgHeight = when {
                 hasValidIntrinsic -> intrinsic.height
-                hasThumbIntrinsic -> thumbIntrinsic!!.height
+                hasThumbIntrinsic -> thumbIntrinsic.height
                 image.height > 0 -> image.height.toFloat()
                 else -> 1080f
             }
@@ -477,13 +465,15 @@ internal fun ZoomablePhoto(
                 val left = (size.width - fitWidth) / 2f
                 val top = (size.height - fitHeight) / 2f
 
-                withTransform({
-                    translate(offset.x, offset.y)
-                    scale(scale, scale, pivot = center)
-                    rotate(rotationAnim.value, pivot = center)
-                    translate(left, top)
-                }) {
-                    val drawSize = androidx.compose.ui.geometry.Size(fitWidth, fitHeight)
+                withTransform(
+                    transformBlock = {
+                        translate(offset.x, offset.y)
+                        scale(scale, scale, pivot = center)
+                        rotate(rotationAnim.value, pivot = center)
+                        translate(left, top)
+                    },
+                ) {
+                    val drawSize = Size(fitWidth, fitHeight)
                     if (depthPainter != null) {
                         with(depthPainter) {
                             draw(size = drawSize)
@@ -517,13 +507,13 @@ internal fun ZoomablePhoto(
             val hasThumbIntrinsic = thumbIntrinsic != null && thumbIntrinsic.isSpecified && thumbIntrinsic.width > 0f && thumbIntrinsic.height > 0f
             val imgWidth = when {
                 hasValidIntrinsic -> intrinsic.width
-                hasThumbIntrinsic -> thumbIntrinsic!!.width
+                hasThumbIntrinsic -> thumbIntrinsic.width
                 image.width > 0 -> image.width.toFloat()
                 else -> 1080f
             }
             val imgHeight = when {
                 hasValidIntrinsic -> intrinsic.height
-                hasThumbIntrinsic -> thumbIntrinsic!!.height
+                hasThumbIntrinsic -> thumbIntrinsic.height
                 image.height > 0 -> image.height.toFloat()
                 else -> 1080f
             }
@@ -561,11 +551,11 @@ internal fun ZoomablePhoto(
                             rotationZ = motionRotation
                         }
                         .pointerInput(image.id) {
-                            detectTapGestures(onTap = { onPlayMotion() })
+                            detectTapGestures { onPlayMotion() }
                         },
                     contentAlignment = Alignment.TopStart,
                 ) {
-                    AndroidView<PlayerView>(
+                    AndroidView(
                         factory = { ctx ->
                             PlayerView(ctx).apply {
                                 useController = false
@@ -590,7 +580,7 @@ internal fun ZoomablePhoto(
                 }
             } else {
                 // Fallback: full-screen fit (prevents black screen before intrinsic is known)
-                AndroidView<PlayerView>(
+                AndroidView(
                     factory = { ctx ->
                         PlayerView(ctx).apply {
                             useController = false
@@ -609,8 +599,8 @@ internal fun ZoomablePhoto(
                     modifier = Modifier
                         .fillMaxSize()
                         .pointerInput(Unit) {
-                            detectTapGestures(onTap = { onPlayMotion() })
-                        }
+                            detectTapGestures { onPlayMotion() }
+                        },
                 )
             }
         }
@@ -645,7 +635,7 @@ internal fun ZoomablePhoto(
                         .padding(bottom = 140.dp, end = 20.dp)
                         .size(48.dp)
                         .pointerInput(Unit) {
-                            detectTapGestures(onTap = { onPlayMotion() })
+                            detectTapGestures { onPlayMotion() }
                         },
                 ) {
                     Box(contentAlignment = Alignment.Center) {

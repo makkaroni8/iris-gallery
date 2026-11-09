@@ -29,7 +29,6 @@ import androidx.compose.material.icons.automirrored.outlined.Comment
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.gestures.awaitEachGesture
-import androidx.compose.foundation.gestures.awaitFirstDown
 import androidx.compose.foundation.gestures.waitForUpOrCancellation
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -41,7 +40,6 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.layout.sizeIn
 import androidx.compose.foundation.layout.statusBarsPadding
@@ -52,7 +50,6 @@ import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.outlined.ArrowBack
 import androidx.compose.material.icons.automirrored.outlined.OpenInNew
-import androidx.compose.material.icons.outlined.ArrowBack
 import androidx.compose.material.icons.outlined.RestoreFromTrash
 import androidx.compose.material.icons.outlined.Lock
 import androidx.compose.material.icons.outlined.LockOpen
@@ -66,16 +63,13 @@ import androidx.compose.material.icons.filled.BlurOn
 import androidx.compose.material.icons.outlined.BlurOff
 import androidx.compose.material.icons.outlined.Close
 import androidx.compose.material.icons.outlined.Info
-import androidx.compose.material.icons.outlined.DriveFileMove
 import androidx.compose.material.icons.outlined.ContentCopy
 import androidx.compose.material.icons.outlined.AutoFixHigh
-import androidx.compose.material.icons.outlined.OpenInNew
 import androidx.compose.material.icons.outlined.Share
 import androidx.compose.material.icons.outlined.DeleteForever
 import androidx.compose.material.icons.outlined.LocationOff
 import androidx.compose.material.icons.outlined.Security
 import androidx.compose.material.icons.outlined.PlayArrow
-import androidx.compose.material.icons.outlined.Comment
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.CircularProgressIndicator
@@ -107,8 +101,6 @@ import androidx.compose.animation.core.spring
 import androidx.compose.animation.core.Spring
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.geometry.Offset
-import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.graphicsLayer
@@ -127,9 +119,6 @@ import androidx.compose.animation.scaleIn
 import androidx.compose.animation.scaleOut
 import androidx.compose.animation.slideInVertically
 import androidx.compose.animation.slideOutVertically
-import androidx.compose.animation.core.tween
-import androidx.compose.animation.core.FastOutSlowInEasing
-import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.setValue
@@ -143,12 +132,6 @@ import com.iris.gallery.data.MediaImage
 import com.iris.gallery.data.ExifMetadata
 import com.iris.gallery.data.ExifEditRequest
 import com.iris.gallery.data.loadExifMetadata
-import com.iris.gallery.ui.MediaThumbnail
-import com.iris.gallery.ui.ThumbnailCache
-import com.iris.gallery.ui.MediaAlbum
-import com.iris.gallery.ui.EditChoiceBottomSheet
-import com.iris.gallery.ui.launchExternalEditor
-import com.iris.gallery.ui.WallpaperChoiceBottomSheet
 import com.iris.gallery.ui.video.VideoPage
 import com.iris.gallery.ui.video.Media3VideoEngine
 import com.iris.gallery.decoder.MotionPhotoExtractor
@@ -168,30 +151,20 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import com.iris.gallery.data.TimelineDateFormat
-import com.iris.gallery.ui.rememberAppLocale
-import com.iris.gallery.ui.getTimelineFormatter
 import java.text.DateFormat
 import java.util.Date
 import java.time.Instant
 import java.time.LocalDate
 import java.time.ZoneId
-import androidx.compose.ui.unit.dp
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.animation.AnimatedVisibility
-import androidx.compose.animation.fadeIn
-import androidx.compose.animation.fadeOut
-import androidx.compose.animation.slideInVertically
-import androidx.compose.animation.slideOutVertically
-import androidx.compose.animation.core.tween
-import androidx.compose.animation.scaleIn
-import androidx.compose.animation.scaleOut
-import androidx.compose.animation.core.FastOutSlowInEasing
+import androidx.compose.material.icons.automirrored.outlined.DriveFileMove
 import com.iris.gallery.data.AlbumAction
 import com.iris.gallery.data.AlbumOperationResult
-import com.iris.gallery.ui.AlbumPickerSheet
 import com.iris.gallery.R
 import java.io.File
+import kotlin.time.Duration.Companion.milliseconds
 
+@Suppress("Destructure")
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 internal fun PhotoViewer(
@@ -233,7 +206,7 @@ internal fun PhotoViewer(
     onToggleFavorite: (Long) -> Unit,
     onClose: () -> Unit,
     onPageChanged: (Long) -> Unit = {},
-    onRename: (MediaImage, String) -> Unit = { _, _ -> },
+    onRename: (MediaImage, String) -> Unit = { (_), _ -> },
     onDelete: (MediaImage, Boolean) -> Unit,
     onRestore: (MediaImage) -> Unit = {},
     onEditMetadata: (MediaImage, ExifEditRequest) -> Unit,
@@ -296,14 +269,14 @@ internal fun PhotoViewer(
         onClose()
     }
 
-    val pagerState = rememberPagerState(initialPage = initialPage, pageCount = { images.size })
-    var showInfo by remember { mutableStateOf(false) }
-    var confirmDelete by remember { mutableStateOf(false) }
-    var directPermanentDelete by remember { mutableStateOf(false) }
-    var showEditChoiceSheet by remember { mutableStateOf(false) }
-    var controlsVisible by remember { mutableStateOf(true) }
+    val pagerState = rememberPagerState(initialPage = initialPage) { images.size }
+    var showInfo by remember { mutableStateOf(value = false) }
+    var confirmDelete by remember { mutableStateOf(value = false) }
+    var directPermanentDelete by remember { mutableStateOf(value = false) }
+    var showEditChoiceSheet by remember { mutableStateOf(value = false) }
+    var controlsVisible by remember { mutableStateOf(value = true) }
     var previewPopupImage by remember { mutableStateOf<MediaImage?>(null) }
-    var showRotateTipBanner by remember { mutableStateOf(false) }
+    var showRotateTipBanner by remember { mutableStateOf(value = false) }
 
     LaunchedEffect(controlsVisible, insetsController) {
         insetsController?.let { controller ->
@@ -318,25 +291,25 @@ internal fun PhotoViewer(
     }
     val coroutineScope = rememberCoroutineScope()
     var zoomedImageId by remember { mutableStateOf<Long?>(null) }
-    var viewerMenuExpanded by remember { mutableStateOf(false) }
-    var showRenameDialog by remember { mutableStateOf(false) }
-    var showWallpaperSheet by remember { mutableStateOf(false) }
+    var viewerMenuExpanded by remember { mutableStateOf(value = false) }
+    var showRenameDialog by remember { mutableStateOf(value = false) }
+    var showWallpaperSheet by remember { mutableStateOf(value = false) }
     var viewerAlbumAction by remember { mutableStateOf<AlbumAction?>(null) }
-    var showSecureSharingHintDialog by remember { mutableStateOf(false) }
-    var showSecureSharingModePicker by remember { mutableStateOf(false) }
+    var showSecureSharingHintDialog by remember { mutableStateOf(value = false) }
+    var showSecureSharingModePicker by remember { mutableStateOf(value = false) }
     val pageItem = images.getOrNull(pagerState.currentPage.coerceIn(0, (images.size - 1).coerceAtLeast(0))) ?: return
-    val resolvedPeer by produceState<MediaImage?>(initialValue = pageItem.rawPeer, pageItem.id, pageItem.rawPeer, images) {
+    val resolvedPeer by produceState(initialValue = pageItem.rawPeer, pageItem.id, pageItem.rawPeer, images) {
         value = pageItem.rawPeer ?: withContext(Dispatchers.IO) {
             pageItem.findRawOrOriginalPeer(images)
         }
     }
-    var isViewingRawPeer by remember(pageItem.id) { mutableStateOf(false) }
-    val current = if (isViewingRawPeer && resolvedPeer != null) resolvedPeer!! else pageItem
+    var isViewingRawPeer by remember(pageItem.id) { mutableStateOf(value = false) }
+    val current = if (isViewingRawPeer && (resolvedPeer != null)) resolvedPeer!! else pageItem
     val doShare: (MediaImage) -> Unit = { media ->
         coroutineScope.launch {
             val uris = prepareShareUris(context, listOf(media), secureSharingMode)
             if (uris.isEmpty()) {
-                android.widget.Toast.makeText(context, context.getString(R.string.toast_share_failed), android.widget.Toast.LENGTH_SHORT).show()
+                Toast.makeText(context, context.applicationContext.getString(R.string.toast_share_failed), Toast.LENGTH_SHORT).show()
                 return@launch
             }
             val shareUri = uris.first()
@@ -348,7 +321,7 @@ internal fun PhotoViewer(
                 clipData = ClipData.newUri(context.contentResolver, mimeType, shareUri)
                 addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
             }
-            context.startActivity(Intent.createChooser(intent, context.getString(R.string.action_share_media)))
+            context.startActivity(Intent.createChooser(intent, context.applicationContext.getString(R.string.action_share_media)))
         }
     }
     val currentExif by produceState<ExifMetadata?>(initialValue = null, current.id, current.uri, current.dateTaken, current.description, current.title) {
@@ -356,31 +329,27 @@ internal fun PhotoViewer(
             loadExifMetadata(context, current.uri, current.path)
         }
     }
-    var currentPhotoHasGainmap by remember(current.id) { mutableStateOf(false) }
+    var currentPhotoHasGainmap by remember(current.id) { mutableStateOf(value = false) }
     val currentIsVideoHdr by produceState(initialValue = false, current.id, current.isVideo) {
-        if (current.isVideo) {
-            value = withContext(Dispatchers.IO) {
-                val retriever = MediaMetadataRetriever()
-                try {
-                    retriever.setDataSource(context, current.uri)
-                    val transfer = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
-                        retriever.extractMetadata(MediaMetadataRetriever.METADATA_KEY_COLOR_TRANSFER)?.toIntOrNull()
-                    } else null
-                    transfer == 6 || transfer == 7
-                } catch (_: Exception) {
-                    false
-                } finally {
-                    retriever.release()
-                }
+        value = current.isVideo && withContext(Dispatchers.IO) {
+            val retriever = MediaMetadataRetriever()
+            try {
+                retriever.setDataSource(context, current.uri)
+                val transfer = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
+                    retriever.extractMetadata(MediaMetadataRetriever.METADATA_KEY_COLOR_TRANSFER)?.toIntOrNull()
+                } else null
+                (transfer == 6) || (transfer == 7)
+            } catch (_: Exception) {
+                false
+            } finally {
+                retriever.release()
             }
-        } else {
-            value = false
         }
     }
     val isCurrentHdr = if (current.isVideo) {
         currentIsVideoHdr
     } else {
-        currentPhotoHasGainmap || (currentExif?.isUltraHdr == true) || (com.iris.gallery.ui.ThumbnailCache.isHdr(current.id) == true)
+        currentPhotoHasGainmap || (currentExif?.isUltraHdr == true) || (ThumbnailCache.isHdr(current.id) == true)
     }
 
     LaunchedEffect(isCurrentHdr, activity) {
@@ -422,13 +391,13 @@ internal fun PhotoViewer(
 
     // ---- Motion Photo (Samsung / Google / Nokia) detection & in-place playback ----
     val motionVideo by produceState<MotionVideo?>(initialValue = null, current.id, current.uri, current.isVideo) {
-        if (!current.isVideo) {
+        value = if (!current.isVideo) {
             // Only images can be motion photos. Cheap filename hint or on-demand content parse.
-            value = withContext(Dispatchers.IO) {
+            withContext(Dispatchers.IO) {
                 MotionPhotoExtractor.detectMotionPhoto(context, current)
             }
         } else {
-            value = null
+            null
         }
     }
     var isPlayingMotion by remember { mutableStateOf(false) }
@@ -463,9 +432,9 @@ internal fun PhotoViewer(
                     }
                     motionExtracting = false
                     if (extracted == null) {
-                        android.widget.Toast.makeText(
-                            context, context.getString(R.string.motion_extract_failed),
-                            android.widget.Toast.LENGTH_SHORT
+                        Toast.makeText(
+                            context, context.applicationContext.getString(R.string.motion_extract_failed),
+                            Toast.LENGTH_SHORT,
                         ).show()
                     } else {
                         motionEngine = Media3VideoEngine(context).apply {
@@ -493,31 +462,34 @@ internal fun PhotoViewer(
     // ---- Depth Photo (Google GDepth / Nokia / OEM portrait) detection & rendering ----
     val isDepthPhoto = currentExif?.isDepthPhoto == true
     val depthPhoto by produceState<com.iris.gallery.decoder.DepthPhoto?>(
-        initialValue = null, current.id, current.uri, isDepthPhoto
+        initialValue = null,
+        current.id,
+        current.uri,
+        isDepthPhoto,
     ) {
-        if (isDepthPhoto && !current.isVideo) {
-            value = withContext(Dispatchers.IO) {
+        value = if (isDepthPhoto && !current.isVideo) {
+            withContext(Dispatchers.IO) {
                 com.iris.gallery.decoder.DepthPhotoExtractor.detectDepthPhoto(context, current)
             }
         } else {
-            value = null
+            null
         }
     }
-    var depthEnabled by remember(current.id) { mutableStateOf(false) }
+    var depthEnabled by remember(current.id) { mutableStateOf(value = false) }
     var depthFocus by remember(current.id) { mutableFloatStateOf(0.5f) }
-    var depthStrength by remember(current.id) { mutableStateOf(1f) }
+    var depthStrength by remember(current.id) { mutableFloatStateOf(1f) }
     var depthTransition by remember(current.id) { mutableFloatStateOf(0.15f) }
     var depthPreviewBitmap by remember(current.id) { mutableStateOf<android.graphics.Bitmap?>(null) }
-    var depthRendering by remember(current.id) { mutableStateOf(false) }
+    var depthRendering by remember(current.id) { mutableStateOf(value = false) }
     // Re-render when depth params change (debounced).
     LaunchedEffect(depthPhoto, depthEnabled, depthFocus, depthStrength, depthTransition) {
         val dp = depthPhoto
         if (dp != null && depthEnabled && dp.blurredImage != null) {
-            delay(150)  // debounce slider movement
+            delay(150.milliseconds)  // debounce slider movement
             depthRendering = true
             withContext(Dispatchers.IO) {
                 // Decode the primary (sharp) image at a preview resolution.
-                val metrics = context.resources.displayMetrics
+                val metrics = context.applicationContext.resources.displayMetrics
                 val maxDim = maxOf(metrics.widthPixels, metrics.heightPixels, 1080)
                 val targetSize = maxDim.coerceAtMost(1920)
                 val rawSharp = runCatching {
@@ -525,7 +497,7 @@ internal fun PhotoViewer(
                         inSampleSize = com.iris.gallery.decoder.calcSampleSize(current.width, current.height, targetSize)
                     }
                     if (current.path.isNotBlank()) {
-                        val f = java.io.File(current.path)
+                        val f = File(current.path)
                         if (f.exists() && f.canRead()) {
                             android.graphics.BitmapFactory.decodeFile(f.absolutePath, opts)
                         } else null
@@ -545,22 +517,22 @@ internal fun PhotoViewer(
                     // and rotate the sharp + blurred + depth map to match what Coil would
                     // display, so the depth preview aligns with the original photo.
                     val orientation = runCatching {
-                        val exif = if (current.path.isNotBlank() && java.io.File(current.path).canRead()) {
-                            androidx.exifinterface.media.ExifInterface(current.path)
+                        val exif = if (current.path.isNotBlank() && File(current.path).canRead()) {
+                            ExifInterface(current.path)
                         } else {
                             context.contentResolver.openInputStream(current.uri)?.use { s ->
-                                androidx.exifinterface.media.ExifInterface(s)
-                            } ?: androidx.exifinterface.media.ExifInterface(current.path)
+                                ExifInterface(s)
+                            } ?: ExifInterface(current.path)
                         }
                         exif.getAttributeInt(
-                            androidx.exifinterface.media.ExifInterface.TAG_ORIENTATION,
-                            androidx.exifinterface.media.ExifInterface.ORIENTATION_NORMAL,
+                            ExifInterface.TAG_ORIENTATION,
+                            ExifInterface.ORIENTATION_NORMAL,
                         )
-                    }.getOrDefault(androidx.exifinterface.media.ExifInterface.ORIENTATION_NORMAL)
+                    }.getOrDefault(ExifInterface.ORIENTATION_NORMAL)
                     val sharp = com.iris.gallery.decoder.applyExifOrientation(rawSharp, orientation)
                     if (sharp !== rawSharp) rawSharp.recycle()
-                    val blurred = com.iris.gallery.decoder.applyExifOrientation(dp.blurredImage!!, orientation)
-                    val depthMap = com.iris.gallery.decoder.applyExifOrientation(dp.depthMap!!, orientation)
+                    val blurred = com.iris.gallery.decoder.applyExifOrientation(dp.blurredImage, orientation)
+                    val depthMap = com.iris.gallery.decoder.applyExifOrientation(dp.depthMap, orientation)
                     val rendered = com.iris.gallery.decoder.DepthPhotoRenderer.render(
                         sharp = sharp,
                         blurred = blurred,
@@ -581,10 +553,10 @@ internal fun PhotoViewer(
         }
     }
 
-    var isDismissing by remember { mutableStateOf(false) }
-    var viewerHeightPx by remember { mutableFloatStateOf(context.resources.displayMetrics.heightPixels.toFloat()) }
-    val dismissThresholdPx = remember(context) { 120f * context.resources.displayMetrics.density }
-    val flingThresholdPx = remember(context) { 30f * context.resources.displayMetrics.density }
+    var isDismissing by remember { mutableStateOf(value = false) }
+    var viewerHeightPx by remember { mutableFloatStateOf(context.applicationContext.resources.displayMetrics.heightPixels.toFloat()) }
+    val dismissThresholdPx = remember(context) { 120f * context.applicationContext.resources.displayMetrics.density }
+    val flingThresholdPx = remember(context) { 30f * context.applicationContext.resources.displayMetrics.density }
 
     fun triggerAnimatedDismiss(velocity: Float = 0f) {
         if (isDismissing) return
@@ -745,10 +717,9 @@ internal fun PhotoViewer(
                             currentPhotoHasGainmap = true
                         }
                     },
-                    onZoomChanged = { zoomed ->
-                        zoomedImageId = if (zoomed) pageMedia.id else null
-                    },
-                )
+                ) { zoomed ->
+                    zoomedImageId = if (zoomed) pageMedia.id else null
+                }
             }
           }
         }
@@ -769,7 +740,7 @@ internal fun PhotoViewer(
             modifier = Modifier.fillMaxWidth().statusBarsPadding().padding(horizontal = 8.dp, vertical = 8.dp),
             verticalAlignment = Alignment.CenterVertically,
           ) {
-            IconButton(onClick = { triggerAnimatedDismiss() }) { Icon(Icons.Outlined.ArrowBack, stringResource(R.string.action_back), tint = Color.White) }
+            IconButton(onClick = { triggerAnimatedDismiss() }) { Icon(Icons.AutoMirrored.Outlined.ArrowBack, stringResource(R.string.action_back), tint = Color.White) }
             val currentLocale = rememberAppLocale()
             val headerDate = remember(current.dateTaken, currentLocale, timelineDateFormat, smartYearHiding, customTimelineDateFormat, showViewerTime) {
                 val localDate = Instant.ofEpochMilli(current.dateTaken).atZone(ZoneId.systemDefault()).toLocalDate()
@@ -784,8 +755,8 @@ internal fun PhotoViewer(
                 )
                 val dateStr = localDate.format(formatter)
                 if (showViewerTime) {
-                    val tf = java.text.DateFormat.getTimeInstance(java.text.DateFormat.SHORT, currentLocale)
-                    val timeStr = tf.format(java.util.Date(current.dateTaken))
+                    val tf = DateFormat.getTimeInstance(DateFormat.SHORT, currentLocale)
+                    val timeStr = tf.format(Date(current.dateTaken))
                     "$dateStr · $timeStr"
                 } else {
                     dateStr
@@ -816,12 +787,22 @@ internal fun PhotoViewer(
             }
             Column(modifier = Modifier.weight(1f).padding(horizontal = 8.dp)) {
                 if (primaryHeaderText.isNotBlank()) {
-                    Text(primaryHeaderText, color = Color.White, style = MaterialTheme.typography.titleMedium,
-                        maxLines = 1, overflow = TextOverflow.Ellipsis)
+                    Text(
+                        primaryHeaderText,
+                        color = Color.White,
+                        style = MaterialTheme.typography.titleMedium,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
+                    )
                 }
                 if (secondaryHeaderText.isNotBlank()) {
-                    Text(secondaryHeaderText, color = Color.White.copy(alpha = .75f),
-                        style = MaterialTheme.typography.labelMedium, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                    Text(
+                        secondaryHeaderText,
+                        color = Color.White.copy(alpha = .75f),
+                        style = MaterialTheme.typography.labelMedium,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
+                    )
                 }
             }
             IconButton(onClick = { showInfo = true }) { Icon(Icons.Outlined.Info, stringResource(R.string.details_title), tint = Color.White) }
@@ -858,7 +839,7 @@ internal fun PhotoViewer(
                                     val targetMedia = if (nextState && resolvedPeer != null) resolvedPeer!! else pageItem
                                     Toast.makeText(
                                         context,
-                                        context.getString(
+                                        context.applicationContext.getString(
                                             if (targetMedia.isRaw) R.string.toast_switched_to_raw
                                             else R.string.toast_switched_to_original,
                                             targetMedia.name
@@ -871,7 +852,7 @@ internal fun PhotoViewer(
                         if (current.id > 0) {
                             DropdownMenuItem(
                                 text = { Text(stringResource(R.string.action_move_to_album)) },
-                                leadingIcon = { Icon(Icons.Outlined.DriveFileMove, null) },
+                                leadingIcon = { Icon(Icons.AutoMirrored.Outlined.DriveFileMove, null) },
                                 onClick = {
                                     viewerMenuExpanded = false
                                     viewerAlbumAction = AlbumAction.MOVE
@@ -1233,10 +1214,9 @@ internal fun PhotoViewer(
                                     )
                                     .pointerInput(item.id) {
                                         awaitEachGesture {
-                                            val down = awaitFirstDown(requireUnconsumed = false)
                                             var popupShown = false
                                             val holdJob = coroutineScope.launch {
-                                                delay(160)
+                                                delay(160.milliseconds)
                                                 popupShown = true
                                                 previewPopupImage = item
                                             }
@@ -1458,7 +1438,7 @@ internal fun PhotoViewer(
                     Box(Modifier.fillMaxSize()) {
                         if (!popupItem.isVideo) {
                             val popupImageReq = remember(popupItem.id, popupItem.uri) {
-                                coil3.request.ImageRequest.Builder(context)
+                                ImageRequest.Builder(context)
                                     .data(popupItem.uri)
                                     .size(coil3.size.Size.ORIGINAL)
                                     .crossfade(120)
@@ -1640,15 +1620,17 @@ internal fun PhotoViewer(
                 }
             },
             confirmButton = {
-                TextButton(onClick = {
-                    confirmDelete = false
-                    onDelete(current, isPermanentlyDeleting || deletePermanently)
-                }) {
+                TextButton(
+                    onClick = {
+                        confirmDelete = false
+                        onDelete(current, isPermanentlyDeleting || deletePermanently)
+                    },
+                ) {
                     Text(
                         if (isPermanentlyDeleting || deletePermanently) stringResource(R.string.action_delete_permanently)
                         else stringResource(R.string.action_delete),
                         color = MaterialTheme.colorScheme.error,
-                        fontWeight = FontWeight.Bold
+                        fontWeight = FontWeight.Bold,
                     )
                 }
             },
@@ -1842,7 +1824,7 @@ internal fun PhotoViewer(
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                         modifier = Modifier.padding(bottom = 4.dp)
                     )
-                    SecureSharingMode.values().forEach { mode ->
+                    SecureSharingMode.entries.forEach { mode ->
                         val isSelected = secureSharingMode == mode
                         val modeIcon = when (mode) {
                             SecureSharingMode.OFF -> Icons.Outlined.Share
@@ -1918,9 +1900,8 @@ private fun copyImageToClipboard(context: android.content.Context, image: MediaI
     }
     runCatching {
         val clipboard = context.getSystemService(android.content.Context.CLIPBOARD_SERVICE) as ClipboardManager
-        clipboard.setPrimaryClip(
-            ClipData.newUri(context.contentResolver, context.getString(R.string.action_copy_image), uri)
-        )
+        @Suppress("UsePropertyAccessSyntax")
+        clipboard.setPrimaryClip(ClipData.newUri(context.contentResolver, context.applicationContext.getString(R.string.action_copy_image), uri))
     }.onSuccess {
         Toast.makeText(context, R.string.toast_image_copied, Toast.LENGTH_SHORT).show()
     }.onFailure {

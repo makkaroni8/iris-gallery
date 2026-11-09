@@ -16,9 +16,9 @@ object GridCalculations {
     fun calculateColumns(
         availableWidthPx: Int,
         minCellSizePx: Int,
-        spacingPx: Int
+        spacingPx: Int,
     ): Int {
-        if (minCellSizePx + spacingPx <= 0) return 1
+        if ((minCellSizePx + spacingPx) <= 0) return 1
         return maxOf(1, (availableWidthPx + spacingPx) / (minCellSizePx + spacingPx))
     }
 
@@ -32,12 +32,12 @@ object GridCalculations {
         cellSizeDp: Float,
         gridSpacingDp: Float,
         density: Density,
-        horizontalPaddingDp: Float = 0f
+        horizontalPaddingDp: Float = 0f,
     ): Int = with(density) {
         val totalWidthPx = screenWidthDp.dp.roundToPx()
         val paddingPx = horizontalPaddingDp.dp.roundToPx()
         val spacingPx = gridSpacingDp.dp.roundToPx()
-        val availableWidthPx = totalWidthPx - 2 * paddingPx - 2 * spacingPx
+        val availableWidthPx = totalWidthPx - (2 * paddingPx) - (2 * spacingPx)
         val cellSizePx = cellSizeDp.dp.roundToPx()
         calculateColumns(availableWidthPx, cellSizePx, spacingPx)
     }
@@ -52,13 +52,13 @@ object GridCalculations {
         cellSizeDp: Float,
         gridSpacingDp: Float,
         density: Density,
-        horizontalPaddingDp: Float = 0f
+        horizontalPaddingDp: Float = 0f,
     ): Int = with(density) {
         val totalWidthPx = screenWidthDp.dp.roundToPx()
         val paddingPx = horizontalPaddingDp.dp.roundToPx()
         val spacingPx = (gridSpacingDp + 8f).dp.roundToPx()
         val contentPaddingPx = 12.dp.roundToPx()
-        val availableWidthPx = totalWidthPx - 2 * paddingPx - 2 * contentPaddingPx
+        val availableWidthPx = totalWidthPx - (2 * paddingPx) - (2 * contentPaddingPx)
         val cellSizePx = cellSizeDp.dp.roundToPx()
         calculateColumns(availableWidthPx, cellSizePx, spacingPx)
     }
@@ -72,13 +72,13 @@ object GridCalculations {
         screenWidthDp: Float,
         gridSpacingDp: Float,
         density: Density,
-        horizontalPaddingDp: Float = 0f
+        horizontalPaddingDp: Float = 0f,
     ): Float = with(density) {
         val totalWidthPx = screenWidthDp.dp.roundToPx()
         val paddingPx = horizontalPaddingDp.dp.roundToPx()
         val spacingPx = gridSpacingDp.dp.roundToPx()
-        val availableWidthPx = totalWidthPx - 2 * paddingPx - 2 * spacingPx
-        val targetSizePx = ((availableWidthPx + spacingPx) / (targetCols + 0.45f) - spacingPx)
+        val availableWidthPx = totalWidthPx - (2 * paddingPx) - (2 * spacingPx)
+        val targetSizePx = ((availableWidthPx + spacingPx) / (targetCols + 0.45f)) - spacingPx
         (targetSizePx / density.density).coerceAtLeast(36f)
     }
 
@@ -87,14 +87,14 @@ object GridCalculations {
         screenWidthDp: Float,
         gridSpacingDp: Float,
         density: Density,
-        horizontalPaddingDp: Float = 0f
+        horizontalPaddingDp: Float = 0f,
     ): Float = with(density) {
         val totalWidthPx = screenWidthDp.dp.roundToPx()
         val paddingPx = horizontalPaddingDp.dp.roundToPx()
         val spacingPx = (gridSpacingDp + 8f).dp.roundToPx()
         val contentPaddingPx = 12.dp.roundToPx()
-        val availableWidthPx = totalWidthPx - 2 * paddingPx - 2 * contentPaddingPx
-        val targetSizePx = ((availableWidthPx + spacingPx) / (targetCols + 0.45f) - spacingPx)
+        val availableWidthPx = totalWidthPx - (2 * paddingPx) - (2 * contentPaddingPx)
+        val targetSizePx = ((availableWidthPx + spacingPx) / (targetCols + 0.45f)) - spacingPx
         (targetSizePx / density.density).coerceAtLeast(48f)
     }
 }

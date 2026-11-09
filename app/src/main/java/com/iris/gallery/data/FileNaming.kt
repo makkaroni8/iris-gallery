@@ -6,6 +6,7 @@ import java.io.File
  * Restores always land on a fresh name so an existing file at the original
  * path can never be overwritten by a trash or vault copy.
  */
+@Suppress("unused")
 fun uniqueDestinationFile(dir: File, fileName: String): File {
     val candidate = File(dir, fileName)
     if (!candidate.exists()) return candidate

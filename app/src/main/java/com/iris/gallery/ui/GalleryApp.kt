@@ -1,5 +1,3 @@
-@file:OptIn(androidx.compose.foundation.ExperimentalFoundationApi::class)
-
 package com.iris.gallery.ui
 
 import android.Manifest
@@ -17,7 +15,6 @@ import androidx.activity.result.IntentSenderRequest
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.animation.core.FastOutSlowInEasing
 import androidx.compose.animation.core.tween
-import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
@@ -27,8 +24,6 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.lazy.grid.items
-import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.Lock
 import androidx.compose.material.icons.outlined.PhotoLibrary
@@ -49,7 +44,6 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.layout.layout
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
@@ -59,8 +53,7 @@ import androidx.compose.animation.fadeOut
 import androidx.compose.animation.scaleIn
 import androidx.compose.animation.scaleOut
 import androidx.compose.animation.togetherWith
-import androidx.compose.animation.core.tween
-import androidx.compose.animation.core.FastOutSlowInEasing
+import androidx.compose.runtime.mutableLongStateOf
 import androidx.core.content.ContextCompat
 import androidx.core.content.PermissionChecker
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -74,29 +67,17 @@ import com.iris.gallery.data.groupRawPhotos
 import com.iris.gallery.data.ExifEditRequest
 import com.iris.gallery.data.saveExifToMedia
 import com.iris.gallery.data.resolveMediaUri
-import com.iris.gallery.ui.GalleryViewModel
-import com.iris.gallery.ui.EditorScreen
-import com.iris.gallery.ui.AppLockScreen
 import com.iris.gallery.data.SettingsPreferences
 import com.iris.gallery.data.SettingsState
-import androidx.compose.material.icons.outlined.Settings
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
-import androidx.compose.ui.unit.dp
-import androidx.compose.animation.AnimatedContent
-import androidx.compose.animation.fadeIn
-import androidx.compose.animation.fadeOut
-import androidx.compose.animation.togetherWith
-import androidx.compose.animation.core.tween
-import androidx.compose.animation.scaleIn
-import androidx.compose.animation.scaleOut
-import androidx.compose.animation.core.FastOutSlowInEasing
 import com.iris.gallery.data.AlbumAction
 import com.iris.gallery.data.AlbumOperationResult
 import com.iris.gallery.MemoriesNotifications
 import com.iris.gallery.R
 import java.io.File
+import androidx.core.net.toUri
 
 private var isSessionAppUnlocked = false
 
@@ -152,7 +133,7 @@ private fun hasMediaPermission(context: android.content.Context): Boolean {
 
 private data class PendingMoveData(
     val mediaList: List<MediaImage>,
-    val targetDir: java.io.File,
+    val targetDir: File,
     val targetAlbumName: String,
     val alreadyMoved: List<MediaImage>,
     val callback: (AlbumOperationResult) -> Unit
@@ -240,7 +221,7 @@ internal fun GalleryApp(
         }
     }
     var lockedAuthorized by remember { mutableStateOf(false) }
-    var lastBackgroundTimestamp by remember { mutableStateOf(0L) }
+    var lastBackgroundTimestamp by remember { mutableLongStateOf(0L) }
     var isAppUnlocked by remember {
         mutableStateOf(!settings.appLockEnabled || !settings.hasPin || isSessionAppUnlocked)
     }
@@ -319,14 +300,14 @@ internal fun GalleryApp(
             }
             viewModel.checkForChanges()
             val count = pending?.vaultedMedia?.size ?: 0
-            Toast.makeText(context, context.getString(R.string.toast_items_vaulted, count), Toast.LENGTH_SHORT).show()
+            Toast.makeText(context, context.applicationContext.getString(R.string.toast_items_vaulted, count), Toast.LENGTH_SHORT).show()
         } else {
             pending?.let { moveResult ->
                 coroutineScope.launch {
                     viewModel.rollbackVaultMove(moveResult.vaultedMedia)
                 }
             }
-            Toast.makeText(context, context.getString(R.string.toast_lock_cancelled), Toast.LENGTH_SHORT).show()
+            Toast.makeText(context, context.applicationContext.getString(R.string.toast_lock_cancelled), Toast.LENGTH_SHORT).show()
         }
     }
 
@@ -346,7 +327,7 @@ internal fun GalleryApp(
             viewModel.checkForChanges()
             val count = pending?.trashedMedia?.size ?: 0
             trashFeedback = TrashFeedback(TrashFeedbackType.MOVED_TO_TRASH, count)
-            Toast.makeText(context, context.getString(R.string.toast_items_moved_to_trash, count), Toast.LENGTH_SHORT).show()
+            Toast.makeText(context, context.applicationContext.getString(R.string.toast_items_moved_to_trash, count), Toast.LENGTH_SHORT).show()
             cb?.invoke()
         } else {
             pending?.let { moveResult ->
@@ -374,7 +355,7 @@ internal fun GalleryApp(
             viewModel.markMediaDeleted(delIds, delPaths)
             viewModel.checkForChanges()
             trashFeedback = TrashFeedback(TrashFeedbackType.MOVED_TO_TRASH, items.size)
-            Toast.makeText(context, context.getString(R.string.toast_items_moved_to_trash, items.size), Toast.LENGTH_SHORT).show()
+            Toast.makeText(context, context.applicationContext.getString(R.string.toast_items_moved_to_trash, items.size), Toast.LENGTH_SHORT).show()
             if (internalItems.isNullOrEmpty()) {
                 cb?.invoke()
             } else {
@@ -442,11 +423,11 @@ internal fun GalleryApp(
             EditorScreen(standaloneEditorMedia!!, onClose = { standaloneEditorMedia = null }, onSaved = { saved, overwritten ->
                 if (saved) standaloneEditorMedia = null
                 val msg = if (!saved) {
-                    context.getString(R.string.toast_edited_failed)
+                    context.applicationContext.getString(R.string.toast_edited_failed)
                 } else if (overwritten) {
-                    context.getString(R.string.toast_edited_overwritten)
+                    context.applicationContext.getString(R.string.toast_edited_overwritten)
                 } else {
-                    context.getString(R.string.toast_edited_saved)
+                    context.applicationContext.getString(R.string.toast_edited_saved)
                 }
                 Toast.makeText(context, msg, Toast.LENGTH_SHORT).show()
             })
@@ -496,7 +477,7 @@ internal fun GalleryApp(
                     if (deleted) {
                         standaloneExternalMedia = null
                     } else {
-                        Toast.makeText(context, context.getString(R.string.toast_could_not_request_removal), Toast.LENGTH_SHORT).show()
+                        Toast.makeText(context, context.applicationContext.getString(R.string.toast_could_not_request_removal), Toast.LENGTH_SHORT).show()
                     }
                 },
                 onRestore = { },
@@ -561,11 +542,11 @@ internal fun GalleryApp(
                         val moveResult = viewModel.moveToVault(mediaList)
                         if (moveResult.indexWriteFailed) {
                             viewModel.rollbackVaultMove(moveResult.vaultedMedia)
-                            Toast.makeText(context, context.getString(R.string.toast_vault_index_failed), Toast.LENGTH_LONG).show()
+                            Toast.makeText(context, context.applicationContext.getString(R.string.toast_vault_index_failed), Toast.LENGTH_LONG).show()
                         } else if (moveResult.vaultedMedia.isNotEmpty()) {
                             if (moveResult.silentSuccess) {
                                 viewModel.refresh()
-                                Toast.makeText(context, context.getString(R.string.toast_items_vaulted, moveResult.vaultedMedia.size), Toast.LENGTH_SHORT).show()
+                                Toast.makeText(context, context.applicationContext.getString(R.string.toast_items_vaulted, moveResult.vaultedMedia.size), Toast.LENGTH_SHORT).show()
                             } else if (Build.VERSION.SDK_INT >= 30) {
                                 runCatching {
                                     pendingVaultMove = moveResult
@@ -577,21 +558,21 @@ internal fun GalleryApp(
                                 }.onFailure {
                                     pendingVaultMove = null
                                     viewModel.rollbackVaultMove(moveResult.vaultedMedia)
-                                    Toast.makeText(context, context.getString(R.string.toast_could_not_request_removal), Toast.LENGTH_SHORT).show()
+                                    Toast.makeText(context, context.applicationContext.getString(R.string.toast_could_not_request_removal), Toast.LENGTH_SHORT).show()
                                 }
                             } else {
                                 val allDeleted = moveResult.originalMedia.all { item ->
                                     runCatching {
                                         context.contentResolver.delete(canonicalMediaUri(item), null, null) > 0 ||
-                                        java.io.File(item.path).delete()
+                                        File(item.path).delete()
                                     }.getOrDefault(false)
                                 }
                                 if (allDeleted) {
                                     viewModel.refresh()
-                                    Toast.makeText(context, context.getString(R.string.toast_items_vaulted, moveResult.vaultedMedia.size), Toast.LENGTH_SHORT).show()
+                                    Toast.makeText(context, context.applicationContext.getString(R.string.toast_items_vaulted, moveResult.vaultedMedia.size), Toast.LENGTH_SHORT).show()
                                 } else {
                                     viewModel.rollbackVaultMove(moveResult.vaultedMedia)
-                                    Toast.makeText(context, context.getString(R.string.toast_could_not_request_removal), Toast.LENGTH_SHORT).show()
+                                    Toast.makeText(context, context.applicationContext.getString(R.string.toast_could_not_request_removal), Toast.LENGTH_SHORT).show()
                                 }
                             }
                         }
@@ -601,7 +582,7 @@ internal fun GalleryApp(
                 val onLockMedia: (List<MediaImage>) -> Unit = { mediaList ->
                     if (mediaList.isNotEmpty()) {
                         if (settings.vaultHideFromStorage) {
-                            val hasAccess = if (Build.VERSION.SDK_INT >= 30) Environment.isExternalStorageManager() else true
+                            val hasAccess = Build.VERSION.SDK_INT < 30 || Environment.isExternalStorageManager()
                             if (hasAccess) {
                                 executeVaultMove(mediaList)
                             } else {
@@ -630,9 +611,9 @@ internal fun GalleryApp(
                             }
                             viewModel.refresh()
                             if (restoredCount > 0) {
-                                Toast.makeText(context, context.getString(R.string.toast_vault_items_restored, restoredCount), Toast.LENGTH_SHORT).show()
+                                Toast.makeText(context, context.applicationContext.getString(R.string.toast_vault_items_restored, restoredCount), Toast.LENGTH_SHORT).show()
                             } else {
-                                Toast.makeText(context, context.getString(R.string.toast_vault_restore_failed), Toast.LENGTH_SHORT).show()
+                                Toast.makeText(context, context.applicationContext.getString(R.string.toast_vault_restore_failed), Toast.LENGTH_SHORT).show()
                             }
                         }
                     }
@@ -701,11 +682,11 @@ internal fun GalleryApp(
                             )
                     },
                     label = "language_transition"
-                ) { _ ->
+                ) { targetLanguage ->
                     GalleryScaffold(
                         trashFeedback = trashFeedback,
                         onTrashFeedbackChange = { trashFeedback = it },
-                        settings = settings,
+                        settings = settings.copy(language = targetLanguage),
                         settingsPreferences = settingsPreferences,
                         images = visibleMedia,
                         trashed = state.trashed,
@@ -740,6 +721,7 @@ internal fun GalleryApp(
                                 lockedAuthorized = true
                             } else {
                                 val keyguard = context.getSystemService(KeyguardManager::class.java)
+                                @Suppress("DEPRECATION")
                                 val intent = keyguard?.createConfirmDeviceCredentialIntent("Unlock Iris", "View your locked media")
                                 if (intent == null) lockedAuthorized = true else unlockLauncher.launch(intent)
                             }
@@ -774,8 +756,8 @@ internal fun GalleryApp(
                                                     viewModel.checkForChanges()
                                                     trashFeedback = TrashFeedback(TrashFeedbackType.MOVED_TO_TRASH, moveResult.trashedMedia.size)
                                                     onConfirmed?.invoke()
-                                                    Toast.makeText(context, context.getString(R.string.toast_items_moved_to_trash, moveResult.trashedMedia.size), Toast.LENGTH_SHORT).show()
-                                                } else if (Build.VERSION.SDK_INT >= 30) {
+                                                    Toast.makeText(context, context.applicationContext.getString(R.string.toast_items_moved_to_trash, moveResult.trashedMedia.size), Toast.LENGTH_SHORT).show()
+                                                } else {
                                                     runCatching {
                                                         pendingTrashMove = moveResult
                                                         pendingTrashCallback = onConfirmed
@@ -788,7 +770,7 @@ internal fun GalleryApp(
                                                         val allDeleted = moveResult.originalMedia.all { item ->
                                                             runCatching {
                                                                 context.contentResolver.delete(canonicalMediaUri(context, item), null, null) > 0 ||
-                                                                java.io.File(item.path).delete()
+                                                                File(item.path).delete()
                                                             }.getOrDefault(false)
                                                         }
                                                         if (allDeleted) {
@@ -798,12 +780,12 @@ internal fun GalleryApp(
                                                             viewModel.checkForChanges()
                                                             trashFeedback = TrashFeedback(TrashFeedbackType.MOVED_TO_TRASH, moveResult.trashedMedia.size)
                                                             onConfirmed?.invoke()
-                                                            Toast.makeText(context, context.getString(R.string.toast_items_moved_to_trash, moveResult.trashedMedia.size), Toast.LENGTH_SHORT).show()
+                                                            Toast.makeText(context, context.applicationContext.getString(R.string.toast_items_moved_to_trash, moveResult.trashedMedia.size), Toast.LENGTH_SHORT).show()
                                                         } else {
                                                             pendingTrashMove = null
                                                             pendingTrashCallback = null
                                                             viewModel.rollbackTrashMove(moveResult.trashedMedia)
-                                                            Toast.makeText(context, context.getString(R.string.toast_could_not_request_removal), Toast.LENGTH_SHORT).show()
+                                                            Toast.makeText(context, context.applicationContext.getString(R.string.toast_could_not_request_removal), Toast.LENGTH_SHORT).show()
                                                         }
                                                     }
                                                 }
@@ -821,7 +803,7 @@ internal fun GalleryApp(
                                                 viewModel.checkForChanges()
                                                 trashFeedback = TrashFeedback(TrashFeedbackType.MOVED_TO_TRASH, moveResult.trashedMedia.size)
                                                 onConfirmed?.invoke()
-                                                Toast.makeText(context, context.getString(R.string.toast_items_moved_to_trash, moveResult.trashedMedia.size), Toast.LENGTH_SHORT).show()
+                                                Toast.makeText(context, context.applicationContext.getString(R.string.toast_items_moved_to_trash, moveResult.trashedMedia.size), Toast.LENGTH_SHORT).show()
                                             } else if (Build.VERSION.SDK_INT >= 30) {
                                                 runCatching {
                                                     pendingTrashMove = moveResult
@@ -835,7 +817,7 @@ internal fun GalleryApp(
                                                     val allDeleted = moveResult.originalMedia.all { item ->
                                                         runCatching {
                                                             context.contentResolver.delete(canonicalMediaUri(context, item), null, null) > 0 ||
-                                                            java.io.File(item.path).delete()
+                                                            File(item.path).delete()
                                                         }.getOrDefault(false)
                                                     }
                                                     if (allDeleted) {
@@ -845,19 +827,19 @@ internal fun GalleryApp(
                                                         viewModel.checkForChanges()
                                                         trashFeedback = TrashFeedback(TrashFeedbackType.MOVED_TO_TRASH, moveResult.trashedMedia.size)
                                                         onConfirmed?.invoke()
-                                                        Toast.makeText(context, context.getString(R.string.toast_items_moved_to_trash, moveResult.trashedMedia.size), Toast.LENGTH_SHORT).show()
+                                                        Toast.makeText(context, context.applicationContext.getString(R.string.toast_items_moved_to_trash, moveResult.trashedMedia.size), Toast.LENGTH_SHORT).show()
                                                     } else {
                                                         pendingTrashMove = null
                                                         pendingTrashCallback = null
                                                         viewModel.rollbackTrashMove(moveResult.trashedMedia)
-                                                        Toast.makeText(context, context.getString(R.string.toast_could_not_request_removal), Toast.LENGTH_SHORT).show()
+                                                        Toast.makeText(context, context.applicationContext.getString(R.string.toast_could_not_request_removal), Toast.LENGTH_SHORT).show()
                                                     }
                                                 }
                                             } else {
                                                 val allDeleted = moveResult.originalMedia.all { item ->
                                                     runCatching {
                                                         context.contentResolver.delete(canonicalMediaUri(context, item), null, null) > 0 ||
-                                                        java.io.File(item.path).delete()
+                                                        File(item.path).delete()
                                                     }.getOrDefault(false)
                                                 }
                                                 if (allDeleted) {
@@ -867,10 +849,10 @@ internal fun GalleryApp(
                                                     viewModel.checkForChanges()
                                                     trashFeedback = TrashFeedback(TrashFeedbackType.MOVED_TO_TRASH, moveResult.trashedMedia.size)
                                                     onConfirmed?.invoke()
-                                                    Toast.makeText(context, context.getString(R.string.toast_items_moved_to_trash, moveResult.trashedMedia.size), Toast.LENGTH_SHORT).show()
+                                                    Toast.makeText(context, context.applicationContext.getString(R.string.toast_items_moved_to_trash, moveResult.trashedMedia.size), Toast.LENGTH_SHORT).show()
                                                 } else {
                                                     viewModel.rollbackTrashMove(moveResult.trashedMedia)
-                                                    Toast.makeText(context, context.getString(R.string.toast_could_not_request_removal), Toast.LENGTH_SHORT).show()
+                                                    Toast.makeText(context, context.applicationContext.getString(R.string.toast_could_not_request_removal), Toast.LENGTH_SHORT).show()
                                                 }
                                             }
                                         }
@@ -936,7 +918,7 @@ internal fun GalleryApp(
                                                 val allDeleted = externalItems.all { item ->
                                                     runCatching {
                                                         context.contentResolver.delete(canonicalMediaUri(context, item), null, null) > 0 ||
-                                                        java.io.File(item.path).delete()
+                                                        File(item.path).delete()
                                                     }.getOrDefault(false)
                                                 }
                                                 if (allDeleted) {
@@ -949,7 +931,7 @@ internal fun GalleryApp(
                                                 } else {
                                                     pendingPermanentDeleteMedia = null
                                                     pendingPermanentDeleteCallback = null
-                                                    Toast.makeText(context, context.getString(R.string.toast_could_not_request_removal), Toast.LENGTH_SHORT).show()
+                                                    Toast.makeText(context, context.applicationContext.getString(R.string.toast_could_not_request_removal), Toast.LENGTH_SHORT).show()
                                                 }
                                             }
                                         } else {
@@ -992,9 +974,7 @@ internal fun GalleryApp(
 
                             val mediaStoreUpdated = withContext(Dispatchers.IO) {
                                 runCatching {
-                                    if (media.id > 0 && uri.toString().startsWith("content://media/")) {
-                                        context.contentResolver.update(uri, values, null, null) > 0
-                                    } else false
+                                    media.id > 0 && uri.toString().startsWith("content://media/") && context.contentResolver.update(uri, values, null, null) > 0
                                 }.getOrDefault(false)
                             }
 
@@ -1017,11 +997,11 @@ internal fun GalleryApp(
                                     android.util.Log.e("IrisGallery", "Failed to create write request for metadata", e)
                                     pendingMetadata = null
                                     callback(null)
-                                    Toast.makeText(context, context.getString(R.string.toast_could_not_request_metadata), Toast.LENGTH_LONG).show()
+                                    Toast.makeText(context, context.applicationContext.getString(R.string.toast_could_not_request_metadata), Toast.LENGTH_LONG).show()
                                 }
                             } else {
                                 callback(null)
-                                Toast.makeText(context, context.getString(R.string.toast_could_not_request_metadata), Toast.LENGTH_LONG).show()
+                                Toast.makeText(context, context.applicationContext.getString(R.string.toast_could_not_request_metadata), Toast.LENGTH_LONG).show()
                             }
                             }
                         },
@@ -1112,7 +1092,7 @@ internal fun GalleryApp(
                             Button(onClick = {
                                 showAllFilesAccessPromptDialog = false
                                 val intent = Intent(android.provider.Settings.ACTION_MANAGE_APP_ALL_FILES_ACCESS_PERMISSION).apply {
-                                    data = Uri.parse("package:${context.packageName}")
+                                    data = "package:${context.packageName}".toUri()
                                 }
                                 runCatching { context.startActivity(intent) }
                                     .onFailure {
@@ -1132,7 +1112,7 @@ internal fun GalleryApp(
                                         val lockedIds = pending.map { it.id }.toSet()
                                         viewModel.setLocked(lockedIds, true)
                                         viewModel.refresh()
-                                        Toast.makeText(context, context.getString(R.string.toast_vault_items_locked_gallery, pending.size), Toast.LENGTH_SHORT).show()
+                                        Toast.makeText(context, context.applicationContext.getString(R.string.toast_vault_items_locked_gallery, pending.size), Toast.LENGTH_SHORT).show()
                                     }
                                     pendingVaultItems = null
                                 }) {
@@ -1195,7 +1175,7 @@ private fun PermissionScreen(onGrant: () -> Unit) {
                     containerColor = MaterialTheme.colorScheme.primary,
                     contentColor = MaterialTheme.colorScheme.onPrimary,
                 ),
-                contentPadding = androidx.compose.foundation.layout.PaddingValues(horizontal = 28.dp, vertical = 14.dp),
+                contentPadding = PaddingValues(horizontal = 28.dp, vertical = 14.dp),
             ) {
                 Text(
                     text = stringResource(R.string.permission_button),

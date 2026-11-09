@@ -46,6 +46,7 @@ import com.iris.gallery.data.isSvg
 import com.iris.gallery.data.livpJpegCacheFile
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
+import androidx.core.graphics.createBitmap
 
 object ThumbnailCache {
     private val maxKilobytes = (Runtime.getRuntime().maxMemory() / 1024 / 4).toInt() // 25% heap
@@ -53,8 +54,8 @@ object ThumbnailCache {
         override fun sizeOf(key: Long, value: Bitmap): Int = value.allocationByteCount / 1024
     }
 
-    fun get(key: Long): Bitmap? = cache.get(key)
-    fun put(key: Long, bitmap: Bitmap) = cache.put(key, bitmap)
+    fun get(key: Long): Bitmap? = cache[key]
+    fun put(key: Long, bitmap: Bitmap): Bitmap? = cache.put(key, bitmap)
 
     // Must cover every size getThumbnailTargetSizePx can return, or stale entries survive remove().
     private val bucketSizes = listOf(180, 256, 320, 384, 512, 768)
@@ -62,7 +63,7 @@ object ThumbnailCache {
     fun findForImage(id: Long): Bitmap? {
         for (bucket in bucketSizes) {
             val key = (id shl 16) xor (bucket.toLong() and 0xFFFFL)
-            cache.get(key)?.let { return it }
+            cache[key]?.let { return it }
         }
         return null
     }
@@ -83,14 +84,14 @@ object ThumbnailCache {
 
     private val hdrCache = LruCache<Long, Boolean>(2000)
 
-    fun isHdr(id: Long): Boolean? = hdrCache.get(id)
+    fun isHdr(id: Long): Boolean? = hdrCache[id]
     fun setHdr(id: Long, isHdr: Boolean) {
         hdrCache.put(id, isHdr)
     }
 
     private val depthCache = LruCache<Long, Boolean>(2000)
 
-    fun isDepth(id: Long): Boolean? = depthCache.get(id)
+    fun isDepth(id: Long): Boolean? = depthCache[id]
     fun setDepth(id: Long, isDepth: Boolean) {
         depthCache.put(id, isDepth)
     }
@@ -99,23 +100,14 @@ object ThumbnailCache {
 fun loadThumbnailSync(context: Context, image: MediaImage, targetSizePx: Int = 320): Bitmap? =
     loadThumbnail(context, image, targetSizePx)
 
-fun getThumbnailTargetSizePx(columns: Int): Int = when {
-    columns >= 6 -> 180
-    columns == 5 -> 256
-    columns in 3..4 -> 384
-    columns == 2 -> 512
+fun getThumbnailTargetSizePx(columns: Int): Int = when (columns) {
+    in 6..Int.MAX_VALUE -> 180
+    5 -> 256
+    in 3..4 -> 384
+    2 -> 512
     else -> 768
 }
 
-fun getThumbnailTargetSizePx(cellSizeDp: Float, density: Float = 2.5f): Int {
-    val pixelSize = (cellSizeDp * density).toInt()
-    return when {
-        pixelSize <= 220 -> 180  // 5-6 columns: super lightweight, fast scroll
-        pixelSize <= 380 -> 320  // 3-4 columns: standard crisp grid thumbnail
-        pixelSize <= 600 -> 512  // 2 columns: high definition
-        else -> 768              // 1 column / tablets: full sharp resolution
-    }
-}
 
 private fun loadThumbnail(context: Context, image: MediaImage, targetSizePx: Int = 320): Bitmap? {
     val cacheKey = (image.id shl 16) xor (targetSizePx.toLong() and 0xFFFFL)
@@ -152,11 +144,11 @@ private fun loadThumbnail(context: Context, image: MediaImage, targetSizePx: Int
                     @Suppress("DEPRECATION")
                     android.media.ThumbnailUtils.createVideoThumbnail(image.path, MediaStore.Images.Thumbnails.MINI_KIND)
                 } else {
-                    val opts = android.graphics.BitmapFactory.Options().apply { inJustDecodeBounds = true }
-                    android.graphics.BitmapFactory.decodeFile(image.path, opts)
+                    val opts = BitmapFactory.Options().apply { inJustDecodeBounds = true }
+                    BitmapFactory.decodeFile(image.path, opts)
                     val sample = maxOf(opts.outWidth / targetSizePx, opts.outHeight / targetSizePx, 1)
-                    val opts2 = android.graphics.BitmapFactory.Options().apply { inSampleSize = sample }
-                    android.graphics.BitmapFactory.decodeFile(image.path, opts2)
+                    val opts2 = BitmapFactory.Options().apply { inSampleSize = sample }
+                    BitmapFactory.decodeFile(image.path, opts2)
                 }
             }
         } else if (Build.VERSION.SDK_INT >= 29) {
@@ -206,7 +198,7 @@ private fun loadThumbnail(context: Context, image: MediaImage, targetSizePx: Int
                             val scale = minOf(1f, targetSizePx.toFloat() / maxOf(info.width, info.height))
                             val tw = (info.width * scale).toInt().coerceIn(1, info.width)
                             val th = (info.height * scale).toInt().coerceIn(1, info.height)
-                            val bmp = Bitmap.createBitmap(tw, th, Bitmap.Config.ARGB_8888)
+                            val bmp = createBitmap(tw, th)
                             if (org.aomedia.avif.android.AvifDecoder.decode(byteBuffer, bytes.size, bmp)) {
                                 bmp
                             } else {
@@ -268,7 +260,8 @@ private fun loadThumbnail(context: Context, image: MediaImage, targetSizePx: Int
             }.getOrNull()
         } else {
             runCatching {
-                android.media.MediaMetadataRetriever().use { mmr ->
+                val mmr = android.media.MediaMetadataRetriever()
+                try {
                     if (image.path.isNotBlank() && java.io.File(image.path).exists()) {
                         mmr.setDataSource(image.path)
                     } else {
@@ -279,56 +272,57 @@ private fun loadThumbnail(context: Context, image: MediaImage, targetSizePx: Int
                             -1L,
                             android.media.MediaMetadataRetriever.OPTION_CLOSEST_SYNC,
                             targetSizePx,
-                            targetSizePx
+                            targetSizePx,
                         )
                     } else {
                         mmr.getFrameAtTime(-1L)
                     }
+                } finally {
+                    mmr.release()
                 }
             }.getOrNull()
         }
     }
     finalBitmap?.prepareToDraw()
     finalBitmap?.let { ThumbnailCache.put(cacheKey, it) }
-    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE && !image.isVideo && !image.isRaw && !image.isGif) {
+    if ((Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE) && !image.isVideo && !image.isRaw && !image.isGif) {
         if (finalBitmap != null && finalBitmap.hasGainmap()) {
-            ThumbnailCache.setHdr(image.id, true)
+            ThumbnailCache.setHdr(image.id, isHdr = true)
         }
     }
     return finalBitmap
 }
 
 private fun checkIsUltraHdrFast(context: Context, image: MediaImage): Boolean {
-    if (Build.VERSION.SDK_INT < Build.VERSION_CODES.UPSIDE_DOWN_CAKE) return false
-    if (image.isVideo || image.isRaw || image.isGif) return false
-    return runCatching {
-        val stream = if (image.path.isNotBlank() && java.io.File(image.path).canRead()) {
-            runCatching { java.io.FileInputStream(image.path) }.getOrNull()
-        } else null
-        val finalStream = stream ?: context.contentResolver.openInputStream(image.uri)
-        finalStream?.use { input ->
-            val buffer = ByteArray(131072)
-            var totalRead = 0
-            while (totalRead < buffer.size) {
-                val read = input.read(buffer, totalRead, buffer.size - totalRead)
-                if (read <= 0) break
-                totalRead += read
-            }
-            if (totalRead > 0) {
-                val str = String(buffer, 0, totalRead, Charsets.ISO_8859_1)
-                str.contains("http://ns.adobe.com/hdr-gain-map/1.0/") ||
-                str.contains("hdrgm:") ||
-                str.contains("Item:Semantic=\"GainMap\"") ||
-                str.contains("21496-1") ||
-                (str.contains("Container:Directory") && str.contains("GainMap"))
-            } else false
-        } ?: false
-    }.getOrDefault(false)
+    return (Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE) &&
+        !(image.isVideo || image.isRaw || image.isGif) &&
+        runCatching {
+            val stream = if (image.path.isNotBlank() && java.io.File(image.path).canRead()) {
+                runCatching { java.io.FileInputStream(image.path) }.getOrNull()
+            } else null
+            val finalStream = stream ?: context.contentResolver.openInputStream(image.uri)
+            finalStream?.use { input ->
+                val buffer = ByteArray(131072)
+                var totalRead = 0
+                while (totalRead < buffer.size) {
+                    val read = input.read(buffer, totalRead, buffer.size - totalRead)
+                    if (read <= 0) break
+                    totalRead += read
+                }
+                if (totalRead > 0) {
+                    val str = String(buffer, 0, totalRead, Charsets.ISO_8859_1)
+                    str.contains("http://ns.adobe.com/hdr-gain-map/1.0/") ||
+                    str.contains("hdrgm:") ||
+                    str.contains("Item:Semantic=\"GainMap\"") ||
+                    str.contains("21496-1") ||
+                    (str.contains("Container:Directory") && str.contains("GainMap"))
+                } else false
+            } ?: false
+        }.getOrDefault(defaultValue = false)
 }
 
 private fun checkIsDepthPhotoFast(context: Context, image: MediaImage): Boolean {
-    if (image.isVideo || image.isRaw || image.isGif || image.isSvg) return false
-    return runCatching {
+    return !(image.isVideo || image.isRaw || image.isGif || image.isSvg) && runCatching {
         val stream = if (image.path.isNotBlank() && java.io.File(image.path).canRead()) {
             runCatching { java.io.FileInputStream(image.path) }.getOrNull()
         } else null
@@ -344,10 +338,10 @@ private fun checkIsDepthPhotoFast(context: Context, image: MediaImage): Boolean 
             if (totalRead > 0) {
                 val str = String(buffer, 0, totalRead, Charsets.ISO_8859_1)
                 str.contains("GDepth:") ||
-                str.contains("GCamera:SpecialTypeID=\"PORTRAIT_TYPE\"")
+                        str.contains("GCamera:SpecialTypeID=\"PORTRAIT_TYPE\"")
             } else false
         } ?: false
-    }.getOrDefault(false)
+    }.getOrDefault(defaultValue = false)
 }
 
 @Composable
@@ -379,25 +373,17 @@ fun MediaThumbnail(
                     val filePath = image.path
                     if (filePath.isNotBlank()) {
                         val file = java.io.File(filePath)
-                        if (!file.exists()) {
-                            if (image.id > 0) {
-                                val canOpen = runCatching {
-                                    context.contentResolver.openAssetFileDescriptor(image.uri, "r")?.use { true } ?: false
-                                }.getOrDefault(false)
-                                !canOpen
-                            } else {
-                                true
-                            }
+                        !file.exists() && if (image.id > 0) {
+                            val canOpen = runCatching {
+                                context.contentResolver.openAssetFileDescriptor(image.uri, "r")?.use { true } ?: false
+                            }.getOrDefault(defaultValue = false)
+                            !canOpen
                         } else {
-                            false
+                            true
                         }
-                    } else if (image.id > 0) {
-                        runCatching {
-                            context.contentResolver.openAssetFileDescriptor(image.uri, "r")?.use { false } ?: true
-                        }.getOrDefault(false)
-                    } else {
-                        false
-                    }
+                    } else (image.id > 0) && runCatching {
+                        context.contentResolver.openAssetFileDescriptor(image.uri, "r")?.use { false } ?: true
+                    }.getOrDefault(defaultValue = false)
                 }
                 if (isGhost) {
                     onInvalidMedia?.invoke(image)
@@ -448,13 +434,13 @@ fun MediaThumbnail(
                     .padding(5.dp)
                     .background(Color.Black.copy(alpha = 0.55f), CircleShape)
                     .padding(3.dp),
-                contentAlignment = Alignment.Center
+                contentAlignment = Alignment.Center,
             ) {
                 Icon(
                     imageVector = Icons.Filled.Favorite,
                     contentDescription = null,
                     tint = Color(0xFFFF3B30),
-                    modifier = Modifier.size(11.dp)
+                    modifier = Modifier.size(11.dp),
                 )
             }
         }

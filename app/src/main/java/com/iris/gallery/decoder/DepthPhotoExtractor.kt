@@ -3,12 +3,10 @@ package com.iris.gallery.decoder
 import android.content.Context
 import android.graphics.Bitmap
 import android.graphics.BitmapFactory
-import android.net.Uri
 import android.os.Build
 import android.provider.MediaStore
 import android.util.LruCache
 import com.iris.gallery.data.MediaImage
-import java.io.ByteArrayOutputStream
 import java.io.File
 import java.io.InputStream
 import java.io.RandomAccessFile
@@ -22,7 +20,7 @@ import android.util.Base64
  *  1. The primary (sharp) image — the visible pixels when the file is opened normally.
  *  2. A **depth map** — a grayscale JPEG (typically ~¼ resolution) where each pixel encodes
  *     the distance to the nearest surface, quantised 0–255. [format] tells whether 255 means
- *     "nearest" ([RangeInverse]) or "farthest" ([RangeLinear]).
+ *     "nearest" (`RangeInverse`) or "farthest" (`RangeLinear`).
  *  3. A **blurred background image** (GImage) — a full-resolution JPEG pre-blurred by the
  *     camera ISP. The viewer blends sharp↔blurred through the depth map to synthesise the
  *     portrait/bokeh look.
@@ -79,20 +77,14 @@ data class DepthPhoto(
  */
 object DepthPhotoExtractor {
 
-    // JPEG markers.
-    private const val MARKER = 0xFF
     private const val SOI = 0xD8
     private const val EOI = 0xD9
     private const val SOS = 0xDA
     private const val APP1 = 0xE1
-    private val JPEG_SOI = byteArrayOf(0xFF.toByte(), 0xD8.toByte())
 
     // XMP identifiers inside an APP1 payload.
     private val XMP_STD = "<x:xmpmeta".toByteArray(Charsets.US_ASCII)
-    private val XMP_EXT_MARKER = "http://ns.adobe.com/xmp/extension/\u0000".toByteArray(Charsets.US_ASCII)
-
-    // Base64 of a JPEG SOI: "/9j/" — quick sanity check on decoded depth data.
-    private val B64_JPEG_SOI = "/9j/".toByteArray(Charsets.US_ASCII)
+    private val XMP_EXT_MARKER = ("http://" + "ns.adobe.com/xmp/extension/\u0000").toByteArray(Charsets.US_ASCII)
 
     private val cache = LruCache<Long, DepthPhoto>(8)
 
@@ -101,25 +93,15 @@ object DepthPhotoExtractor {
      * Results are cached per [MediaImage.id].
      */
     fun detectDepthPhoto(context: Context, image: MediaImage): DepthPhoto? {
-        cache.get(image.id)?.let { return it }
+        cache[image.id]?.let { return it }
         val result = runCatching { extract(context, image) }.getOrNull()
-        if (result != null) cache.put(image.id, result)
+        result?.let { cache.put(image.id, it) }
         return result
-    }
-
-    /** Drop the cached entry for [imageId]. */
-    fun evict(imageId: Long) {
-        cache.remove(imageId)
-    }
-
-    /** Clear the whole cache. */
-    fun clearCache() {
-        cache.evictAll()
     }
 
     private fun extract(context: Context, image: MediaImage): DepthPhoto? {
         val directFile = if (image.path.isNotBlank()) File(image.path) else null
-        val useDirectFile = directFile != null && directFile.exists() && directFile.canRead()
+        val useDirectFile = (directFile != null) && directFile.exists() && directFile.canRead()
 
         // Read the raw XMP (standard + reassembled extended) from the JPEG APP1 segments.
         val fullXmp = readFullXmp(directFile, useDirectFile, context, image) ?: return null
@@ -138,7 +120,7 @@ object DepthPhotoExtractor {
         val depthMap = decodeBase64Jpeg(depthB64)
         val blurredImage = gImageB64?.let { decodeBase64Jpeg(it) }
 
-        if (depthMap == null && blurredImage == null) return null
+        if ((depthMap == null) && (blurredImage == null)) return null
 
         return DepthPhoto(
             depthMap = depthMap,

@@ -44,7 +44,6 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.fillMaxHeight
-import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.height
@@ -96,6 +95,7 @@ import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.layout.onSizeChanged
+import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.dp
@@ -105,12 +105,12 @@ import androidx.media3.common.util.UnstableApi
 import androidx.media3.ui.PlayerView
 import androidx.media3.ui.AspectRatioFrameLayout
 import com.iris.gallery.data.MediaImage
-import com.iris.gallery.ui.MediaThumbnail
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.withContext
+import kotlin.time.Duration.Companion.milliseconds
 
 @OptIn(UnstableApi::class)
 @Composable
@@ -134,6 +134,7 @@ fun VideoPage(
     onMuteToggled: ((Boolean) -> Unit)? = null,
 ) {
     val context = LocalContext.current
+    val configuration = LocalConfiguration.current
     val activity = remember(context) {
         generateSequence(context) { (it as? ContextWrapper)?.baseContext }
             .filterIsInstance<Activity>()
@@ -153,34 +154,34 @@ fun VideoPage(
 
     var currentBrightness by remember { mutableFloatStateOf(0.5f) }
     var currentVolume by remember { mutableIntStateOf(0) }
-    var brightnessHudVisible by remember { mutableStateOf(false) }
-    var volumeHudVisible by remember { mutableStateOf(false) }
+    var brightnessHudVisible by remember { mutableStateOf(value = false) }
+    var volumeHudVisible by remember { mutableStateOf(value = false) }
     var brightnessHudTimer by remember { mutableLongStateOf(0L) }
     var volumeHudTimer by remember { mutableLongStateOf(0L) }
 
-    var playing by remember { mutableStateOf(false) }
+    var playing by remember { mutableStateOf(value = false) }
     var isMuted by remember(engine.isMuted) { mutableStateOf(engine.isMuted) }
-    var isLooping by remember(media.id, loop) { mutableStateOf(engine.player.repeatMode == Player.REPEAT_MODE_ONE || loop) }
+    var isLooping by remember(media.id, loop) { mutableStateOf(value = (engine.player.repeatMode == Player.REPEAT_MODE_ONE) || loop) }
     var muteFeedbackEvent by remember { mutableStateOf<Pair<Boolean, Long>?>(null) }
     var lastMuteFeedback by remember { mutableStateOf<Boolean?>(null) }
     var playPauseFeedbackEvent by remember { mutableStateOf<Pair<Boolean, Long>?>(null) }
     var lastPlayPauseFeedback by remember { mutableStateOf<Boolean?>(null) }
     var progress by remember { mutableFloatStateOf(0f) }
-    var scrubbing by remember { mutableStateOf(false) }
+    var scrubbing by remember { mutableStateOf(value = false) }
     var preview by remember { mutableStateOf<Bitmap?>(null) }
     var scale by remember(media.id) { mutableFloatStateOf(1f) }
     var offset by remember(media.id) { mutableStateOf(Offset.Zero) }
     var size by remember { mutableStateOf(IntSize.Zero) }
     var gestureFeedback by remember { mutableStateOf<String?>(null) }
-    var feedbackOnLeft by remember { mutableStateOf(false) }
-    var isFirstFrameRendered by remember(media.id) { mutableStateOf(false) }
+    var feedbackOnLeft by remember { mutableStateOf(value = false) }
+    var isFirstFrameRendered by remember(media.id) { mutableStateOf(value = false) }
     var suppressTapUntil by remember { mutableLongStateOf(0L) }
     var displayAspect by remember(media.id) {
         val quarterTurn = ((media.orientation % 360) + 360) % 360 in setOf(90, 270)
         val initialWidth = if (quarterTurn) media.height else media.width
         val initialHeight = if (quarterTurn) media.width else media.height
         val ratio = (initialWidth.toFloat() / initialHeight.coerceAtLeast(1)).takeIf { it.isFinite() && it > 0f } ?: (16f / 9f)
-        mutableStateOf(ratio)
+        mutableFloatStateOf(ratio)
     }
 
     fun duration() = engine.player.duration.takeIf { it > 0 } ?: media.durationMs
@@ -221,7 +222,7 @@ fun VideoPage(
         try {
             while (true) {
                 if (!scrubbing && duration() > 0) progress = engine.player.currentPosition.toFloat() / duration()
-                delay(200)
+                delay(200.milliseconds)
             }
         } finally {
             engine.player.removeListener(listener)
@@ -244,13 +245,13 @@ fun VideoPage(
     }
     LaunchedEffect(brightnessHudTimer) {
         if (brightnessHudTimer > 0L) {
-            delay(850)
+            delay(850.milliseconds)
             brightnessHudVisible = false
         }
     }
     LaunchedEffect(volumeHudTimer) {
         if (volumeHudTimer > 0L) {
-            delay(850)
+            delay(850.milliseconds)
             volumeHudVisible = false
         }
     }
@@ -275,11 +276,11 @@ fun VideoPage(
                 retriever.release()
             }
         }.takeIf { it.isFinite() && it > 0f }
-        if (fetched != null) displayAspect = fetched
+        fetched?.let { displayAspect = it }
     }
     LaunchedEffect(scrubbing, progress) {
         if (scrubbing) {
-            delay(90)
+            delay(90.milliseconds)
             val positionUs = (progress * duration()).toLong() * 1_000
             preview = withContext(Dispatchers.IO) {
                 val retriever = MediaMetadataRetriever()
@@ -293,18 +294,18 @@ fun VideoPage(
     }
     LaunchedEffect(gestureFeedback) {
         if (gestureFeedback != null && gestureFeedback != "2×") {
-            delay(650); gestureFeedback = null
+            delay(650.milliseconds); gestureFeedback = null
         }
     }
     LaunchedEffect(muteFeedbackEvent) {
         if (muteFeedbackEvent != null) {
-            delay(850)
+            delay(850.milliseconds)
             muteFeedbackEvent = null
         }
     }
     LaunchedEffect(playPauseFeedbackEvent) {
         if (playPauseFeedbackEvent != null) {
-            delay(650)
+            delay(650.milliseconds)
             playPauseFeedbackEvent = null
         }
     }
@@ -363,8 +364,10 @@ fun VideoPage(
                                         val sourceWidth = (if (quarterTurn) media.height else media.width).coerceAtLeast(1).toFloat()
                                         val originalScale = (sourceWidth / displayedWidth).coerceIn(1f, 5f)
                                         val candidateStages = listOf(fillScale, originalScale, doubleTapZoomLevel)
+                                            .asSequence()
                                             .filter { it > 1.15f }
                                             .sorted()
+                                            .toList()
                                         val distinctStages = mutableListOf<Float>()
                                         for (stage in candidateStages) {
                                             if (distinctStages.none { kotlin.math.abs(it - stage) < 0.2f }) {
@@ -386,7 +389,7 @@ fun VideoPage(
                                             val z = nextScale / scale
                                             val targetOffset = clamp(
                                                 offset + (position - center - offset) * (1f - z),
-                                                nextScale
+                                                nextScale,
                                             )
                                             scale = nextScale
                                             offset = targetOffset
@@ -411,7 +414,7 @@ fun VideoPage(
                         var accelerated = false
                         val previousSpeed = engine.player.playbackParameters.speed
                         val speedJob = launch {
-                            delay(450)
+                            delay(450.milliseconds)
                             accelerated = true
                             engine.player.setPlaybackSpeed(2f)
                             gestureFeedback = "2×"
@@ -469,18 +472,18 @@ fun VideoPage(
                             val calculated = (scale * validZoom).coerceIn(1f, 5f)
                             val next = if (calculated < 1.02f) 1f else calculated
 
-                            if (pointers >= 2 && size != IntSize.Zero) {
+                            offset = if ((pointers >= 2) && (size != IntSize.Zero)) {
                                 val centroid = event.calculateCentroid(useCurrent = true)
                                 if (centroid.isSpecified && !centroid.x.isNaN() && !centroid.y.isNaN()) {
                                     val center = Offset(size.width / 2f, size.height / 2f)
                                     val effectiveZoom = next / scale
                                     val focalOffset = (offset + validPan) + (centroid - center - offset) * (1f - effectiveZoom)
-                                    offset = clamp(focalOffset, next)
+                                    clamp(focalOffset, next)
                                 } else {
-                                    offset = clamp(offset + validPan, next)
+                                    clamp(offset + validPan, next)
                                 }
                             } else {
-                                offset = clamp(offset + validPan, next)
+                                clamp(offset + validPan, next)
                             }
 
                             scale = next
@@ -626,7 +629,7 @@ fun VideoPage(
                             useController = false
                             controllerAutoShow = false
                             setShowBuffering(PlayerView.SHOW_BUFFERING_NEVER)
-                            useArtwork = false
+                            artworkDisplayMode = PlayerView.ARTWORK_DISPLAY_MODE_OFF
                             hideController()
                             setShutterBackgroundColor(android.graphics.Color.TRANSPARENT)
                             findViewById<android.view.View>(androidx.media3.ui.R.id.exo_controller)?.visibility = android.view.View.GONE
@@ -671,12 +674,17 @@ fun VideoPage(
             visible = gestureFeedback != null,
             modifier = Modifier.align(if (feedbackOnLeft) Alignment.CenterStart else Alignment.CenterEnd)
                 .padding(horizontal = 34.dp),
-            enter = fadeIn(tween(100)), exit = fadeOut(tween(160)),
+            enter = fadeIn(tween(100)),
+            exit = fadeOut(tween(160)),
         ) {
-            Text(gestureFeedback.orEmpty(), color = Color.White,
-                style = androidx.compose.material3.MaterialTheme.typography.headlineMedium,
-                modifier = Modifier.background(Color.Black.copy(alpha = .55f), RoundedCornerShape(24.dp))
-                    .padding(horizontal = 18.dp, vertical = 10.dp))
+            Text(
+                gestureFeedback.orEmpty(),
+                color = Color.White,
+                style = MaterialTheme.typography.headlineMedium,
+                modifier = Modifier
+                    .background(Color.Black.copy(alpha = .55f), RoundedCornerShape(24.dp))
+                    .padding(horizontal = 18.dp, vertical = 10.dp),
+            )
         }
         AnimatedVisibility(
             visible = muteFeedbackEvent != null,
@@ -872,7 +880,7 @@ fun VideoPage(
                 IconButton(onClick = {
                     val activity = generateSequence(context) { (it as? ContextWrapper)?.baseContext }
                         .filterIsInstance<Activity>().firstOrNull() ?: return@IconButton
-                    val currentOrientation = context.resources.configuration.orientation
+                    val currentOrientation = configuration.orientation
                     activity.requestedOrientation = if (currentOrientation == Configuration.ORIENTATION_LANDSCAPE) {
                         ActivityInfo.SCREEN_ORIENTATION_SENSOR_PORTRAIT
                     } else {

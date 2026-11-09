@@ -43,21 +43,19 @@ suspend fun applyWallpaper(
     context: Context,
     image: MediaImage,
     which: Int,
-    allowScroll: Boolean
+    allowScroll: Boolean,
 ): Boolean = withContext(Dispatchers.IO) {
     runCatching {
         val wallpaperManager = WallpaperManager.getInstance(context)
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
-            if (!wallpaperManager.isSetWallpaperAllowed || !wallpaperManager.isWallpaperSupported) {
-                return@withContext false
-            }
+        if (!wallpaperManager.isSetWallpaperAllowed || !wallpaperManager.isWallpaperSupported) {
+            return@withContext false
         }
 
         val uri = if (image.path.startsWith(context.filesDir.absolutePath)) {
             androidx.core.content.FileProvider.getUriForFile(
                 context,
                 "${context.packageName}.fileprovider",
-                File(image.path)
+                File(image.path),
             )
         } else {
             image.uri
@@ -104,7 +102,7 @@ suspend fun applyWallpaper(
                         val cropTop = (imgH - cropHeight) / 2
                         Rect(0, cropTop, imgW, cropTop + cropHeight)
                     }
-                    decoder.setCrop(cropRect)
+                    decoder.crop = cropRect
                 }
                 wallpaperManager.setBitmap(bitmap, null, true, which)
                 bitmap.recycle()
@@ -123,7 +121,7 @@ suspend fun applyWallpaper(
             val imgW = bounds.outWidth
             val imgH = bounds.outHeight
 
-            if (imgW > 0 && imgH > 0) {
+            if ((imgW > 0) && (imgH > 0)) {
                 val screenAspect = targetW.toFloat() / targetH.toFloat()
                 val imgAspect = imgW.toFloat() / imgH.toFloat()
                 val cropRect = if (imgAspect > screenAspect) {
@@ -173,15 +171,15 @@ suspend fun applyWallpaper(
         }
 
         success
-    }.getOrDefault(false)
+    }.getOrDefault(defaultValue = false)
 }
 
 private fun calculateInSampleSize(width: Int, height: Int, reqWidth: Int, reqHeight: Int): Int {
     var inSampleSize = 1
-    if (height > reqHeight || width > reqWidth) {
+    if ((height > reqHeight) || (width > reqWidth)) {
         val halfHeight = height / 2
         val halfWidth = width / 2
-        while ((halfHeight / inSampleSize) >= reqHeight && (halfWidth / inSampleSize) >= reqWidth) {
+        while (((halfHeight / inSampleSize) >= reqHeight) && ((halfWidth / inSampleSize) >= reqWidth)) {
             inSampleSize *= 2
         }
     }
@@ -193,7 +191,7 @@ fun launchSystemWallpaperPicker(context: Context, image: MediaImage) {
         androidx.core.content.FileProvider.getUriForFile(
             context,
             "${context.packageName}.fileprovider",
-            File(image.path)
+            File(image.path),
         )
     } else {
         image.uri
@@ -217,7 +215,7 @@ fun launchSystemWallpaperPicker(context: Context, image: MediaImage) {
     }
 
     val launched = runCatching {
-        if (cropIntent != null && cropIntent.resolveActivity(context.packageManager) != null) {
+        if (cropIntent?.resolveActivity(context.packageManager) != null) {
             context.startActivity(cropIntent)
             true
         } else {
@@ -230,14 +228,14 @@ fun launchSystemWallpaperPicker(context: Context, image: MediaImage) {
             val chooser = Intent.createChooser(attachIntent, context.getString(R.string.action_set_as_wallpaper))
             context.startActivity(chooser)
             true
-        }.getOrDefault(false)
+        }.getOrDefault(defaultValue = false)
     }
 
     if (!launched) {
         Toast.makeText(
             context,
             context.getString(R.string.wallpaper_set_error),
-            Toast.LENGTH_SHORT
+            Toast.LENGTH_SHORT,
         ).show()
     }
 }
@@ -250,8 +248,8 @@ fun WallpaperChoiceBottomSheet(
 ) {
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
-    var allowScroll by remember { mutableStateOf(false) }
-    var isApplying by remember { mutableStateOf(false) }
+    var allowScroll by remember { mutableStateOf(value = false) }
+    var isApplying by remember { mutableStateOf(value = false) }
     val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
 
     fun onSelectTarget(which: Int, successRes: Int) {
@@ -261,11 +259,11 @@ fun WallpaperChoiceBottomSheet(
             val ok = applyWallpaper(context, image, which, allowScroll)
             isApplying = false
             if (ok) {
-                Toast.makeText(context, context.getString(successRes), Toast.LENGTH_SHORT).show()
+                Toast.makeText(context, context.applicationContext.getString(successRes), Toast.LENGTH_SHORT).show()
                 sheetState.hide()
                 onDismiss()
             } else {
-                Toast.makeText(context, context.getString(R.string.wallpaper_set_error), Toast.LENGTH_SHORT).show()
+                Toast.makeText(context, context.applicationContext.getString(R.string.wallpaper_set_error), Toast.LENGTH_SHORT).show()
             }
         }
     }
@@ -286,7 +284,7 @@ fun WallpaperChoiceBottomSheet(
                 text = stringResource(R.string.wallpaper_choice_title),
                 style = MaterialTheme.typography.titleLarge,
                 fontWeight = FontWeight.SemiBold,
-                modifier = Modifier.padding(horizontal = 24.dp, vertical = 8.dp)
+                modifier = Modifier.padding(horizontal = 24.dp, vertical = 8.dp),
             )
 
             // Image Preview Thumbnail & Info Card
@@ -300,7 +298,7 @@ fun WallpaperChoiceBottomSheet(
                 Row(
                     modifier = Modifier.padding(12.dp),
                     verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(14.dp)
+                    horizontalArrangement = Arrangement.spacedBy(14.dp),
                 ) {
                     AsyncImage(
                         model = image.uri,
@@ -308,7 +306,7 @@ fun WallpaperChoiceBottomSheet(
                         contentScale = ContentScale.Crop,
                         modifier = Modifier
                             .size(56.dp)
-                            .clip(RoundedCornerShape(10.dp))
+                            .clip(RoundedCornerShape(10.dp)),
                     )
                     Column(modifier = Modifier.weight(1f)) {
                         Text(
@@ -316,13 +314,13 @@ fun WallpaperChoiceBottomSheet(
                             style = MaterialTheme.typography.bodyMedium,
                             fontWeight = FontWeight.Medium,
                             maxLines = 1,
-                            overflow = TextOverflow.Ellipsis
+                            overflow = TextOverflow.Ellipsis,
                         )
-                        if (image.width > 0 && image.height > 0) {
+                        if ((image.width > 0) && (image.height > 0)) {
                             Text(
                                 text = "${image.width} × ${image.height} px",
                                 style = MaterialTheme.typography.bodySmall,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
                             )
                         }
                     }
@@ -336,7 +334,7 @@ fun WallpaperChoiceBottomSheet(
                     .padding(horizontal = 16.dp, vertical = 4.dp),
                 shape = RoundedCornerShape(16.dp),
                 color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f),
-                onClick = { if (!isApplying) allowScroll = !allowScroll }
+                onClick = { if (!isApplying) allowScroll = !allowScroll },
             ) {
                 Row(
                     modifier = Modifier.padding(horizontal = 16.dp, vertical = 12.dp),
@@ -346,19 +344,19 @@ fun WallpaperChoiceBottomSheet(
                         imageVector = Icons.Outlined.PanoramaHorizontal,
                         contentDescription = null,
                         tint = MaterialTheme.colorScheme.primary,
-                        modifier = Modifier.size(24.dp)
+                        modifier = Modifier.size(24.dp),
                     )
                     Spacer(modifier = Modifier.width(16.dp))
                     Column(modifier = Modifier.weight(1f)) {
                         Text(
                             text = stringResource(R.string.wallpaper_scroll_title),
                             style = MaterialTheme.typography.bodyLarge,
-                            fontWeight = FontWeight.Medium
+                            fontWeight = FontWeight.Medium,
                         )
                         Text(
                             text = stringResource(R.string.wallpaper_scroll_desc),
                             style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
                         )
                     }
                     Switch(
@@ -377,52 +375,48 @@ fun WallpaperChoiceBottomSheet(
                         .fillMaxWidth()
                         .padding(24.dp),
                     horizontalArrangement = Arrangement.Center,
-                    verticalAlignment = Alignment.CenterVertically
+                    verticalAlignment = Alignment.CenterVertically,
                 ) {
                     CircularProgressIndicator(modifier = Modifier.size(28.dp), strokeWidth = 3.dp)
                     Spacer(modifier = Modifier.width(16.dp))
                     Text(
                         text = stringResource(R.string.wallpaper_setting),
-                        style = MaterialTheme.typography.bodyMedium
+                        style = MaterialTheme.typography.bodyMedium,
                     )
                 }
             } else {
                 WallpaperOptionItem(
                     icon = Icons.Outlined.Home,
                     title = stringResource(R.string.wallpaper_target_home),
-                    onClick = {
-                        onSelectTarget(WallpaperManager.FLAG_SYSTEM, R.string.wallpaper_set_home_success)
-                    }
-                )
+                ) {
+                    onSelectTarget(WallpaperManager.FLAG_SYSTEM, R.string.wallpaper_set_home_success)
+                }
                 WallpaperOptionItem(
                     icon = Icons.Outlined.Lock,
                     title = stringResource(R.string.wallpaper_target_lock),
-                    onClick = {
-                        onSelectTarget(WallpaperManager.FLAG_LOCK, R.string.wallpaper_set_lock_success)
-                    }
-                )
+                ) {
+                    onSelectTarget(WallpaperManager.FLAG_LOCK, R.string.wallpaper_set_lock_success)
+                }
                 WallpaperOptionItem(
                     icon = Icons.Outlined.Smartphone,
                     title = stringResource(R.string.wallpaper_target_both),
-                    onClick = {
-                        onSelectTarget(
-                            WallpaperManager.FLAG_SYSTEM or WallpaperManager.FLAG_LOCK,
-                            R.string.wallpaper_set_both_success
-                        )
-                    }
-                )
+                ) {
+                    onSelectTarget(
+                        WallpaperManager.FLAG_SYSTEM or WallpaperManager.FLAG_LOCK,
+                        R.string.wallpaper_set_both_success,
+                    )
+                }
                 WallpaperOptionItem(
                     icon = Icons.AutoMirrored.Outlined.OpenInNew,
                     title = stringResource(R.string.wallpaper_more_options),
                     subtitle = stringResource(R.string.wallpaper_more_options_desc),
-                    onClick = {
-                        launchSystemWallpaperPicker(context, image)
-                        scope.launch {
-                            sheetState.hide()
-                            onDismiss()
-                        }
+                ) {
+                    launchSystemWallpaperPicker(context, image)
+                    scope.launch {
+                        sheetState.hide()
+                        onDismiss()
                     }
-                )
+                }
             }
         }
     }
@@ -433,7 +427,7 @@ private fun WallpaperOptionItem(
     icon: androidx.compose.ui.graphics.vector.ImageVector,
     title: String,
     subtitle: String? = null,
-    onClick: () -> Unit
+    onClick: () -> Unit,
 ) {
     Surface(
         modifier = Modifier
@@ -441,30 +435,30 @@ private fun WallpaperOptionItem(
             .padding(horizontal = 16.dp, vertical = 3.dp),
         shape = RoundedCornerShape(12.dp),
         color = MaterialTheme.colorScheme.surface,
-        onClick = onClick
+        onClick = onClick,
     ) {
         Row(
             modifier = Modifier.padding(horizontal = 16.dp, vertical = 14.dp),
-            verticalAlignment = Alignment.CenterVertically
+            verticalAlignment = Alignment.CenterVertically,
         ) {
             Icon(
                 imageVector = icon,
                 contentDescription = null,
                 tint = MaterialTheme.colorScheme.primary,
-                modifier = Modifier.size(24.dp)
+                modifier = Modifier.size(24.dp),
             )
             Spacer(modifier = Modifier.width(16.dp))
             Column(modifier = Modifier.weight(1f)) {
                 Text(
                     text = title,
                     style = MaterialTheme.typography.bodyLarge,
-                    fontWeight = FontWeight.Medium
+                    fontWeight = FontWeight.Medium,
                 )
-                if (subtitle != null) {
+                subtitle?.let {
                     Text(
-                        text = subtitle,
+                        text = it,
                         style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
                 }
             }

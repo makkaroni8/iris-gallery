@@ -19,7 +19,7 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.outlined.ArrowBack
+import androidx.compose.material.icons.automirrored.outlined.ArrowBack
 import androidx.compose.material.icons.outlined.Info
 import androidx.compose.material.icons.outlined.MoreVert
 import androidx.compose.material.icons.outlined.ViewAgenda
@@ -70,10 +70,10 @@ fun ViewerHeaderBottomSheet(
     val pageCountPrefix = if (showPageCount) "$samplePageCount · " else ""
 
     val (previewLine1, previewLine2) = when (currentStyle) {
-        ViewerHeaderStyle.DATE -> sampleDateFull to "${pageCountPrefix}$sampleTitle"
-        ViewerHeaderStyle.TITLE_OR_FILENAME -> sampleTitle to "${pageCountPrefix}$sampleDateFull"
-        ViewerHeaderStyle.FILENAME -> sampleFilename to "${pageCountPrefix}$sampleDateFull"
-        ViewerHeaderStyle.ADAPTIVE -> sampleTitle to "${pageCountPrefix}$sampleDateFull"
+        ViewerHeaderStyle.DATE -> sampleDateFull to "$pageCountPrefix$sampleTitle"
+        ViewerHeaderStyle.TITLE_OR_FILENAME -> sampleTitle to "$pageCountPrefix$sampleDateFull"
+        ViewerHeaderStyle.FILENAME -> sampleFilename to "$pageCountPrefix$sampleDateFull"
+        ViewerHeaderStyle.ADAPTIVE -> sampleTitle to "$pageCountPrefix$sampleDateFull"
     }
 
     ModalBottomSheet(
@@ -82,13 +82,13 @@ fun ViewerHeaderBottomSheet(
         dragHandle = { BottomSheetDefaults.DragHandle() },
         containerColor = MaterialTheme.colorScheme.surface,
         tonalElevation = 6.dp,
-        shape = RoundedCornerShape(topStart = 28.dp, topEnd = 28.dp)
+        shape = RoundedCornerShape(topStart = 28.dp, topEnd = 28.dp),
     ) {
         Column(
             modifier = Modifier
                 .fillMaxWidth()
                 .navigationBarsPadding()
-                .padding(bottom = 16.dp)
+                .padding(bottom = 16.dp),
         ) {
             // Header
             Row(
@@ -96,20 +96,20 @@ fun ViewerHeaderBottomSheet(
                     .fillMaxWidth()
                     .padding(horizontal = 24.dp, vertical = 8.dp),
                 verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(16.dp)
+                horizontalArrangement = Arrangement.spacedBy(16.dp),
             ) {
                 Box(
                     modifier = Modifier
                         .size(44.dp)
                         .clip(CircleShape)
                         .background(MaterialTheme.colorScheme.primaryContainer),
-                    contentAlignment = Alignment.Center
+                    contentAlignment = Alignment.Center,
                 ) {
                     Icon(
                         imageVector = Icons.Outlined.ViewAgenda,
                         contentDescription = null,
                         tint = MaterialTheme.colorScheme.onPrimaryContainer,
-                        modifier = Modifier.size(24.dp)
+                        modifier = Modifier.size(24.dp),
                     )
                 }
                 Column {
@@ -117,12 +117,12 @@ fun ViewerHeaderBottomSheet(
                         text = stringResource(R.string.settings_viewer_header_title),
                         style = MaterialTheme.typography.titleLarge,
                         fontWeight = FontWeight.Bold,
-                        color = MaterialTheme.colorScheme.onSurface
+                        color = MaterialTheme.colorScheme.onSurface,
                     )
                     Text(
                         text = stringResource(R.string.settings_viewer_header_desc),
                         style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
                 }
             }
@@ -147,13 +147,13 @@ fun ViewerHeaderBottomSheet(
                     Spacer(Modifier.height(8.dp))
                     Row(
                         modifier = Modifier.fillMaxWidth(),
-                        verticalAlignment = Alignment.CenterVertically
+                        verticalAlignment = Alignment.CenterVertically,
                     ) {
                         Icon(
-                            Icons.Outlined.ArrowBack,
+                            Icons.AutoMirrored.Outlined.ArrowBack,
                             contentDescription = null,
                             tint = Color.White,
-                            modifier = Modifier.size(20.dp)
+                            modifier = Modifier.size(20.dp),
                         )
                         Spacer(Modifier.width(12.dp))
                         Column(modifier = Modifier.weight(1f)) {
@@ -162,14 +162,14 @@ fun ViewerHeaderBottomSheet(
                                 color = Color.White,
                                 style = MaterialTheme.typography.titleMedium,
                                 maxLines = 1,
-                                overflow = TextOverflow.Ellipsis
+                                overflow = TextOverflow.Ellipsis,
                             )
                             Text(
                                 text = previewLine2,
                                 color = Color.White.copy(alpha = 0.75f),
                                 style = MaterialTheme.typography.labelMedium,
                                 maxLines = 1,
-                                overflow = TextOverflow.Ellipsis
+                                overflow = TextOverflow.Ellipsis,
                             )
                         }
                         Spacer(Modifier.width(8.dp))
@@ -177,14 +177,14 @@ fun ViewerHeaderBottomSheet(
                             Icons.Outlined.Info,
                             contentDescription = null,
                             tint = Color.White.copy(alpha = 0.85f),
-                            modifier = Modifier.size(20.dp)
+                            modifier = Modifier.size(20.dp),
                         )
                         Spacer(Modifier.width(8.dp))
                         Icon(
                             Icons.Outlined.MoreVert,
                             contentDescription = null,
                             tint = Color.White.copy(alpha = 0.85f),
-                            modifier = Modifier.size(20.dp)
+                            modifier = Modifier.size(20.dp),
                         )
                     }
                 }
@@ -194,7 +194,7 @@ fun ViewerHeaderBottomSheet(
 
             LazyColumn(
                 contentPadding = PaddingValues(horizontal = 16.dp, vertical = 4.dp),
-                verticalArrangement = Arrangement.spacedBy(8.dp)
+                verticalArrangement = Arrangement.spacedBy(8.dp),
             ) {
                 items(ViewerHeaderStyle.entries.toTypedArray()) { style ->
                     val isSelected = style == currentStyle
@@ -208,22 +208,22 @@ fun ViewerHeaderBottomSheet(
                                 MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.6f)
                             } else {
                                 MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.4f)
-                            }
+                            },
                         ),
-                        shape = RoundedCornerShape(16.dp)
+                        shape = RoundedCornerShape(16.dp),
                     ) {
                         Row(
                             modifier = Modifier
                                 .fillMaxWidth()
                                 .padding(16.dp),
-                            verticalAlignment = Alignment.CenterVertically
+                            verticalAlignment = Alignment.CenterVertically,
                         ) {
                             RadioButton(
                                 selected = isSelected,
                                 onClick = { onStyleSelected(style) },
                                 colors = RadioButtonDefaults.colors(
-                                    selectedColor = MaterialTheme.colorScheme.primary
-                                )
+                                    selectedColor = MaterialTheme.colorScheme.primary,
+                                ),
                             )
                             Spacer(modifier = Modifier.width(12.dp))
                             Column(modifier = Modifier.weight(1f)) {
@@ -235,7 +235,7 @@ fun ViewerHeaderBottomSheet(
                                         MaterialTheme.colorScheme.onPrimaryContainer
                                     } else {
                                         MaterialTheme.colorScheme.onSurface
-                                    }
+                                    },
                                 )
                                 Spacer(modifier = Modifier.height(2.dp))
                                 Text(
@@ -245,7 +245,7 @@ fun ViewerHeaderBottomSheet(
                                         MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.8f)
                                     } else {
                                         MaterialTheme.colorScheme.onSurfaceVariant
-                                    }
+                                    },
                                 )
                             }
                         }
@@ -264,34 +264,34 @@ fun ViewerHeaderBottomSheet(
                             .clip(RoundedCornerShape(16.dp))
                             .clickable { onShowPageCountChange(!showPageCount) },
                         colors = CardDefaults.cardColors(
-                            containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.4f)
+                            containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.4f),
                         ),
-                        shape = RoundedCornerShape(16.dp)
+                        shape = RoundedCornerShape(16.dp),
                     ) {
                         Row(
                             modifier = Modifier
                                 .fillMaxWidth()
                                 .padding(16.dp),
-                            verticalAlignment = Alignment.CenterVertically
+                            verticalAlignment = Alignment.CenterVertically,
                         ) {
                             Column(modifier = Modifier.weight(1f)) {
                                 Text(
                                     text = stringResource(R.string.settings_viewer_show_page_count_title),
                                     style = MaterialTheme.typography.titleMedium,
                                     fontWeight = FontWeight.Medium,
-                                    color = MaterialTheme.colorScheme.onSurface
+                                    color = MaterialTheme.colorScheme.onSurface,
                                 )
                                 Spacer(modifier = Modifier.height(2.dp))
                                 Text(
                                     text = stringResource(R.string.settings_viewer_show_page_count_desc),
                                     style = MaterialTheme.typography.bodyMedium,
-                                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
                                 )
                             }
                             Spacer(modifier = Modifier.width(12.dp))
                             Switch(
                                 checked = showPageCount,
-                                onCheckedChange = onShowPageCountChange
+                                onCheckedChange = onShowPageCountChange,
                             )
                         }
                     }
@@ -305,34 +305,34 @@ fun ViewerHeaderBottomSheet(
                             .clip(RoundedCornerShape(16.dp))
                             .clickable { onShowTimeChange(!showTime) },
                         colors = CardDefaults.cardColors(
-                            containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.4f)
+                            containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.4f),
                         ),
-                        shape = RoundedCornerShape(16.dp)
+                        shape = RoundedCornerShape(16.dp),
                     ) {
                         Row(
                             modifier = Modifier
                                 .fillMaxWidth()
                                 .padding(16.dp),
-                            verticalAlignment = Alignment.CenterVertically
+                            verticalAlignment = Alignment.CenterVertically,
                         ) {
                             Column(modifier = Modifier.weight(1f)) {
                                 Text(
                                     text = stringResource(R.string.settings_viewer_show_time_title),
                                     style = MaterialTheme.typography.titleMedium,
                                     fontWeight = FontWeight.Medium,
-                                    color = MaterialTheme.colorScheme.onSurface
+                                    color = MaterialTheme.colorScheme.onSurface,
                                 )
                                 Spacer(modifier = Modifier.height(2.dp))
                                 Text(
                                     text = stringResource(R.string.settings_viewer_show_time_desc),
                                     style = MaterialTheme.typography.bodyMedium,
-                                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
                                 )
                             }
                             Spacer(modifier = Modifier.width(12.dp))
                             Switch(
                                 checked = showTime,
-                                onCheckedChange = onShowTimeChange
+                                onCheckedChange = onShowTimeChange,
                             )
                         }
                     }

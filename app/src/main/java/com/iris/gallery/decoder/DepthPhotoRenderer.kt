@@ -1,18 +1,12 @@
 package com.iris.gallery.decoder
 
 import android.graphics.Bitmap
-import android.graphics.Canvas
-import android.graphics.Color
 import android.graphics.Matrix
-import android.graphics.Paint
-import android.graphics.PorterDuff
-import android.graphics.PorterDuffXfermode
-import android.graphics.Rect
-import android.graphics.RectF
 import androidx.exifinterface.media.ExifInterface
 import kotlin.math.abs
-import kotlin.math.absoluteValue
 import kotlin.math.roundToInt
+import androidx.core.graphics.scale
+import androidx.core.graphics.createBitmap
 
 /**
  * Compute a power-of-two sample size so that the decoded image's larger dimension is
@@ -22,7 +16,7 @@ import kotlin.math.roundToInt
 fun calcSampleSize(width: Int, height: Int, target: Int): Int {
     var s = 1
     val maxDim = maxOf(width, height)
-    while (maxDim / (s * 2) > target) s *= 2
+    while ((maxDim / (s * 2)) > target) s *= 2
     return s
 }
 
@@ -72,13 +66,13 @@ fun applyExifOrientation(bitmap: Bitmap, orientation: Int): Bitmap {
  *
  *  1. Resizes the depth map to the output resolution.
  *  2. For every pixel, computes a **blur alpha** from the depth value, the user-selected
- *     [focusDepth] (0=far … 1=near, or reversed for [RangeInverse]), [transition] (how quickly
- *     blur ramps away from the focal plane), and [strength] (overall blur amount, 0=no blur
+ *     `focusDepth` (0=far … 1=near, or reversed for `RangeInverse`), `transition` (how quickly
+ *     blur ramps away from the focal plane), and `strength` (overall blur amount, 0=no blur
  *     → 1=fully blurred everywhere).
  *  3. Blends `sharp × (1−α) + blurred × α`.
  *
  * For smooth interactive performance, a down-scaled preview pass can be requested via
- * [previewMaxDimension]; the caller can then re-render at full resolution when the user
+ * `previewMaxDimension`; the caller can then re-render at full resolution when the user
  * releases the slider.
  */
 object DepthPhotoRenderer {
@@ -120,24 +114,24 @@ object DepthPhotoRenderer {
         val outH = (srcH * scale).roundToInt().coerceAtLeast(1)
 
         // Scale the depth map to the output resolution.
-        val scaledDepth = if (depthMap.width == outW && depthMap.height == outH) {
+        val scaledDepth = if ((depthMap.width == outW) && (depthMap.height == outH)) {
             depthMap
         } else {
-            Bitmap.createScaledBitmap(depthMap, outW, outH, true)
+            depthMap.scale(outW, outH)
         }
 
         // Scale the blurred image to match.
-        val scaledBlurred = if (blurred.width == outW && blurred.height == outH) {
+        val scaledBlurred = if ((blurred.width == outW) && (blurred.height == outH)) {
             blurred
         } else {
-            Bitmap.createScaledBitmap(blurred, outW, outH, true)
+            blurred.scale(outW, outH)
         }
 
         // Scale the sharp image if we're rendering a preview.
         val scaledSharp = if (scale >= 1f) {
             sharp
         } else {
-            Bitmap.createScaledBitmap(sharp, outW, outH, true)
+            sharp.scale(outW, outH)
         }
 
         // Convert focus/transition from normalised [0,1] to 8-bit depth space.
@@ -145,7 +139,7 @@ object DepthPhotoRenderer {
         val transitionBytes = (transition * 255f).coerceAtLeast(1f)
 
         // Per-pixel blend.
-        val output = Bitmap.createBitmap(outW, outH, Bitmap.Config.ARGB_8888)
+        val output = createBitmap(outW, outH)
         val sharpPixels = IntArray(outW * outH)
         val blurredPixels = IntArray(outW * outH)
         val depthPixels = IntArray(outW * outH)
@@ -175,10 +169,10 @@ object DepthPhotoRenderer {
             val bp = blurredPixels[i]
 
             val oneMinusAlpha = 1f - alpha
-            val r = (((sp shr 16) and 0xFF) * oneMinusAlpha + (((bp shr 16) and 0xFF)) * alpha).roundToInt()
-            val g = (((sp shr 8) and 0xFF) * oneMinusAlpha + (((bp shr 8) and 0xFF)) * alpha).roundToInt()
-            val b = ((sp and 0xFF) * oneMinusAlpha + ((bp and 0xFF)) * alpha).roundToInt()
-            val a = ((sp ushr 24) * oneMinusAlpha + ((bp ushr 24)) * alpha).roundToInt()
+            val r = ((((sp shr 16) and 0xFF) * oneMinusAlpha) + (((bp shr 16) and 0xFF) * alpha)).roundToInt()
+            val g = ((((sp shr 8) and 0xFF) * oneMinusAlpha) + (((bp shr 8) and 0xFF) * alpha)).roundToInt()
+            val b = (((sp and 0xFF) * oneMinusAlpha) + ((bp and 0xFF) * alpha)).roundToInt()
+            val a = (((sp ushr 24) * oneMinusAlpha) + ((bp ushr 24) * alpha)).roundToInt()
             outPixels[i] = (a shl 24) or (r.coerceIn(0, 255) shl 16) or
                     (g.coerceIn(0, 255) shl 8) or b.coerceIn(0, 255)
         }

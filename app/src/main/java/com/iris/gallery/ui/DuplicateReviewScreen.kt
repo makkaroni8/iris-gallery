@@ -1,5 +1,3 @@
-@file:OptIn(androidx.compose.foundation.ExperimentalFoundationApi::class)
-
 package com.iris.gallery.ui
 
 import androidx.compose.foundation.background
@@ -16,7 +14,6 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.calculateEndPadding
 import androidx.compose.foundation.layout.calculateStartPadding
 import androidx.compose.ui.platform.LocalLayoutDirection
-import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
@@ -43,12 +40,9 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.res.stringResource
 import com.iris.gallery.data.MediaImage
-import com.iris.gallery.ui.DuplicateScanState
-import com.iris.gallery.ui.MediaThumbnail
 import com.iris.gallery.data.DuplicateGroup
 import com.iris.gallery.R
 import java.util.Locale
-import androidx.compose.ui.unit.dp
 import androidx.compose.foundation.shape.RoundedCornerShape
 
 @Composable
@@ -61,7 +55,12 @@ internal fun DuplicateReviewScreen(
     onTrash: (List<MediaImage>) -> Unit,
 ) {
     var selectedIds by remember(state.groups) {
-        mutableStateOf(state.groups.flatMap { it.items.drop(1) }.mapTo(mutableSetOf()) { it.id }.toSet())
+        mutableStateOf(
+            state.groups.asSequence()
+                .flatMap { (items) -> items.asSequence().drop(1) }
+                .map { (id) -> id }
+                .toSet(),
+        )
     }
     val layoutDir = LocalLayoutDirection.current
     val startPadding = padding.calculateStartPadding(layoutDir)
@@ -80,14 +79,19 @@ internal fun DuplicateReviewScreen(
             Card(Modifier.fillMaxWidth()) {
                 Column(Modifier.padding(20.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
                     Text(stringResource(R.string.duplicates_hero_title), style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.Bold)
-                    Text(stringResource(R.string.duplicates_hero_desc),
-                        color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    Text(
+                        stringResource(R.string.duplicates_hero_desc),
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
                     when {
                         state.scanning -> {
                             val progress = if (state.total == 0) 0f else state.done.toFloat() / state.total
                             LinearProgressIndicator({ progress }, Modifier.fillMaxWidth())
-                            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween,
-                                verticalAlignment = Alignment.CenterVertically) {
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.SpaceBetween,
+                                verticalAlignment = Alignment.CenterVertically,
+                            ) {
                                 Text(stringResource(R.string.duplicates_comparing_progress, state.done, state.total), style = MaterialTheme.typography.labelLarge)
                                 TextButton(onClick = onCancel) { Text(stringResource(R.string.action_cancel)) }
                             }
@@ -98,13 +102,16 @@ internal fun DuplicateReviewScreen(
                 }
             }
         }
-        if (state.hasScanned && state.groups.isEmpty() && state.error == null) {
+        if (state.hasScanned && state.groups.isEmpty() && (state.error == null)) {
             item { Text(stringResource(R.string.duplicates_empty_state),
                 modifier = Modifier.padding(12.dp), style = MaterialTheme.typography.titleMedium) }
         }
         if (state.groups.isNotEmpty()) {
             item {
-                val selected = state.groups.flatMap { it.items }.filter { it.id in selectedIds }
+                val selected = state.groups.asSequence()
+                    .flatMap { (items) -> items }
+                    .filter { (id) -> id in selectedIds }
+                    .toList()
                 Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically,
                     horizontalArrangement = Arrangement.spacedBy(12.dp)) {
                     Column(Modifier.weight(1f)) {
@@ -154,8 +161,8 @@ internal fun DuplicateReviewScreen(
 }
 
 private fun formatBytes(bytes: Long): String = when {
-    bytes >= 1_000_000_000 -> "%.1f GB".format(java.util.Locale.US, bytes / 1_000_000_000.0)
-    bytes >= 1_000_000 -> "%.1f MB".format(java.util.Locale.US, bytes / 1_000_000.0)
-    bytes >= 1_000 -> "%.0f KB".format(java.util.Locale.US, bytes / 1_000.0)
+    bytes >= 1_000_000_000 -> "%.1f GB".format(Locale.US, bytes / 1_000_000_000.0)
+    bytes >= 1_000_000 -> "%.1f MB".format(Locale.US, bytes / 1_000_000.0)
+    bytes >= 1_000 -> "%.0f KB".format(Locale.US, bytes / 1_000.0)
     else -> "$bytes B"
 }

@@ -2,26 +2,19 @@ package com.iris.gallery.ui
 
 import android.content.Context
 import android.net.Uri
-import android.os.Build
 import android.os.Environment
 import androidx.activity.compose.BackHandler
-import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.statusBarsPadding
-import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.background
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
@@ -50,7 +43,6 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
-import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
@@ -61,8 +53,6 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
-import java.text.SimpleDateFormat
-import java.util.Date
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -72,8 +62,6 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
-import androidx.core.content.ContextCompat
 import com.iris.gallery.R
 import com.iris.gallery.data.CornerStyle
 import com.iris.gallery.data.GridSpacing
@@ -83,6 +71,8 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import java.io.File
 import java.util.Locale
+import kotlin.math.log10
+import kotlin.math.pow
 
 private val IMAGE_EXTENSIONS = setOf("jpg", "jpeg", "png", "webp", "gif", "bmp", "heic", "heif", "avif", "dng", "svg")
 private val VIDEO_EXTENSIONS = setOf("mp4", "mkv", "mov", "webm", "3gp", "avi", "flv", "ts")
@@ -111,19 +101,19 @@ fun FolderBrowserScreen(
     val storageRoots = remember { getStorageRoots(context) }
     var currentDirectory by remember {
         mutableStateOf(
-            storageRoots.firstOrNull() ?: Environment.getExternalStorageDirectory() ?: File("/storage/emulated/0")
+            storageRoots.firstOrNull() ?: Environment.getExternalStorageDirectory() ?: File("/storage/emulated/0"),
         )
     }
-    var isListView by rememberSaveable { mutableStateOf(false) }
+    var isListView by rememberSaveable { mutableStateOf(value = false) }
     var folderItems by remember { mutableStateOf<List<FolderItem>>(emptyList()) }
-    var isLoading by remember { mutableStateOf(true) }
+    var isLoading by remember { mutableStateOf(value = true) }
 
     val isAtRoot = remember(currentDirectory, storageRoots) {
-        storageRoots.any { it.absolutePath == currentDirectory.absolutePath } || currentDirectory.parentFile == null
+        storageRoots.any { it.absolutePath == currentDirectory.absolutePath } || (currentDirectory.parentFile == null)
     }
 
     BackHandler(enabled = true) {
-        if (!isAtRoot && currentDirectory.parentFile != null) {
+        if (!isAtRoot && (currentDirectory.parentFile != null)) {
             currentDirectory = currentDirectory.parentFile!!
         } else {
             onBack()
@@ -138,9 +128,9 @@ fun FolderBrowserScreen(
         isLoading = false
     }
 
-    val directories = remember(folderItems) { folderItems.filter { it.isDirectory } }
+    val directories = remember(folderItems) { folderItems.filter(FolderItem::isDirectory) }
     val mediaFiles = remember(folderItems, groupRawPhotos) {
-        folderItems.mapNotNull { it.mediaImage }.groupRawPhotos(groupRawPhotos)
+        folderItems.mapNotNull(FolderItem::mediaImage).groupRawPhotos(groupRawPhotos)
     }
 
     Scaffold(
@@ -153,25 +143,27 @@ fun FolderBrowserScreen(
                             style = MaterialTheme.typography.titleMedium,
                             fontWeight = FontWeight.Bold,
                             maxLines = 1,
-                            overflow = TextOverflow.Ellipsis
+                            overflow = TextOverflow.Ellipsis,
                         )
                         Text(
                             text = currentDirectory.absolutePath,
                             style = MaterialTheme.typography.bodySmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
                             maxLines = 1,
-                            overflow = TextOverflow.Ellipsis
+                            overflow = TextOverflow.Ellipsis,
                         )
                     }
                 },
                 navigationIcon = {
-                    IconButton(onClick = {
-                        if (!isAtRoot && currentDirectory.parentFile != null) {
-                            currentDirectory = currentDirectory.parentFile!!
-                        } else {
-                            onBack()
-                        }
-                    }) {
+                    IconButton(
+                        onClick = {
+                            if (!isAtRoot && (currentDirectory.parentFile != null)) {
+                                currentDirectory = currentDirectory.parentFile!!
+                            } else {
+                                onBack()
+                            }
+                        },
+                    ) {
                         Icon(Icons.AutoMirrored.Outlined.ArrowBack, contentDescription = stringResource(R.string.action_back))
                     }
                 },
@@ -588,7 +580,7 @@ private fun getStorageRoots(context: Context): List<File> {
         roots.add(File("/storage/emulated/0"))
     }
     runCatching {
-        ContextCompat.getExternalFilesDirs(context, null).forEach { dir ->
+        context.getExternalFilesDirs(null).forEach { dir ->
             if (dir != null) {
                 val path = dir.absolutePath
                 val rootPath = path.substringBefore("/Android/data")
@@ -659,9 +651,9 @@ private fun isMediaFile(file: File): Boolean {
 private fun formatBytes(bytes: Long): String {
     if (bytes <= 0) return "0 B"
     val units = arrayOf("B", "KB", "MB", "GB", "TB")
-    val digitGroups = (Math.log10(bytes.toDouble()) / Math.log10(1000.0)).toInt()
+    val digitGroups = (log10(bytes.toDouble()) / log10(1000.0)).toInt()
     val index = digitGroups.coerceIn(0, units.size - 1)
-    val value = bytes / Math.pow(1000.0, index.toDouble())
+    val value = bytes / 1000.0.pow(index.toDouble())
     return if (index == 0) "$bytes B" else String.format(Locale.US, "%.1f %s", value, units[index])
 }
 

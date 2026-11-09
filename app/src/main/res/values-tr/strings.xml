@@ -21,15 +21,11 @@
 
     <!-- Top Bar & Selection -->
     <string name="selected_count">%1$d seçildi</string>
-    <string name="selected_count_format">%1$d seçildi</string>
     <string name="action_clear_selection">Seçimi temizle</string>
     <string name="action_restore">Seçilenleri geri yükle</string>
-    <string name="action_restore_selected">Seçilenleri geri yükle</string>
     <string name="action_share">Paylaş</string>
-    <string name="action_share_selected">Seçilenleri paylaş</string>
     <string name="action_share_media">Medyayı paylaş</string>
     <string name="action_delete">Sil</string>
-    <string name="action_delete_selected">Seçilenleri sil</string>
     <string name="action_more">Diğer seçim işlemleri</string>
     <string name="action_more_options">Diğer seçenekler</string>
     <string name="action_select_all">Tümünü seç</string>
@@ -40,8 +36,6 @@
     <string name="action_favorited">Favorilere eklendi</string>
     <string name="action_unfavorite">Favorilerden kaldır</string>
     <string name="action_empty_trash">Boşalt</string>
-    <string name="action_comfortable_grid">Rahat ızgara</string>
-    <string name="action_compact_grid">Kompakt ızgara</string>
     <string name="action_back">Geri</string>
     <string name="action_cancel">İptal</string>
     <string name="action_save">Kaydet</string>
@@ -49,13 +43,11 @@
     <string name="action_saving">Kaydediliyor…</string>
     <string name="action_grant">İzin ver</string>
     <string name="action_grant_access">Erişim İzni Ver</string>
-    <string name="action_use_system_popup">Sistem Açılır Penceresini Kullan</string>
     <string name="action_close">Kapat</string>
     <string name="action_continue">Devam Et</string>
     <string name="action_edit">Düzenle</string>
     <string name="action_unlock">Kilidi aç</string>
     <string name="action_lock">Kilitle</string>
-    <string name="action_details">Ayrıntılar</string>
     <string name="action_backspace">Sil</string>
     <string name="action_mute">Sesi kapat</string>
     <string name="action_unmute">Sesi aç</string>
@@ -76,7 +68,6 @@
     <string name="settings_language_desc">Tercih ettiğiniz görüntüleme dilini seçin</string>
     <string name="first_launch_lang_title">Uygulama Dili</string>
     <string name="first_launch_lang_subtitle">Devam etmek için dilinizi seçin</string>
-    <string name="first_launch_lang_detected">Sistem dili</string>
 
     <!-- Permission Screen -->
     <string name="permission_title">Galeriniz, tamamen size özel</string>
@@ -91,21 +82,13 @@
     <string name="empty_locked_locked_state">Gizli ögeleri görüntülemek için kilidi açın</string>
     <string name="empty_memories">Bugün için henüz bir anı yok</string>
     <string name="empty_editable">Düzenlenebilir görsel yok</string>
-    <string name="empty_formats">RAW, GIF, hareketli fotoğraf veya panorama bulunamadı</string>
     <string name="empty_special_formats">RAW, GIF, hareketli fotoğraf veya panorama bulunamadı</string>
-    <string name="empty_format_filter">%1$s bulunamadı</string>
     <string name="empty_format_type">%1$s bulunamadı</string>
     <string name="empty_search_albums">\"%1$s\" ile eşleşen albüm bulunamadı</string>
-    <string name="empty_duplicates">Yinelenen fotoğraf bulunamadı</string>
 
     <!-- Dialogs -->
     <string name="empty_trash_dialog_title">Çöp Kutusu Boşaltılsın mı?</string>
     <string name="empty_trash_dialog_desc">Cihazınızdaki %1$d öge%2$s kalıcı olarak silinsin mi? Bu işlem geri alınamaz.</string>
-    <string name="dialog_empty_trash_title">Çöp Kutusu Boşaltılsın mı?</string>
-    <string name="dialog_empty_trash_message">Cihazınızdaki %1$d öge kalıcı olarak silinsin mi? Bu işlem geri alınamaz.</string>
-    <string name="dialog_empty_trash_confirm">Çöp Kutusunu Boşalt</string>
-    <string name="dialog_delete_item_title">%1$s çöp kutusuna taşınsın mı?</string>
-    <string name="dialog_delete_item_message">Android bu değişikliği onaylamanızı isteyecek.</string>
     <string name="delete_trash_video_title">Video çöp kutusuna taşınsın mı?</string>
     <string name="delete_trash_photo_title">Fotoğraf çöp kutusuna taşınsın mı?</string>
     <string name="delete_trash_desc">Android bu değişikliği onaylamanızı isteyecek.</string>
@@ -113,19 +96,12 @@
     <string name="delete_permanent_photo_title">Fotoğraf kalıcı olarak silinsin mi?</string>
     <string name="delete_permanent_desc">Bu öge cihazınızdan kalıcı olarak silinecektir. Bu işlem geri alınamaz.</string>
     <string name="delete_vault_desc">Bu öge gizli kasanızdan kalıcı olarak kaldırılacaktır.</string>
-    <string name="dialog_delete_vault_item_title">%1$s kalıcı olarak silinsin mi?</string>
-    <string name="dialog_delete_vault_item_message">Bu öge gizli kasanızdan kalıcı olarak kaldırılacaktır.</string>
     <string name="prompt_free_vault_title">Onaysız Kasa</string>
     <string name="prompt_free_vault_desc">\'Tüm Dosyalara Erişim\' izni vermek, Iris Gallery\'nin Android her seferinde silme onayı istemeden fotoğrafları sessizce gizli kasanıza taşımasına ve gizlemesine olanak tanır.\n\nIris sıfır internet erişimiyle %100 çevrimdışıdır, bu nedenle dosyalarınız asla cihazınızdan ayrılmaz.</string>
-    <string name="dialog_prompt_free_vault_title">Onaysız Kasa</string>
-    <string name="dialog_prompt_free_vault_message">\'Tüm Dosyalara Erişim\' izni vermek, Iris Gallery\'nin Android her seferinde silme onayı istemeden fotoğrafları sessizce gizli kasanıza taşımasına ve gizlemesine olanak tanır.\n\nIris sıfır internet erişimiyle %100 çevrimdışıdır, bu nedenle dosyalarınız asla cihazınızdan ayrılmaz.</string>
 
     <!-- Media Types & Titles -->
-    <string name="media_type_photo">fotoğraf</string>
-    <string name="media_type_video">video</string>
     <string name="format_image">Görsel</string>
     <string name="format_video">Video</string>
-    <string name="media_page_indicator">%1$d / %2$d</string>
     <string name="viewer_page_count">%1$d / %2$d</string>
 
     <!-- Albums Screen -->
@@ -138,8 +114,6 @@
     <string name="album_items_count">%1$d öge</string>
     <string name="album_pin">Albümü sabitle</string>
     <string name="album_unpin">Albüm sabitlemesini kaldır</string>
-    <string name="action_move_up">Yukarı taşı</string>
-    <string name="action_move_down">Aşağı taşı</string>
 
     <!-- Library Screen Cards -->
     <string name="library_header">Düzenle ve yeniden keşfet</string>
@@ -155,17 +129,10 @@
     <string name="library_editor_subtitle">Orijinaline dokunmadan kusursuz bir kopya oluşturun</string>
     <string name="library_formats_title">Medya biçimleri</string>
     <string name="library_formats_subtitle">RAW, GIF, hareketli fotoğraflar ve panoramalar</string>
-    <string name="library_settings_title">Ayarlar &amp; Özelleştirme</string>
-    <string name="library_settings_subtitle">Temalar, paletler, ızgara stilleri ve hareketler</string>
     <string name="library_about_title">Hakkında</string>
     <string name="library_about_subtitle">Geliştirici, açık kaynak projesi ve uygulama ayrıntıları</string>
 
     <!-- Media Formats Filters -->
-    <string name="format_all">Tümü (%1$d)</string>
-    <string name="format_raw">RAW (%1$d)</string>
-    <string name="format_gif">GIF\'ler (%1$d)</string>
-    <string name="format_panorama">Panoramalar (%1$d)</string>
-    <string name="format_motion">Hareketli Fotoğraflar (%1$d)</string>
     <string name="filter_all_count">Tümü (%1$d)</string>
     <string name="filter_raw_count">RAW (%1$d)</string>
     <string name="filter_gifs_count">GIF\'ler (%1$d)</string>
@@ -173,13 +140,6 @@
     <string name="filter_motion_count">Hareketli Fotoğraflar (%1$d)</string>
 
     <!-- Duplicates Review Screen -->
-    <string name="duplicates_title">Yinelenen &amp; Benzer Fotoğraflar</string>
-    <string name="duplicates_desc">Birebir kopyaları ve görsel olarak benzer çekimleri tarayın</string>
-    <string name="duplicates_scan_now">Şimdi tara</string>
-    <string name="duplicates_scanning">Taranıyor…</string>
-    <string name="duplicates_summary">%1$d grup (%2$d fotoğraf)</string>
-    <string name="duplicates_keep_best_delete">En iyisini sakla, seçilen %1$d ögeyi sil</string>
-    <string name="duplicates_scan_count">%1$d / %2$d</string>
     <string name="duplicates_hero_title">Güvenle temizleyin</string>
     <string name="duplicates_hero_desc">Iris dosyaları ve küçük cihaz içi görsel parmak izlerini karşılaştırır. Fotoğraflarınız asla telefonunuzdan ayrılmaz ve Android\'in onayı olmadan hiçbir şey kaldırılmaz.</string>
     <string name="duplicates_comparing_progress">Karşılaştırılıyor: %1$d / %2$d</string>
@@ -204,41 +164,26 @@
     <string name="details_title">Ayrıntılar</string>
     <string name="details_photo_details">Fotoğraf ayrıntıları</string>
     <string name="details_file_name">Dosya adı</string>
-    <string name="details_title_label">Başlık</string>
     <string name="details_title_field">Başlık</string>
     <string name="details_desc_field">Açıklama</string>
-    <string name="details_date_taken">Çekilme tarihi</string>
     <string name="details_captured">Çekim</string>
-    <string name="details_time">Saat</string>
     <string name="details_resolution">Çözünürlük</string>
-    <string name="details_file_size">Dosya boyutu</string>
     <string name="details_size">Boyut</string>
     <string name="details_location">Konum</string>
-    <string name="details_open_in_map">Haritada aç</string>
     <string name="details_map">Harita</string>
     <string name="details_camera">Kamera</string>
     <string name="details_camera_capture">Kamera Çekimi</string>
-    <string name="details_camera_lens">Kamera &amp; lens</string>
-    <string name="details_aperture">Diyafram</string>
-    <string name="details_shutter">Enstantane</string>
-    <string name="details_iso">ISO</string>
-    <string name="details_focal_length">Odak uzaklığı</string>
-    <string name="details_dimensions">Boyutlar</string>
     <string name="details_orientation">Yönlendirme</string>
     <string name="details_duration">Süre</string>
-    <string name="details_format">Biçim</string>
     <string name="details_type">Tür</string>
     <string name="details_path">Yol</string>
     <string name="details_edit_metadata">Meta verileri düzenle</string>
-    <string name="details_edit_filename">Dosya adı</string>
     <string name="details_edit_title">Başlık</string>
     <string name="details_title_hint">İsteğe bağlı başlık</string>
     <string name="details_edit_captured_hint">Çekim · yyyy-AA-gg SS:dd</string>
-    <string name="details_edit_orientation_hint">Yönlendirme · 0, 90, 180 veya 270</string>
     <string name="details_edit_permission_note">Android, başka bir uygulamaya ait medyayı değiştirmeden önce izin isteyecektir.</string>
 
     <!-- Settings Screen -->
-    <string name="settings_title">Ayarlar</string>
     <string name="settings_section_appearance">Görünüm &amp; Tema</string>
     <string name="settings_theme_mode">Tema Modu</string>
     <string name="settings_theme_system">Sistem</string>
@@ -345,17 +290,11 @@
     <string name="app_lock_title">Iris Gallery Kilidini Aç</string>
     <string name="app_lock_picker_title">Medya Seçmek İçin Kilidi Açın</string>
     <string name="app_lock_welcome_back">Tekrar Hoş Geldiniz</string>
-    <string name="app_lock_select_media">Medya Seç</string>
     <string name="app_lock_unlocking">Kilit açılıyor…</string>
-    <string name="app_lock_enter_pin_select">Fotoğraf seçmek için Galeri PIN\'ini girin</string>
-    <string name="app_lock_enter_pin_unlock">Kilidi açmak için Galeri PIN\'ini girin</string>
     <string name="app_lock_subtitle">Kilidi açmak için Galeri PIN\'ini girin</string>
     <string name="app_lock_picker_subtitle">Fotoğraf seçmek için Galeri PIN\'ini girin</string>
     <string name="app_lock_wrong_pin">Yanlış PIN. Lütfen tekrar deneyin.</string>
-    <string name="app_lock_biometric_title">Iris Gallery Kilidini Aç</string>
-    <string name="app_lock_biometric_subtitle">Devam etmek için parmak izinizi taratın</string>
     <string name="app_lock_scan_fingerprint">Devam etmek için parmak izinizi taratın</string>
-    <string name="app_lock_biometric_negative">PIN Kullan</string>
     <string name="app_lock_auth_cancelled">Kimlik doğrulama iptal edildi</string>
     <string name="app_lock_biometrics_unavailable">Biyometrik doğrulama kullanılamıyor</string>
     <string name="pin_keypad_use_pin">PIN Kullan</string>
@@ -381,22 +320,10 @@
     <string name="editor_title">Kopyayı düzenle</string>
     <string name="editor_close">Düzenleyiciyi kapat</string>
     <string name="editor_preparing">Düzenleyici hazırlanıyor…</string>
-    <string name="editor_tool_adjust">Ayarla</string>
-    <string name="editor_tool_crop">Kırp</string>
-    <string name="editor_tool_transform">Dönüştür</string>
-    <string name="editor_tool_resize">Yeniden Boyutlandır</string>
-    <string name="editor_tool_pixelate">Mozaikle</string>
-    <string name="editor_tool_blur">Bulanıklaştır</string>
-    <string name="editor_rotate_flip">Döndür &amp; çevir</string>
     <string name="editor_rotate_left">90° Sola</string>
     <string name="editor_rotate_right">90° Sağa</string>
-    <string name="editor_flip_h">Yatay Çevir ⇄</string>
-    <string name="editor_flip_v">Dikey Çevir ⇅</string>
     <string name="editor_reset_orientation">Yönlendirmeyi sıfırla</string>
-    <string name="editor_crop_manual_hint">Serbest kırpmak için herhangi bir köşeyi sürükleyin</string>
-    <string name="editor_crop_help">Yeniden konumlandırmak için çerçevenin içini sürükleyin. Beyaz tutamaçlar boyutu ayarlar.</string>
     <string name="editor_crop_manual">Serbest</string>
-    <string name="editor_crop_square">Kare</string>
     <string name="editor_width_px">Genişlik px</string>
     <string name="editor_height_px">Yükseklik px</string>
     <string name="editor_lock_aspect">En-boy oranını kilitle</string>
@@ -417,7 +344,6 @@
     <string name="editor_warmth">Sıcaklık</string>
 
     <!-- About Screen -->
-    <string name="about_title">Iris Hakkında</string>
     <string name="about_developer_project">Geliştirici &amp; Proje</string>
     <string name="about_developer_label">Geliştirici</string>
     <string name="about_developer_name">Mohamad Oday (@MohamadOday)</string>
@@ -443,10 +369,6 @@
     <string name="notification_channel_desc">Geçmiş yıllarda bugün çekilen fotoğraf ve videolar</string>
     <string name="notification_memory_waiting">Sizi bekleyen %1$d anı var</string>
     <string name="notification_memories_waiting">Sizi bekleyen %1$d anı var</string>
-    <string name="memories_phrase_1">Bu günden</string>
-    <string name="memories_phrase_2">Geçmişe bir bakış</string>
-    <string name="memories_phrase_3">Bu günü hatırlıyor musun?</string>
-    <string name="memories_phrase_4">Bugünkü hikayen</string>
     <string name="settings_section_memories">Anılar ve Bildirimler</string>
     <string name="setting_memories_notifications">Günlük Anı bildirimleri</string>
     <string name="setting_memories_notifications_desc">Geçmiş yıllarda bugüne ait fotoğraf veya video olduğunda hatırlatıcı al</string>
@@ -457,15 +379,11 @@
 
     <!-- Toasts -->
     <string name="toast_items_vaulted">%1$d öge gizli kasaya taşındı</string>
-    <string name="toast_vault_items_moved">%1$d öge gizli kasaya taşındı</string>
     <string name="toast_vault_items_locked_gallery">%1$d öge Iris Gallery içinde gizlendi</string>
     <string name="toast_vault_items_restored">%1$d öge kasadan geri yüklendi</string>
-    <string name="toast_vault_items_deleted">%1$d öge kalıcı olarak silindi</string>
     <string name="toast_lock_cancelled">Kilitleme iptal edildi</string>
     <string name="toast_could_not_request_removal">Depolamadan kaldırma isteği yapılamadı</string>
     <string name="toast_could_not_request_metadata">Meta veri erişimi isteği yapılamadı</string>
-    <string name="toast_error_storage_removal">Depolamadan kaldırma isteği yapılamadı</string>
-    <string name="toast_error_original_removal">Orijinal dosya depolamadan kaldırılamadı</string>
     <string name="toast_cache_cleared">Küçük resim önbelleği temizlendi</string>
     <string name="toast_settings_reset">Tüm ayarlar varsayılana sıfırlandı</string>
     <string name="toast_pin_enabled">Galeri PIN\'i etkinleştirildi</string>
@@ -473,8 +391,6 @@
     <string name="toast_pin_disabled">Galeri PIN\'i kaldırıldı</string>
     <string name="toast_edited_saved">Düzenlenen kopya Pictures/Iris konumuna kaydedildi</string>
     <string name="toast_edited_failed">Düzenlenen kopya kaydedilemedi</string>
-    <string name="toast_editor_saved">Düzenlenen kopya Pictures/Iris konumuna kaydedildi</string>
-    <string name="toast_editor_failed">Düzenlenen kopya kaydedilemedi</string>
     <string name="toast_optics_unlocked">İbn-i Heysem Optiği Açıldı!</string>
     <string name="toast_item_moved_to_trash">Çöp kutusuna taşındı (30 gün saklanır)</string>
     <string name="toast_items_moved_to_trash">%1$d öğe çöp kutusuna taşındı (30 gün saklanır)</string>

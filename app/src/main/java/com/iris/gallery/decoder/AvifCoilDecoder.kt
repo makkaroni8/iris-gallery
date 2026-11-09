@@ -1,6 +1,6 @@
 package com.iris.gallery.decoder
 
-import android.graphics.Bitmap
+import androidx.core.graphics.createBitmap
 import coil3.ImageLoader
 import coil3.asImage
 import coil3.decode.DecodeResult
@@ -16,7 +16,7 @@ import kotlin.math.roundToInt
 
 class AvifCoilDecoder(
     private val source: ImageSource,
-    private val options: Options
+    private val options: Options,
 ) : Decoder {
 
     override suspend fun decode(): DecodeResult? {
@@ -36,7 +36,7 @@ class AvifCoilDecoder(
         if (!AvifDecoder.getInfo(byteBuffer, bytes.size, info)) {
             return null
         }
-        if (info.width <= 0 || info.height <= 0) {
+        if ((info.width <= 0) || (info.height <= 0)) {
             return null
         }
 
@@ -44,7 +44,7 @@ class AvifCoilDecoder(
         // allocate only what the request needs instead of a full-size buffer.
         val requestedWidth = options.size.width.pxOrElse { info.width }
         val requestedHeight = options.size.height.pxOrElse { info.height }
-        val needsScale = requestedWidth < info.width || requestedHeight < info.height
+        val needsScale = (requestedWidth < info.width) || (requestedHeight < info.height)
         val ratio = if (needsScale) {
             min(requestedWidth.toFloat() / info.width, requestedHeight.toFloat() / info.height)
         } else {
@@ -53,7 +53,7 @@ class AvifCoilDecoder(
         val targetWidth = (info.width * ratio).roundToInt().coerceIn(1, info.width)
         val targetHeight = (info.height * ratio).roundToInt().coerceIn(1, info.height)
 
-        val bitmap = Bitmap.createBitmap(targetWidth, targetHeight, Bitmap.Config.ARGB_8888)
+        val bitmap = createBitmap(targetWidth, targetHeight)
         if (!AvifDecoder.decode(byteBuffer, bytes.size, bitmap)) {
             bitmap.recycle()
             return null
@@ -61,7 +61,7 @@ class AvifCoilDecoder(
 
         return DecodeResult(
             image = bitmap.asImage(),
-            isSampled = targetWidth != info.width || targetHeight != info.height,
+            isSampled = (targetWidth != info.width) || (targetHeight != info.height),
         )
     }
 
@@ -69,10 +69,10 @@ class AvifCoilDecoder(
         override fun create(
             result: SourceFetchResult,
             options: Options,
-            imageLoader: ImageLoader
+            imageLoader: ImageLoader,
         ): Decoder? {
             val mimeType = result.mimeType
-            if (mimeType != null && mimeType.equals("image/avif", ignoreCase = true)) {
+            if ((mimeType != null) && mimeType.equals("image/avif", ignoreCase = true)) {
                 return AvifCoilDecoder(result.source, options)
             }
             val source = result.source.source()
@@ -87,9 +87,9 @@ class AvifCoilDecoder(
             if (!source.request(ftypSize.toLong())) return null
             val ftyp = source.buffer.peek().readByteString(ftypSize.toLong())
             var offset = 8
-            while (offset + 4 <= ftyp.size) {
+            while ((offset + 4) <= ftyp.size) {
                 val brand = ftyp.substring(offset, offset + 4).utf8()
-                if (brand == "avif" || brand == "avis") {
+                if ((brand == "avif") || (brand == "avis")) {
                     return AvifCoilDecoder(result.source, options)
                 }
                 offset += 4

@@ -133,6 +133,12 @@ import androidx.exifinterface.media.ExifInterface
 import java.io.File
 import java.nio.ByteBuffer
 import kotlin.math.roundToInt
+import androidx.core.graphics.toColorInt
+import androidx.core.graphics.createBitmap
+import androidx.core.graphics.scale
+import androidx.core.graphics.withRotation
+import kotlin.math.cos
+import kotlin.math.sin
 
 enum class EditorCategory {
     TRANSFORM,
@@ -154,7 +160,7 @@ enum class PrivacySubMode {
 
 enum class AdjustKind(
     val defaultValue: Float,
-    val valueRange: ClosedFloatingPointRange<Float>
+    val valueRange: ClosedFloatingPointRange<Float>,
 ) {
     BRIGHTNESS(0f, -0.5f..0.5f),
     CONTRAST(1f, 0.5f..1.5f),
@@ -171,7 +177,7 @@ enum class AdjustKind(
 enum class ExportFormat(
     val extension: String,
     val mimeType: String,
-    val defaultQuality: Int
+    val defaultQuality: Int,
 ) {
     JPEG("jpg", "image/jpeg", 94),
     PNG("png", "image/png", 100),
@@ -195,13 +201,13 @@ fun EditorScreen(image: MediaImage, onClose: () -> Unit, onSaved: (saved: Boolea
     var overwriteOriginal by remember(image.id) {
         mutableStateOf(settingsPrefs.state.value.editorOverwriteOriginal)
     }
-    var saving by remember { mutableStateOf(false) }
+    var saving by remember { mutableStateOf(value = false) }
     var pendingOverwriteBytes by remember { mutableStateOf<ByteArray?>(null) }
     var pendingOverwriteFormat by remember { mutableStateOf<ExportFormat?>(null) }
     var pendingCachedTags by remember { mutableStateOf<Map<String, String>?>(null) }
 
     val writePermissionLauncher = rememberLauncherForActivityResult(
-        contract = ActivityResultContracts.StartIntentSenderForResult()
+        contract = ActivityResultContracts.StartIntentSenderForResult(),
     ) { result ->
         if (result.resultCode == Activity.RESULT_OK) {
             val bytes = pendingOverwriteBytes
@@ -215,7 +221,7 @@ fun EditorScreen(image: MediaImage, onClose: () -> Unit, onSaved: (saved: Boolea
                     val success = runCatching {
                         performOverwriteWrite(context, image, bytes, fmt, tags)
                     }.getOrElse {
-                        if (it is CancellationException) throw it
+                        (it as? CancellationException)?.let { ce -> throw ce }
                         false
                     }
                     saving = false
@@ -241,13 +247,13 @@ fun EditorScreen(image: MediaImage, onClose: () -> Unit, onSaved: (saved: Boolea
     var privacySubMode by remember { mutableStateOf(PrivacySubMode.BLUR) }
 
     var rotation by remember { mutableIntStateOf(0) }
-    var flipHorizontal by remember { mutableStateOf(false) }
-    var flipVertical by remember { mutableStateOf(false) }
+    var flipHorizontal by remember { mutableStateOf(value = false) }
+    var flipVertical by remember { mutableStateOf(value = false) }
     var straightenAngle by remember { mutableFloatStateOf(0f) }
-    var isStraightening by remember { mutableStateOf(false) }
+    var isStraightening by remember { mutableStateOf(value = false) }
     var canvasZoom by remember { mutableFloatStateOf(1f) }
-    var canUndo by remember { mutableStateOf(false) }
-    var canRedo by remember { mutableStateOf(false) }
+    var canUndo by remember { mutableStateOf(value = false) }
+    var canRedo by remember { mutableStateOf(value = false) }
     var brightness by remember { mutableFloatStateOf(0f) }
     var saturation by remember { mutableFloatStateOf(1f) }
     var contrast by remember { mutableFloatStateOf(1f) }
@@ -255,25 +261,25 @@ fun EditorScreen(image: MediaImage, onClose: () -> Unit, onSaved: (saved: Boolea
     var selectedAdjust by remember { mutableStateOf(AdjustKind.BRIGHTNESS) }
     var brushSize by remember { mutableFloatStateOf(.07f) }
     var strength by remember { mutableFloatStateOf(18f) }
-    var erasing by remember { mutableStateOf(false) }
-    var drawColor by remember { mutableIntStateOf(android.graphics.Color.parseColor("#F44336")) }
+    var erasing by remember { mutableStateOf(value = false) }
+    var drawColor by remember { mutableIntStateOf("#F44336".toColorInt()) }
     var drawBrushSize by remember { mutableFloatStateOf(0.015f) }
-    var drawErasing by remember { mutableStateOf(false) }
+    var drawErasing by remember { mutableStateOf(value = false) }
     var shapeType by remember { mutableStateOf(ShapeType.RECTANGLE) }
-    var shapeFilled by remember { mutableStateOf(false) }
+    var shapeFilled by remember { mutableStateOf(value = false) }
     var shapeStrokeSize by remember { mutableFloatStateOf(0.012f) }
     var selectedOverlay by remember { mutableStateOf<TextOverlay?>(null) }
     var cropPreset by remember { mutableStateOf("Manual") }
 
-    val baseWidth = if (rotation == 90 || rotation == 270) image.height else image.width
-    val baseHeight = if (rotation == 90 || rotation == 270) image.width else image.height
+    val baseWidth = if ((rotation == 90) || (rotation == 270)) image.height else image.width
+    val baseHeight = if ((rotation == 90) || (rotation == 270)) image.width else image.height
     var resizeWidth by remember(image.id, rotation) { mutableStateOf(baseWidth.toString()) }
     var resizeHeight by remember(image.id, rotation) { mutableStateOf(baseHeight.toString()) }
-    var isCustomResized by remember(image.id, rotation) { mutableStateOf(false) }
+    var isCustomResized by remember(image.id, rotation) { mutableStateOf(value = false) }
     var targetMaxBytes by remember(image.id, rotation) { mutableStateOf<Long?>(null) }
-    var lockAspect by remember { mutableStateOf(true) }
-    var showResizeDialog by remember { mutableStateOf(false) }
-    var showSaveAsDialog by remember { mutableStateOf(false) }
+    var lockAspect by remember { mutableStateOf(value = true) }
+    var showResizeDialog by remember { mutableStateOf(value = false) }
+    var showSaveAsDialog by remember { mutableStateOf(value = false) }
     val originalExportFormat = remember(image.id, image.mimeType, image.path, image.name) {
         val mime = image.mimeType.lowercase()
         val name = (image.name.ifBlank { image.path }).lowercase()
@@ -322,9 +328,9 @@ fun EditorScreen(image: MediaImage, onClose: () -> Unit, onSaved: (saved: Boolea
             postConcat(
                 ColorMatrix(
                     floatArrayOf(
-                        contrast, 0f, 0f, 0f, shift + pivot + warmth * 36f,
+                        contrast, 0f, 0f, 0f, (shift + pivot) + (warmth * 36f),
                         0f, contrast, 0f, 0f, shift + pivot,
-                        0f, 0f, contrast, 0f, shift + pivot - warmth * 36f,
+                        0f, 0f, contrast, 0f, (shift + pivot) - (warmth * 36f),
                         0f, 0f, 0f, 1f, 0f
                     )
                 )
@@ -573,8 +579,7 @@ fun EditorScreen(image: MediaImage, onClose: () -> Unit, onSaved: (saved: Boolea
                                         cropPreset = label
                                         editorView?.setCropAspect(aspect)
                                     },
-                                    onOpenResize = { showResizeDialog = true }
-                                )
+                                ) { showResizeDialog = true }
                                 EditorCategory.ADJUST -> AdjustControls(
                                     selected = selectedAdjust,
                                     onSelect = { selectedAdjust = it },
@@ -586,13 +591,12 @@ fun EditorScreen(image: MediaImage, onClose: () -> Unit, onSaved: (saved: Boolea
                                     onSaturation = { saturation = it },
                                     onContrast = { contrast = it },
                                     onWarmth = { warmth = it },
-                                    onReset = {
-                                        brightness = 0f
-                                        saturation = 1f
-                                        contrast = 1f
-                                        warmth = 0f
-                                    }
-                                )
+                                ) {
+                                    brightness = 0f
+                                    saturation = 1f
+                                    contrast = 1f
+                                    warmth = 0f
+                                }
                                 EditorCategory.MARKUP -> MarkupControls(
                                     subMode = markupSubMode,
                                     onSubModeChange = {
@@ -617,12 +621,11 @@ fun EditorScreen(image: MediaImage, onClose: () -> Unit, onSaved: (saved: Boolea
                                     onShapeStrokeSizeChange = { shapeStrokeSize = it },
                                     selectedOverlay = selectedOverlay,
                                     onAddOrUpdateText = { text, color, bg, size ->
-                                        if (selectedOverlay != null) {
-                                             editorView?.updateSelectedText(text, color, bg, size)
-                                            selectedOverlay = editorView?.session?.textOverlays?.find { it.id == selectedOverlay?.id }
+                                        selectedOverlay = if (selectedOverlay != null) {
+                                            editorView?.updateSelectedText(text, color, bg, size)
+                                            editorView?.session?.textOverlays?.find { (id) -> id == selectedOverlay?.id }
                                         } else {
-                                            val newOverlay = editorView?.addTextOverlay(text, color, bg, size)
-                                            selectedOverlay = newOverlay
+                                            editorView?.addTextOverlay(text, color, bg, size)
                                         }
                                     },
                                     onTextRotated = { deg -> editorView?.setSelectedTextRotation(deg) },
@@ -634,11 +637,10 @@ fun EditorScreen(image: MediaImage, onClose: () -> Unit, onSaved: (saved: Boolea
                                         editorView?.clearTextOverlays()
                                         selectedOverlay = null
                                     },
-                                    onDeselect = {
-                                        editorView?.selectedTextId = null
-                                        selectedOverlay = null
-                                    }
-                                )
+                                ) {
+                                    editorView?.selectedTextId = null
+                                    selectedOverlay = null
+                                }
                                 EditorCategory.PRIVACY -> PrivacyControls(
                                     subMode = privacySubMode,
                                     onSubModeChange = { privacySubMode = it },
@@ -648,8 +650,9 @@ fun EditorScreen(image: MediaImage, onClose: () -> Unit, onSaved: (saved: Boolea
                                     onSize = { brushSize = it },
                                     onStrength = { strength = it },
                                     onErase = { erasing = it },
-                                    onClear = { editorView?.clearStrokes() }
-                                )
+                                ) {
+                                    editorView?.clearStrokes()
+                                }
                             }
                         }
                     }
@@ -673,14 +676,13 @@ fun EditorScreen(image: MediaImage, onClose: () -> Unit, onSaved: (saved: Boolea
                 targetMaxBytes = maxBytes
                 showResizeDialog = false
             },
-            onReset = {
-                isCustomResized = false
-                resizeWidth = baseWidth.toString()
-                resizeHeight = baseHeight.toString()
-                targetMaxBytes = null
-                showResizeDialog = false
-            }
-        )
+        ) {
+            isCustomResized = false
+            resizeWidth = baseWidth.toString()
+            resizeHeight = baseHeight.toString()
+            targetMaxBytes = null
+            showResizeDialog = false
+        }
     }
 
     if (showSaveAsDialog) {
@@ -696,8 +698,8 @@ fun EditorScreen(image: MediaImage, onClose: () -> Unit, onSaved: (saved: Boolea
             },
             onSelectFormat = { selectedExportFormat = it },
             onDismiss = { if (!saving) showSaveAsDialog = false },
-            onConfirm = {
-                showSaveAsDialog = false
+        ) {
+            showSaveAsDialog = false
                 val session = editorView?.session ?: return@SaveAsDialog
                 val crop = RectF(session.crop)
                 val strokes = session.strokes.map { it.copy(points = it.points.toMutableList()) }
@@ -722,7 +724,7 @@ fun EditorScreen(image: MediaImage, onClose: () -> Unit, onSaved: (saved: Boolea
                                 format = format
                             )
                         }.getOrElse {
-                            if (it is CancellationException) throw it
+                            (it as? CancellationException)?.let { ce -> throw ce }
                             null
                         }
 
@@ -759,7 +761,7 @@ fun EditorScreen(image: MediaImage, onClose: () -> Unit, onSaved: (saved: Boolea
                                 saving = false
                                 onSaved(false, true)
                             }
-                        } catch (e: Exception) {
+                        } catch (_: Exception) {
                             saving = false
                             onSaved(false, true)
                         }
@@ -783,9 +785,8 @@ fun EditorScreen(image: MediaImage, onClose: () -> Unit, onSaved: (saved: Boolea
                     }
                 }
             }
-        )
+        }
     }
-}
 
 @Composable
 private fun SaveAsDialog(
@@ -795,7 +796,7 @@ private fun SaveAsDialog(
     onToggleOverwrite: (Boolean) -> Unit,
     onSelectFormat: (ExportFormat) -> Unit,
     onDismiss: () -> Unit,
-    onConfirm: () -> Unit
+    onConfirm: () -> Unit,
 ) {
     AlertDialog(
         onDismissRequest = onDismiss,
@@ -810,14 +811,14 @@ private fun SaveAsDialog(
                         MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f),
                     modifier = Modifier
                         .fillMaxWidth()
-                        .clickable { onToggleOverwrite(!overwriteOriginal) }
+                        .clickable { onToggleOverwrite(!overwriteOriginal) },
                 ) {
                     Row(
                         modifier = Modifier
                             .fillMaxWidth()
                             .padding(horizontal = 14.dp, vertical = 10.dp),
                         verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.SpaceBetween
+                        horizontalArrangement = Arrangement.SpaceBetween,
                     ) {
                         Column(modifier = Modifier.weight(1f)) {
                             Text(
@@ -846,7 +847,7 @@ private fun SaveAsDialog(
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
-                ExportFormat.values().forEach { format ->
+                ExportFormat.entries.forEach { format ->
                     val isSelected = if (overwriteOriginal) format == originalFormat else selectedFormat == format
                     val desc = when (format) {
                         ExportFormat.JPEG -> stringResource(R.string.format_jpeg_desc)
@@ -999,7 +1000,7 @@ private fun TransformControls(
                 modifier = Modifier.size(20.dp)
             )
         }
-        if (rotation != 0 || flipH || flipV) {
+        if ((rotation != 0) || flipH || flipV) {
             FilledTonalIconButton(
                 onClick = onReset,
                 modifier = Modifier.weight(1f).height(46.dp)
@@ -1052,14 +1053,14 @@ private fun TransformControls(
             value = straightenAngle,
             onValueChange = { angle ->
                 onStraightenActive(true)
-                val snapped = if (angle in -0.75f..0.75f) 0f else angle
+                val snapped = if (angle in (-0.75f..0.75f)) 0f else angle
                 onStraightenChange(snapped)
             },
             onValueChangeFinished = {
                 onStraightenActive(false)
             },
             valueRange = -45f..45f,
-            modifier = Modifier.fillMaxWidth()
+            modifier = Modifier.fillMaxWidth(),
         )
     }
 
@@ -1100,9 +1101,9 @@ private fun AdjustControls(
     onSaturation: (Float) -> Unit,
     onContrast: (Float) -> Unit,
     onWarmth: (Float) -> Unit,
-    onReset: () -> Unit
+    onReset: () -> Unit,
 ) {
-    val anyModified = brightness != 0f || saturation != 1f || contrast != 1f || warmth != 0f
+    val anyModified = (brightness != 0f) || (saturation != 1f) || (contrast != 1f) || (warmth != 0f)
     val selectedValue = when (selected) {
         AdjustKind.BRIGHTNESS -> brightness
         AdjustKind.CONTRAST -> contrast
@@ -1122,13 +1123,13 @@ private fun AdjustControls(
     Row(
         modifier = Modifier.fillMaxWidth(),
         horizontalArrangement = Arrangement.SpaceBetween,
-        verticalAlignment = Alignment.CenterVertically
+        verticalAlignment = Alignment.CenterVertically,
     ) {
         Text(stringResource(R.string.editor_category_adjust), style = MaterialTheme.typography.titleSmall)
         if (anyModified) {
             TextButton(
                 onClick = onReset,
-                contentPadding = PaddingValues(horizontal = 8.dp, vertical = 2.dp)
+                contentPadding = PaddingValues(horizontal = 8.dp, vertical = 2.dp),
             ) {
                 Icon(Icons.Outlined.RestartAlt, null, modifier = Modifier.size(16.dp))
                 Spacer(Modifier.width(4.dp))
@@ -1216,30 +1217,30 @@ private fun MarkupControls(
     onTextRotated: (Float) -> Unit,
     onDeleteText: () -> Unit,
     onClearAllText: () -> Unit,
-    onDeselect: () -> Unit
+    onDeselect: () -> Unit,
 ) {
     Row(
         modifier = Modifier.fillMaxWidth(),
         horizontalArrangement = Arrangement.spacedBy(8.dp),
-        verticalAlignment = Alignment.CenterVertically
+        verticalAlignment = Alignment.CenterVertically,
     ) {
         FilterChip(
             selected = subMode == MarkupSubMode.BRUSH,
             onClick = { onSubModeChange(MarkupSubMode.BRUSH) },
             label = { Text(stringResource(R.string.editor_mode_draw)) },
-            modifier = Modifier.weight(1f)
+            modifier = Modifier.weight(1f),
         )
         FilterChip(
             selected = subMode == MarkupSubMode.SHAPES,
             onClick = { onSubModeChange(MarkupSubMode.SHAPES) },
             label = { Text(stringResource(R.string.editor_mode_shape)) },
-            modifier = Modifier.weight(1f)
+            modifier = Modifier.weight(1f),
         )
         FilterChip(
             selected = subMode == MarkupSubMode.TEXT,
             onClick = { onSubModeChange(MarkupSubMode.TEXT) },
             label = { Text(stringResource(R.string.editor_mode_text)) },
-            modifier = Modifier.weight(1f)
+            modifier = Modifier.weight(1f),
         )
     }
 
@@ -1252,7 +1253,7 @@ private fun MarkupControls(
                 onSize = onSize,
                 onColor = onColor,
                 onErase = onErase,
-                onClear = onClear
+                onClear = onClear,
             )
         }
         MarkupSubMode.SHAPES -> {
@@ -1267,7 +1268,7 @@ private fun MarkupControls(
                 onColor = onColor,
                 erasing = erasing,
                 onErase = onErase,
-                onClear = onClear
+                onClear = onClear,
             )
         }
         MarkupSubMode.TEXT -> {
@@ -1276,8 +1277,7 @@ private fun MarkupControls(
                 onAddOrUpdateText = onAddOrUpdateText,
                 onTextRotated = onTextRotated,
                 onDeleteText = onDeleteText,
-                onClearAllText = onClearAllText,
-                onDeselect = onDeselect
+                onDeselect = onDeselect,
             )
         }
     }
@@ -1293,24 +1293,24 @@ private fun PrivacyControls(
     onSize: (Float) -> Unit,
     onStrength: (Float) -> Unit,
     onErase: (Boolean) -> Unit,
-    onClear: () -> Unit
+    onClear: () -> Unit,
 ) {
     Row(
         modifier = Modifier.fillMaxWidth(),
         horizontalArrangement = Arrangement.spacedBy(8.dp),
-        verticalAlignment = Alignment.CenterVertically
+        verticalAlignment = Alignment.CenterVertically,
     ) {
         FilterChip(
             selected = subMode == PrivacySubMode.BLUR,
             onClick = { onSubModeChange(PrivacySubMode.BLUR) },
             label = { Text(stringResource(R.string.editor_mode_blur)) },
-            modifier = Modifier.weight(1f)
+            modifier = Modifier.weight(1f),
         )
         FilterChip(
             selected = subMode == PrivacySubMode.PIXELATE,
             onClick = { onSubModeChange(PrivacySubMode.PIXELATE) },
             label = { Text(stringResource(R.string.editor_mode_pixelate)) },
-            modifier = Modifier.weight(1f)
+            modifier = Modifier.weight(1f),
         )
     }
 
@@ -1336,7 +1336,7 @@ private fun ResizeDialog(
     lockAspect: Boolean,
     onDismiss: () -> Unit,
     onApply: (String, String, Long?) -> Unit,
-    onReset: () -> Unit
+    onReset: () -> Unit,
 ) {
     var selectedMode by remember { mutableIntStateOf(0) }
     var width by remember { mutableStateOf(currentWidth) }
@@ -1346,7 +1346,7 @@ private fun ResizeDialog(
     var percentage by remember { mutableFloatStateOf(100f) }
 
     var targetSizeInput by remember { mutableStateOf("") }
-    var isMb by remember { mutableStateOf(false) }
+    var isMb by remember { mutableStateOf(value = false) }
 
     AlertDialog(
         onDismissRequest = onDismiss,
@@ -1380,14 +1380,14 @@ private fun ResizeDialog(
                     0 -> {
                         Row(
                             horizontalArrangement = Arrangement.spacedBy(8.dp),
-                            verticalAlignment = Alignment.CenterVertically
+                            verticalAlignment = Alignment.CenterVertically,
                         ) {
                             OutlinedTextField(
                                 value = width,
                                 onValueChange = { value ->
                                     val clean = value.filter(Char::isDigit)
                                     width = clean
-                                    if (locked && baseWidth > 0) {
+                                    if (locked && (baseWidth > 0)) {
                                         clean.toIntOrNull()?.let {
                                             height = (it * baseHeight.toFloat() / baseWidth).toInt().toString()
                                         }
@@ -1396,7 +1396,7 @@ private fun ResizeDialog(
                                 modifier = Modifier.weight(1f),
                                 label = { Text(stringResource(R.string.editor_width_px)) },
                                 singleLine = true,
-                                keyboardOptions = androidx.compose.foundation.text.KeyboardOptions(keyboardType = androidx.compose.ui.text.input.KeyboardType.Number)
+                                keyboardOptions = androidx.compose.foundation.text.KeyboardOptions(keyboardType = androidx.compose.ui.text.input.KeyboardType.Number),
                             )
                             Text("×")
                             OutlinedTextField(
@@ -1404,7 +1404,7 @@ private fun ResizeDialog(
                                 onValueChange = { value ->
                                     val clean = value.filter(Char::isDigit)
                                     height = clean
-                                    if (locked && baseHeight > 0) {
+                                    if (locked && (baseHeight > 0)) {
                                         clean.toIntOrNull()?.let {
                                             width = (it * baseWidth.toFloat() / baseHeight).toInt().toString()
                                         }
@@ -1413,7 +1413,7 @@ private fun ResizeDialog(
                                 modifier = Modifier.weight(1f),
                                 label = { Text(stringResource(R.string.editor_height_px)) },
                                 singleLine = true,
-                                keyboardOptions = androidx.compose.foundation.text.KeyboardOptions(keyboardType = androidx.compose.ui.text.input.KeyboardType.Number)
+                                keyboardOptions = androidx.compose.foundation.text.KeyboardOptions(keyboardType = androidx.compose.ui.text.input.KeyboardType.Number),
                             )
                         }
                         Row(
@@ -1457,27 +1457,27 @@ private fun ResizeDialog(
                             },
                             valueRange = 10f..100f,
                             steps = 17,
-                            modifier = Modifier.fillMaxWidth()
+                            modifier = Modifier.fillMaxWidth(),
                         )
                         Text(
                             text = stringResource(R.string.editor_resize_result, width.toIntOrNull() ?: baseWidth, height.toIntOrNull() ?: baseHeight),
                             style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.primary
+                            color = MaterialTheme.colorScheme.primary,
                         )
                     }
                     2 -> {
                         Row(
                             horizontalArrangement = Arrangement.spacedBy(8.dp),
-                            verticalAlignment = Alignment.CenterVertically
+                            verticalAlignment = Alignment.CenterVertically,
                         ) {
                             OutlinedTextField(
                                 value = targetSizeInput,
-                                onValueChange = { v -> targetSizeInput = v.filter { c -> c.isDigit() || c == '.' } },
+                                onValueChange = { v -> targetSizeInput = v.filter { c -> c.isDigit() || (c == '.') } },
                                 modifier = Modifier.weight(1f),
                                 label = { Text(stringResource(R.string.editor_resize_target_size)) },
                                 placeholder = { Text(stringResource(R.string.editor_resize_target_size_hint)) },
                                 singleLine = true,
-                                keyboardOptions = androidx.compose.foundation.text.KeyboardOptions(keyboardType = androidx.compose.ui.text.input.KeyboardType.Decimal)
+                                keyboardOptions = androidx.compose.foundation.text.KeyboardOptions(keyboardType = androidx.compose.ui.text.input.KeyboardType.Decimal),
                             )
                             Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
                                 FilterChip(
@@ -1508,27 +1508,31 @@ private fun ResizeDialog(
             }
         },
         confirmButton = {
-            Button(onClick = {
-                val targetBytes: Long? = if (selectedMode == 2) {
-                    val num = targetSizeInput.toDoubleOrNull()
-                    if (num != null && num > 0) {
-                        if (isMb) (num * 1_000_000).toLong() else (num * 1_000).toLong()
+            Button(
+                onClick = {
+                    val targetBytes: Long? = if (selectedMode == 2) {
+                        val num = targetSizeInput.toDoubleOrNull()
+                        if (num != null && num > 0) {
+                            if (isMb) (num * 1_000_000).toLong() else (num * 1_000).toLong()
+                        } else null
                     } else null
-                } else null
-                onApply(width, height, targetBytes)
-            }) {
+                    onApply(width, height, targetBytes)
+                },
+            ) {
                 Text(stringResource(R.string.editor_apply))
             }
         },
         dismissButton = {
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                TextButton(onClick = {
-                    width = baseWidth.toString()
-                    height = baseHeight.toString()
-                    percentage = 100f
-                    targetSizeInput = ""
-                    onReset()
-                }) {
+                TextButton(
+                    onClick = {
+                        width = baseWidth.toString()
+                        height = baseHeight.toString()
+                        percentage = 100f
+                        targetSizeInput = ""
+                        onReset()
+                    },
+                ) {
                     Text(stringResource(R.string.editor_original))
                 }
                 TextButton(onClick = onDismiss) {
@@ -1597,14 +1601,14 @@ private fun DrawControls(
         listOf(
             android.graphics.Color.WHITE,
             android.graphics.Color.BLACK,
-            android.graphics.Color.parseColor("#F44336"),
-            android.graphics.Color.parseColor("#FF9800"),
-            android.graphics.Color.parseColor("#FFEB3B"),
-            android.graphics.Color.parseColor("#4CAF50"),
-            android.graphics.Color.parseColor("#00BCD4"),
-            android.graphics.Color.parseColor("#2196F3"),
-            android.graphics.Color.parseColor("#9C27B0"),
-            android.graphics.Color.parseColor("#E91E63"),
+            "#F44336".toColorInt(),
+            "#FF9800".toColorInt(),
+            "#FFEB3B".toColorInt(),
+            "#4CAF50".toColorInt(),
+            "#00BCD4".toColorInt(),
+            "#2196F3".toColorInt(),
+            "#9C27B0".toColorInt(),
+            "#E91E63".toColorInt(),
         )
     }
 
@@ -1623,7 +1627,7 @@ private fun DrawControls(
             .fillMaxWidth()
             .horizontalScroll(rememberScrollState()),
         horizontalArrangement = Arrangement.spacedBy(8.dp),
-        verticalAlignment = Alignment.CenterVertically
+        verticalAlignment = Alignment.CenterVertically,
     ) {
         colors.forEach { c ->
             Box(
@@ -1631,7 +1635,7 @@ private fun DrawControls(
                     .size(32.dp)
                     .background(Color(c), CircleShape)
                     .then(
-                        if (brushColor == c && !erasing) {
+                        if ((brushColor == c) && !erasing) {
                             Modifier.border(2.5.dp, MaterialTheme.colorScheme.onSurface, CircleShape)
                         } else {
                             Modifier.border(1.dp, Color.Gray.copy(alpha = 0.4f), CircleShape)
@@ -1641,15 +1645,15 @@ private fun DrawControls(
                         onColor(c)
                         if (erasing) onErase(false)
                     },
-                contentAlignment = Alignment.Center
+                contentAlignment = Alignment.Center,
             ) {
-                if (brushColor == c && !erasing) {
-                    val checkColor = if (c == android.graphics.Color.WHITE || c == android.graphics.Color.parseColor("#FFEB3B")) Color.Black else Color.White
+                if ((brushColor == c) && !erasing) {
+                    val checkColor = if ((c == android.graphics.Color.WHITE) || (c == "#FFEB3B".toColorInt())) Color.Black else Color.White
                     Icon(
                         Icons.Filled.Check,
                         contentDescription = null,
                         tint = checkColor,
-                        modifier = Modifier.size(16.dp)
+                        modifier = Modifier.size(16.dp),
                     )
                 }
             }
@@ -1695,14 +1699,14 @@ private fun ShapeControls(
         listOf(
             android.graphics.Color.WHITE,
             android.graphics.Color.BLACK,
-            android.graphics.Color.parseColor("#F44336"),
-            android.graphics.Color.parseColor("#FF9800"),
-            android.graphics.Color.parseColor("#FFEB3B"),
-            android.graphics.Color.parseColor("#4CAF50"),
-            android.graphics.Color.parseColor("#00BCD4"),
-            android.graphics.Color.parseColor("#2196F3"),
-            android.graphics.Color.parseColor("#9C27B0"),
-            android.graphics.Color.parseColor("#E91E63"),
+            "#F44336".toColorInt(),
+            "#FF9800".toColorInt(),
+            "#FFEB3B".toColorInt(),
+            "#4CAF50".toColorInt(),
+            "#00BCD4".toColorInt(),
+            "#2196F3".toColorInt(),
+            "#9C27B0".toColorInt(),
+            "#E91E63".toColorInt(),
         )
     }
 
@@ -1746,22 +1750,22 @@ private fun ShapeControls(
             label = { Text(stringResource(R.string.editor_shape_line)) }
         )
 
-        if (shapeType == ShapeType.RECTANGLE || shapeType == ShapeType.OVAL) {
+        if ((shapeType == ShapeType.RECTANGLE) || (shapeType == ShapeType.OVAL)) {
             Spacer(Modifier.width(4.dp))
             FilterChip(
                 selected = !shapeFilled,
                 onClick = { onShapeFilledChange(false) },
-                label = { Text(stringResource(R.string.editor_shape_outline)) }
+                label = { Text(stringResource(R.string.editor_shape_outline)) },
             )
             FilterChip(
                 selected = shapeFilled,
                 onClick = { onShapeFilledChange(true) },
-                label = { Text(stringResource(R.string.editor_shape_fill)) }
+                label = { Text(stringResource(R.string.editor_shape_fill)) },
             )
         }
     }
 
-    if (!shapeFilled || (shapeType == ShapeType.ARROW || shapeType == ShapeType.LINE)) {
+    if (!shapeFilled || ((shapeType == ShapeType.ARROW) || (shapeType == ShapeType.LINE))) {
         Text(
             stringResource(R.string.editor_brush_size, (strokeSize * 1000).toInt()),
             style = MaterialTheme.typography.titleSmall
@@ -1799,7 +1803,7 @@ private fun ShapeControls(
                 contentAlignment = Alignment.Center
             ) {
                 if (color == c && !erasing) {
-                    val checkColor = if (c == android.graphics.Color.WHITE || c == android.graphics.Color.parseColor("#FFEB3B")) Color.Black else Color.White
+                    val checkColor = if (c == android.graphics.Color.WHITE || c == "#FFEB3B".toColorInt()) Color.Black else Color.White
                     Icon(
                         Icons.Filled.Check,
                         contentDescription = null,
@@ -1838,7 +1842,6 @@ private fun TextControls(
     onAddOrUpdateText: (String, Int, Int, Float) -> Unit,
     onTextRotated: (Float) -> Unit,
     onDeleteText: () -> Unit,
-    onClearAllText: () -> Unit,
     onDeselect: () -> Unit
 ) {
     var textInput by remember(selectedOverlay?.id) { mutableStateOf(selectedOverlay?.text ?: "") }
@@ -1859,14 +1862,14 @@ private fun TextControls(
         listOf(
             android.graphics.Color.WHITE,
             android.graphics.Color.BLACK,
-            android.graphics.Color.parseColor("#F44336"),
-            android.graphics.Color.parseColor("#FF9800"),
-            android.graphics.Color.parseColor("#FFEB3B"),
-            android.graphics.Color.parseColor("#4CAF50"),
-            android.graphics.Color.parseColor("#00BCD4"),
-            android.graphics.Color.parseColor("#2196F3"),
-            android.graphics.Color.parseColor("#9C27B0"),
-            android.graphics.Color.parseColor("#E91E63"),
+            "#F44336".toColorInt(),
+            "#FF9800".toColorInt(),
+            "#FFEB3B".toColorInt(),
+            "#4CAF50".toColorInt(),
+            "#00BCD4".toColorInt(),
+            "#2196F3".toColorInt(),
+            "#9C27B0".toColorInt(),
+            "#E91E63".toColorInt(),
         )
     }
 
@@ -1879,20 +1882,20 @@ private fun TextControls(
     Row(
         modifier = Modifier.fillMaxWidth(),
         horizontalArrangement = Arrangement.spacedBy(8.dp),
-        verticalAlignment = Alignment.CenterVertically
+        verticalAlignment = Alignment.CenterVertically,
     ) {
         OutlinedTextField(
             value = textInput,
             onValueChange = {
                 textInput = it
-                if (selectedOverlay != null && it.isNotBlank()) {
+                if ((selectedOverlay != null) && it.isNotBlank()) {
                     onAddOrUpdateText(it, textColor, computedBgColor, textSizeRatio)
                 }
             },
             placeholder = { Text(stringResource(R.string.editor_text_hint)) },
             modifier = Modifier.weight(1f),
             singleLine = true,
-            shape = RoundedCornerShape(12.dp)
+            shape = RoundedCornerShape(12.dp),
         )
         Button(
             onClick = {
@@ -1900,7 +1903,7 @@ private fun TextControls(
                     onAddOrUpdateText(textInput, textColor, computedBgColor, textSizeRatio)
                 }
             },
-            enabled = textInput.isNotBlank()
+            enabled = textInput.isNotBlank(),
         ) {
             Text(
                 if (selectedOverlay != null) stringResource(R.string.editor_update_text)
@@ -1980,7 +1983,7 @@ private fun TextControls(
                 contentAlignment = Alignment.Center
             ) {
                 if (textColor == c) {
-                    val checkColor = if (c == android.graphics.Color.WHITE || c == android.graphics.Color.parseColor("#FFEB3B")) Color.Black else Color.White
+                    val checkColor = if (c == android.graphics.Color.WHITE || c == "#FFEB3B".toColorInt()) Color.Black else Color.White
                     Icon(Icons.Filled.Check, null, tint = checkColor, modifier = Modifier.size(14.dp))
                 }
             }
@@ -2071,10 +2074,8 @@ private suspend fun loadPreview(context: Context, image: MediaImage): Bitmap? = 
         }
     }.getOrNull()
 
-    if (standardBitmap != null) return@withContext standardBitmap
-
     // Fallback using AvifDecoder if standard Android decoders fail (e.g. yuv422p AVIF)
-    val avifBitmap = runCatching {
+    standardBitmap ?: runCatching {
         val bytes = if (isFile) {
             File(image.path).readBytes()
         } else {
@@ -2091,10 +2092,10 @@ private suspend fun loadPreview(context: Context, image: MediaImage): Bitmap? = 
                     val scale = minOf(1f, 1600f / maxOf(info.width, info.height))
                     val targetW = (info.width * scale).toInt().coerceAtLeast(1)
                     val targetH = (info.height * scale).toInt().coerceAtLeast(1)
-                    val fullBitmap = Bitmap.createBitmap(info.width, info.height, Bitmap.Config.ARGB_8888)
+                    val fullBitmap = createBitmap(info.width, info.height)
                     if (AvifDecoder.decode(buffer, bytes.size, fullBitmap)) {
                         if (targetW != info.width || targetH != info.height) {
-                            val scaled = Bitmap.createScaledBitmap(fullBitmap, targetW, targetH, true)
+                            val scaled = fullBitmap.scale(targetW, targetH)
                             fullBitmap.recycle()
                             scaled
                         } else {
@@ -2107,10 +2108,7 @@ private suspend fun loadPreview(context: Context, image: MediaImage): Bitmap? = 
                 } else null
             } else null
         } else null
-    }.getOrNull()
-
-    if (avifBitmap != null) avifBitmap
-    else if (image.isSvg) {
+    }.getOrNull() ?: if (image.isSvg) {
         runCatching {
             val req = coil3.request.ImageRequest.Builder(context)
                 .data(image.uri)
@@ -2131,7 +2129,6 @@ private val EXIF_TAGS_TO_PRESERVE = listOf(
     ExifInterface.TAG_APERTURE_VALUE,
     ExifInterface.TAG_EXPOSURE_TIME,
     ExifInterface.TAG_SHUTTER_SPEED_VALUE,
-    ExifInterface.TAG_ISO_SPEED_RATINGS,
     ExifInterface.TAG_PHOTOGRAPHIC_SENSITIVITY,
     ExifInterface.TAG_FOCAL_LENGTH,
     ExifInterface.TAG_FOCAL_LENGTH_IN_35MM_FILM,
@@ -2174,14 +2171,14 @@ private fun readExifTags(context: Context, sourceImage: MediaImage): Map<String,
         val map = mutableMapOf<String, String>()
         for (tag in EXIF_TAGS_TO_PRESERVE) {
             val value = srcExif.getAttribute(tag)
-            if (value != null) {
-                map[tag] = value
+            value?.let {
+                map[tag] = it
             }
         }
         val effectiveTitle = sourceImage.title.takeIf { it.isNotBlank() && it != sourceImage.name && it != sourceImage.name.substringBeforeLast('.') }
-        if (effectiveTitle != null) {
-            map["DocumentName"] = effectiveTitle
-            map["XPTitle"] = effectiveTitle
+        effectiveTitle?.let {
+            map["DocumentName"] = it
+            map["XPTitle"] = it
         }
         map
     }.getOrDefault(emptyMap())
@@ -2260,7 +2257,7 @@ private suspend fun renderEditedBitmapToBytes(
             }
             val info = AvifDecoder.Info()
             if (AvifDecoder.getInfo(buffer, bytes.size, info)) {
-                val bmp = Bitmap.createBitmap(info.width, info.height, Bitmap.Config.ARGB_8888)
+                val bmp = createBitmap(info.width, info.height)
                 if (AvifDecoder.decode(buffer, bytes.size, bmp)) {
                     bmp
                 } else {
@@ -2295,12 +2292,12 @@ private suspend fun renderEditedBitmapToBytes(
         val rad = Math.toRadians(kotlin.math.abs(straightenAngle).toDouble())
         val r = source.width.toFloat() / source.height.toFloat().coerceAtLeast(1f)
         val maxR = maxOf(r, 1f / r)
-        val scale = (Math.cos(rad) + Math.sin(rad) * maxR).toFloat()
+        val scale = (cos(rad) + sin(rad) * maxR).toFloat()
         val strMatrix = Matrix().apply {
             postRotate(straightenAngle, source.width / 2f, source.height / 2f)
             postScale(scale, scale, source.width / 2f, source.height / 2f)
         }
-        val straightened = Bitmap.createBitmap(source.width, source.height, Bitmap.Config.ARGB_8888)
+        val straightened = createBitmap(source.width, source.height)
         Canvas(straightened).drawBitmap(source, strMatrix, Paint(Paint.ANTI_ALIAS_FLAG or Paint.FILTER_BITMAP_FLAG))
         if (source !== rawSource) {
             source.recycle()
@@ -2313,24 +2310,31 @@ private suspend fun renderEditedBitmapToBytes(
     val cropWidth = (crop.width() * source.width).toInt().coerceIn(1, source.width - left)
     val cropHeight = (crop.height() * source.height).toInt().coerceIn(1, source.height - top)
     val cropped = Bitmap.createBitmap(source, left, top, cropWidth, cropHeight)
-    val adjusted = Bitmap.createBitmap(cropped.width, cropped.height, Bitmap.Config.ARGB_8888)
+    val adjusted = createBitmap(cropped.width, cropped.height)
     val colors = ColorMatrix().apply { setSaturation(saturation) }
     val shift = brightness * 255f
     val pivot = (1f - contrast) * 128f
     colors.postConcat(
         ColorMatrix(
             floatArrayOf(
-                contrast, 0f, 0f, 0f, shift + pivot + warmth * 36f,
+                contrast, 0f, 0f, 0f, (shift + pivot) + (warmth * 36f),
                 0f, contrast, 0f, 0f, shift + pivot,
-                0f, 0f, contrast, 0f, shift + pivot - warmth * 36f,
+                0f, 0f, contrast, 0f, (shift + pivot) - (warmth * 36f),
                 0f, 0f, 0f, 1f, 0f
             )
         )
     )
-    Canvas(adjusted).drawBitmap(cropped, 0f, 0f, Paint(Paint.ANTI_ALIAS_FLAG).apply { colorFilter = ColorMatrixColorFilter(colors) })
+    Canvas(adjusted).drawBitmap(
+        cropped,
+        0f,
+        0f,
+        Paint(Paint.ANTI_ALIAS_FLAG).apply {
+            colorFilter = ColorMatrixColorFilter(colors)
+        },
+    )
     val width = requestedWidth?.coerceIn(1, 16384) ?: adjusted.width
     val height = requestedHeight?.coerceIn(1, 16384) ?: adjusted.height
-    val resized = if (width != adjusted.width || height != adjusted.height) Bitmap.createScaledBitmap(adjusted, width, height, true) else adjusted
+    val resized = if (width != adjusted.width || height != adjusted.height) adjusted.scale(width, height) else adjusted
     renderBrushes(resized, strokes, crop)
     renderTextOverlays(resized, textOverlays, crop)
 
@@ -2339,7 +2343,7 @@ private suspend fun renderEditedBitmapToBytes(
         var quality = format.defaultQuality
         var fits = false
         if (format != ExportFormat.PNG) {
-            while (!fits && quality >= 25) {
+            while (quality >= 25) {
                 bos.reset()
                 resized.compress(format.compressFormat, quality, bos)
                 if (bos.size() <= targetMaxBytes) {
@@ -2351,10 +2355,10 @@ private suspend fun renderEditedBitmapToBytes(
         }
         if (!fits) {
             var scale = 0.85f
-            while (!fits && scale >= 0.15f) {
+            while (scale >= 0.15f) {
                 val sw = (resized.width * scale).toInt().coerceAtLeast(64)
                 val sh = (resized.height * scale).toInt().coerceAtLeast(64)
-                val scaled = Bitmap.createScaledBitmap(resized, sw, sh, true)
+                val scaled = resized.scale(sw, sh)
                 quality = format.defaultQuality
                 if (format == ExportFormat.PNG) {
                     bos.reset()
@@ -2363,7 +2367,7 @@ private suspend fun renderEditedBitmapToBytes(
                         fits = true
                     }
                 } else {
-                    while (!fits && quality >= 30) {
+                    while (quality >= 30) {
                         bos.reset()
                         scaled.compress(format.compressFormat, quality, bos)
                         if (bos.size() <= targetMaxBytes) {
@@ -2425,8 +2429,8 @@ private suspend fun saveEditedCopy(
         put(MediaStore.Images.Media.DATE_ADDED, nowSec)
         put(MediaStore.Images.Media.DATE_MODIFIED, nowSec)
         put(MediaStore.Images.Media.DATE_TAKEN, nowMs)
-        if (effectiveTitle != null) {
-            put(MediaStore.Images.Media.TITLE, effectiveTitle)
+        effectiveTitle?.let {
+            put(MediaStore.Images.Media.TITLE, it)
         }
         if (Build.VERSION.SDK_INT >= 29) {
             put(MediaStore.Images.Media.RELATIVE_PATH, "Pictures/Iris")
@@ -2445,14 +2449,14 @@ private suspend fun saveEditedCopy(
                 put(MediaStore.Images.Media.DATE_ADDED, nowSec)
                 put(MediaStore.Images.Media.DATE_MODIFIED, nowSec)
                 put(MediaStore.Images.Media.DATE_TAKEN, nowMs)
-                if (effectiveTitle != null) {
-                    put(MediaStore.Images.Media.TITLE, effectiveTitle)
+                effectiveTitle?.let {
+                    put(MediaStore.Images.Media.TITLE, it)
                 }
             }
             context.contentResolver.update(uri, updateValues, null, null)
         }
         val newId = uri.lastPathSegment?.toLongOrNull()
-        if (newId != null && effectiveTitle != null) {
+        if ((newId != null) && (effectiveTitle != null)) {
             runCatching {
                 LibraryPreferences(context).setCustomTitle(newId, effectiveTitle)
             }
@@ -2552,12 +2556,12 @@ private fun renderBrushes(target: Bitmap, strokes: List<BrushStroke>, crop: Rect
     val canvas = Canvas(target)
     strokes.forEach { stroke ->
         if (stroke.shape != ShapeType.NONE && stroke.points.size >= 2) {
-            val p1 = stroke.points.first()
-            val p2 = stroke.points.last()
-            val x1 = (p1.x - crop.left) / crop.width() * target.width
-            val y1 = (p1.y - crop.top) / crop.height() * target.height
-            val x2 = (p2.x - crop.left) / crop.width() * target.width
-            val y2 = (p2.y - crop.top) / crop.height() * target.height
+            val (p1x, p1y) = stroke.points.first()
+            val (p2x, p2y) = stroke.points.last()
+            val x1 = (p1x - crop.left) / crop.width() * target.width
+            val y1 = (p1y - crop.top) / crop.height() * target.height
+            val x2 = (p2x - crop.left) / crop.width() * target.width
+            val y2 = (p2y - crop.top) / crop.height() * target.height
             val strokeWidth = stroke.radius / crop.width() * target.width
             renderShape(canvas, stroke, x1, y1, x2, y2, strokeWidth)
             return@forEach
@@ -2572,9 +2576,9 @@ private fun renderBrushes(target: Bitmap, strokes: List<BrushStroke>, crop: Rect
             }
             val path = Path()
             var visible = false
-            stroke.points.forEach { point ->
-                val x = (point.x - crop.left) / crop.width() * target.width
-                val y = (point.y - crop.top) / crop.height() * target.height
+            stroke.points.forEach { (px, py) ->
+                val x = (px - crop.left) / crop.width() * target.width
+                val y = (py - crop.top) / crop.height() * target.height
                 if (!visible) {
                     path.moveTo(x, y)
                     path.lineTo(x + .1f, y + .1f)
@@ -2598,9 +2602,9 @@ private fun renderBrushes(target: Bitmap, strokes: List<BrushStroke>, crop: Rect
         }
         val path = Path()
         var visible = false
-        stroke.points.forEach { point ->
-            val x = (point.x - crop.left) / crop.width() * target.width
-            val y = (point.y - crop.top) / crop.height() * target.height
+        stroke.points.forEach { (px, py) ->
+            val x = (px - crop.left) / crop.width() * target.width
+            val y = (py - crop.top) / crop.height() * target.height
             if (!visible) {
                 path.moveTo(x, y)
                 path.lineTo(x + .1f, y + .1f)
@@ -2617,18 +2621,18 @@ private fun renderBrushes(target: Bitmap, strokes: List<BrushStroke>, crop: Rect
 private fun renderTextOverlays(target: Bitmap, overlays: List<TextOverlay>, crop: RectF) {
     if (overlays.isEmpty()) return
     val canvas = Canvas(target)
-    overlays.forEach { overlay ->
-        val x = (overlay.x - crop.left) / crop.width() * target.width
-        val y = (overlay.y - crop.top) / crop.height() * target.height
-        val pxSize = (overlay.textSizeRatio / crop.width()) * target.width
+    overlays.forEach { (_, text, ox, oy, color, bgColor, textSizeRatio, rotationDeg) ->
+        val x = (ox - crop.left) / crop.width() * target.width
+        val y = (oy - crop.top) / crop.height() * target.height
+        val pxSize = (textSizeRatio / crop.width()) * target.width
         val textPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
-            color = overlay.color
+            this.color = color
             textSize = pxSize.coerceAtLeast(16f)
             textAlign = Paint.Align.CENTER
             typeface = android.graphics.Typeface.DEFAULT_BOLD
         }
         val bounds = android.graphics.Rect()
-        textPaint.getTextBounds(overlay.text, 0, overlay.text.length, bounds)
+        textPaint.getTextBounds(text, 0, text.length, bounds)
         val paddingX = pxSize * 0.4f
         val paddingY = pxSize * 0.25f
         val bgRect = RectF(
@@ -2637,17 +2641,16 @@ private fun renderTextOverlays(target: Bitmap, overlays: List<TextOverlay>, crop
             x + bounds.width() / 2f + paddingX,
             y + bounds.height() / 2f + paddingY
         )
-        canvas.save()
-        canvas.rotate(overlay.rotationDeg, x, y)
-        if (overlay.bgColor != 0) {
-            val bgPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
-                color = overlay.bgColor
-                style = Paint.Style.FILL
+        canvas.withRotation(rotationDeg, x, y) {
+            if (bgColor != 0) {
+                val bgPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+                    this.color = bgColor
+                    style = Paint.Style.FILL
+                }
+                drawRoundRect(bgRect, pxSize * 0.25f, pxSize * 0.25f, bgPaint)
             }
-            canvas.drawRoundRect(bgRect, pxSize * 0.25f, pxSize * 0.25f, bgPaint)
+            val textY = y + bounds.height() / 2f - bounds.bottom
+            drawText(text, x, textY, textPaint)
         }
-        val textY = y + bounds.height() / 2f - bounds.bottom
-        canvas.drawText(overlay.text, x, textY, textPaint)
-        canvas.restore()
     }
 }

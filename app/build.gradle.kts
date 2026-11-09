@@ -5,12 +5,12 @@ plugins {
 
 android {
     namespace = "com.iris.gallery"
-    compileSdk = 35
+    compileSdk = 37
 
     defaultConfig {
         applicationId = "com.iris.gallery"
         minSdk = 26
-        targetSdk = 35
+        targetSdk = 37
         versionCode = 19
         versionName = "0.9.0"
     }
@@ -22,7 +22,12 @@ android {
 
     signingConfigs {
         create("debugConfig") {
-            storeFile = file("${rootDir}/debug.keystore")
+            val localKeystore = file("${rootDir}/debug.keystore")
+            storeFile = if (localKeystore.exists()) {
+                localKeystore
+            } else {
+                file("${System.getProperty("user.home")}/.android/debug.keystore")
+            }
             storePassword = "android"
             keyAlias = "androiddebugkey"
             keyPassword = "android"
@@ -57,24 +62,24 @@ android {
 }
 
 dependencies {
-    implementation(platform("androidx.compose:compose-bom:2025.02.00"))
-    implementation("androidx.activity:activity-compose:1.10.1")
-    implementation("androidx.appcompat:appcompat:1.7.0")
-    implementation("androidx.core:core-ktx:1.15.0")
-    implementation("androidx.lifecycle:lifecycle-runtime-compose:2.8.7")
-    implementation("androidx.lifecycle:lifecycle-viewmodel-compose:2.8.7")
+    implementation(platform("androidx.compose:compose-bom:2026.09.00"))
+    implementation("androidx.activity:activity-compose:1.13.0")
+    implementation("androidx.appcompat:appcompat:1.8.0")
+    implementation("androidx.core:core-ktx:1.19.1")
+    implementation("androidx.lifecycle:lifecycle-runtime-compose:2.11.0")
+    implementation("androidx.lifecycle:lifecycle-viewmodel-compose:2.11.0")
     implementation("androidx.compose.material3:material3")
     implementation("androidx.compose.material:material-icons-extended")
     implementation("androidx.compose.foundation:foundation")
     implementation("androidx.compose.ui:ui")
     implementation("androidx.compose.ui:ui-tooling-preview")
-    implementation("io.coil-kt.coil3:coil-compose:3.1.0")
-    implementation("io.coil-kt.coil3:coil-network-okhttp:3.1.0")
-    implementation("io.coil-kt.coil3:coil-gif:3.1.0")
-    implementation("io.coil-kt.coil3:coil-svg:3.1.0")
-    implementation("androidx.media3:media3-exoplayer:1.5.1")
-    implementation("androidx.media3:media3-ui:1.5.1")
-    implementation("androidx.exifinterface:exifinterface:1.3.7")
+    implementation("io.coil-kt.coil3:coil-compose:3.6.3")
+    implementation("io.coil-kt.coil3:coil-network-okhttp:3.6.3")
+    implementation("io.coil-kt.coil3:coil-gif:3.6.3")
+    implementation("io.coil-kt.coil3:coil-svg:3.6.3")
+    implementation("androidx.media3:media3-exoplayer:1.11.1")
+    implementation("androidx.media3:media3-ui:1.11.1")
+    implementation("androidx.exifinterface:exifinterface:1.4.2")
     implementation("org.aomedia.avif.android:avif:1.1.1.14d8e3c4")
 
     debugImplementation("androidx.compose.ui:ui-tooling")

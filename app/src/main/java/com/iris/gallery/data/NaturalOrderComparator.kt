@@ -12,21 +12,21 @@ object NaturalOrderComparator : Comparator<String> {
         val len1 = s1.length
         val len2 = s2.length
 
-        while (i1 < len1 && i2 < len2) {
+        while ((i1 < len1) && (i2 < len2)) {
             val c1 = s1[i1]
             val c2 = s2[i2]
 
             if (c1.isDigit() && c2.isDigit()) {
                 val start1 = i1
-                while (i1 < len1 && s1[i1].isDigit()) i1++
+                while ((i1 < len1) && s1[i1].isDigit()) i1++
                 val start2 = i2
-                while (i2 < len2 && s2[i2].isDigit()) i2++
+                while ((i2 < len2) && s2[i2].isDigit()) i2++
 
                 // Skip leading zeros
                 var nz1 = start1
-                while (nz1 < i1 - 1 && s1[nz1] == '0') nz1++
+                while ((nz1 < (i1 - 1)) && (s1[nz1] == '0')) nz1++
                 var nz2 = start2
-                while (nz2 < i2 - 1 && s2[nz2] == '0') nz2++
+                while ((nz2 < (i2 - 1)) && (s2[nz2] == '0')) nz2++
 
                 val numLen1 = i1 - nz1
                 val numLen2 = i2 - nz2
