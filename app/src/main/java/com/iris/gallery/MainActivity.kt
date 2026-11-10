@@ -27,15 +27,13 @@ class MainActivity : ComponentActivity() {
         IrisPhotoWidget.refreshAll(this)
         enableEdgeToEdge()
         val settingsPreferences = SettingsPreferences(this)
-        @Suppress("Destructure")
-        val initialSettings = settingsPreferences.state.value
-        val isDark = when (initialSettings.themeMode) {
+        val isDark = when (settingsPreferences.state.value.themeMode) {
             ThemeMode.LIGHT -> false
             ThemeMode.DARK -> true
             ThemeMode.SYSTEM -> ((resources.configuration.uiMode and android.content.res.Configuration.UI_MODE_NIGHT_MASK) == android.content.res.Configuration.UI_MODE_NIGHT_YES)
         }
         val bgColor = when {
-            isDark && initialSettings.amoledBlack -> android.graphics.Color.BLACK
+            isDark && settingsPreferences.state.value.amoledBlack -> android.graphics.Color.BLACK
             isDark -> 0xFF141218.toInt()
             else -> 0xFFFFF8FF.toInt()
         }
@@ -44,8 +42,9 @@ class MainActivity : ComponentActivity() {
             isAppearanceLightStatusBars = !isDark
             isAppearanceLightNavigationBars = !isDark
         }
-        if (initialSettings.language.isNotEmpty()) {
-            com.iris.gallery.ui.setAppLanguage(this, initialSettings.language)
+        val currentLanguage = settingsPreferences.state.value.language
+        if (currentLanguage.isNotEmpty()) {
+            com.iris.gallery.ui.setAppLanguage(this, currentLanguage)
         }
         setContent {
             val activeIntent = currentIntentState.value ?: intent
@@ -77,10 +76,10 @@ class MainActivity : ComponentActivity() {
                     initialMemories = activeIntent.getBooleanExtra("open_memories", false),
                     initialOpenLatest = shouldOpenLatest,
                     initialIntentGeneration = intentGeneration,
-                    onPick = if (pickerMode) {{ media ->
+                    onPick = if (pickerMode) {{ (_, uri, name) ->
                         val result = Intent().apply {
-                            data = media.uri
-                            clipData = ClipData.newUri(contentResolver, media.name, media.uri)
+                            data = uri
+                            clipData = ClipData.newUri(contentResolver, name, uri)
                             addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
                         }
                         setResult(RESULT_OK, result)

@@ -208,15 +208,16 @@ internal fun PhotoViewer(
     onPageChanged: (Long) -> Unit = {},
     onRename: (MediaImage, String) -> Unit = { (_), _ -> },
     onDelete: (MediaImage, Boolean) -> Unit,
-    onRestore: (MediaImage) -> Unit = {},
+    onRestore: (MediaImage) -> Unit = { (_) -> },
     onEditMetadata: (MediaImage, ExifEditRequest) -> Unit,
     onEdit: (MediaImage) -> Unit,
     onLock: (MediaImage) -> Unit,
-    onUnlock: (MediaImage) -> Unit = {},
+    onUnlock: (MediaImage) -> Unit = { (_) -> },
     onMoveToAlbum: (List<MediaImage>, File, String, (AlbumOperationResult) -> Unit) -> Unit = { _, _, _, _ -> },
     onCopyToAlbum: (List<MediaImage>, File, String, (AlbumOperationResult) -> Unit) -> Unit = { _, _, _, _ -> },
-    getAlbumDir: (MediaAlbum) -> File = { File("") },
+    getAlbumDir: (MediaAlbum) -> File = { (_) -> File("") },
     createAlbumDir: (String) -> File = { File("") },
+    showAiInfo: Boolean = true,
 ) {
     val context = LocalContext.current
     val activity = remember(context) {
@@ -400,8 +401,8 @@ internal fun PhotoViewer(
             null
         }
     }
-    var isPlayingMotion by remember { mutableStateOf(false) }
-    var motionExtracting by remember { mutableStateOf(false) }
+    var isPlayingMotion by remember { mutableStateOf(value = false) }
+    var motionExtracting by remember { mutableStateOf(value = false) }
     var motionEngine by remember { mutableStateOf<Media3VideoEngine?>(null) }
     // Release the engine whenever it is replaced (stop / replay) or the viewer leaves
     // composition. Capturing [motionEngine] into a local val before onDispose is what makes this
@@ -438,7 +439,7 @@ internal fun PhotoViewer(
                         ).show()
                     } else {
                         motionEngine = Media3VideoEngine(context).apply {
-                            setMuted(true)
+                            setMuted(muted = true)
                             player.repeatMode = Player.REPEAT_MODE_ONE
                             load(extracted.videoUri)
                             player.playWhenReady = true
@@ -448,7 +449,7 @@ internal fun PhotoViewer(
                 }
             } else {
                 motionEngine = Media3VideoEngine(context).apply {
-                    setMuted(true)
+                    setMuted(muted = true)
                     player.repeatMode = Player.REPEAT_MODE_ONE
                     load(mv.videoUri)
                     player.playWhenReady = true
@@ -484,7 +485,7 @@ internal fun PhotoViewer(
     // Re-render when depth params change (debounced).
     LaunchedEffect(depthPhoto, depthEnabled, depthFocus, depthStrength, depthTransition) {
         val dp = depthPhoto
-        if (dp != null && depthEnabled && dp.blurredImage != null) {
+        if ((dp != null) && depthEnabled && (dp.blurredImage != null)) {
             delay(150.milliseconds)  // debounce slider movement
             depthRendering = true
             withContext(Dispatchers.IO) {
@@ -502,8 +503,8 @@ internal fun PhotoViewer(
                             android.graphics.BitmapFactory.decodeFile(f.absolutePath, opts)
                         } else null
                     } else {
-                        val targetUri = if (Build.VERSION.SDK_INT >= 29 &&
-                            current.uri.scheme == android.content.ContentResolver.SCHEME_CONTENT
+                        val targetUri = if ((Build.VERSION.SDK_INT >= 29) &&
+                            (current.uri.scheme == android.content.ContentResolver.SCHEME_CONTENT)
                         ) {
                             runCatching { MediaStore.setRequireOriginal(current.uri) }.getOrDefault(current.uri)
                         } else current.uri
@@ -512,7 +513,7 @@ internal fun PhotoViewer(
                         }
                     }
                 }.getOrNull()
-                if (rawSharp != null && dp.depthMap != null) {
+                if ((rawSharp != null) && (dp.depthMap != null)) {
                     // BitmapFactory ignores EXIF orientation. Read it from the source
                     // and rotate the sharp + blurred + depth map to match what Coil would
                     // display, so the depth preview aligns with the original photo.
@@ -565,7 +566,8 @@ internal fun PhotoViewer(
         coroutineScope.launch {
             dismissOffsetY.animateTo(
                 targetValue = viewerHeightPx,
-                animationSpec = tween(durationMillis = 200, easing = FastOutSlowInEasing)
+                initialVelocity = velocity,
+                animationSpec = tween(durationMillis = 200, easing = FastOutSlowInEasing),
             )
             handleClose()
         }
@@ -579,21 +581,18 @@ internal fun PhotoViewer(
         val currentIdx = pagerState.currentPage
         if (currentIdx in images.indices) {
             onPageChanged(images[currentIdx].id)
-            if (zoomedImageId != null && zoomedImageId != images[currentIdx].id) {
+            if ((zoomedImageId != null) && (zoomedImageId != images[currentIdx].id)) {
                 zoomedImageId = null
             }
         }
         listOf(currentIdx - 1, currentIdx + 1, currentIdx + 2).forEach { idx ->
-            if (idx in images.indices) {
-                val media = images[idx]
-                if (!media.isVideo) {
-                    val req = ImageRequest.Builder(context)
-                        .data(media.uri)
-                        .size(coil3.size.Size.ORIGINAL)
-                        .precision(Precision.EXACT)
-                        .build()
-                    imageLoader.enqueue(req)
-                }
+            images.getOrNull(idx)?.takeUnless(MediaImage::isVideo)?.uri?.let { uri ->
+                val req = ImageRequest.Builder(context)
+                    .data(uri)
+                    .size(coil3.size.Size.ORIGINAL)
+                    .precision(Precision.EXACT)
+                    .build()
+                imageLoader.enqueue(req)
             }
         }
     }
@@ -607,7 +606,7 @@ internal fun PhotoViewer(
         modifier = Modifier
             .fillMaxSize()
             .onSizeChanged { if (it.height > 0) viewerHeightPx = it.height.toFloat() },
-        color = Color.Black.copy(alpha = bgAlpha)
+        color = Color.Black.copy(alpha = bgAlpha),
     ) {
       Box(Modifier.fillMaxSize()) {
         Box(
@@ -617,12 +616,12 @@ internal fun PhotoViewer(
                     translationY = dismissOffsetY.value
                     scaleX = contentScale
                     scaleY = contentScale
-                }
+                },
         ) {
           HorizontalPager(
             state = pagerState,
             beyondViewportPageCount = 1,
-            userScrollEnabled = zoomedImageId != pageItem.id && !isDismissing,
+            userScrollEnabled = (zoomedImageId != pageItem.id) && !isDismissing,
             pageSpacing = 16.dp,
           ) { page ->
             val pageMedia = images[page]
@@ -652,15 +651,15 @@ internal fun PhotoViewer(
                     },
                     onDismissRelease = { velocityY ->
                         if (!isDismissing) {
-                            val shouldDismiss = dismissOffsetY.value > dismissThresholdPx ||
-                                (dismissOffsetY.value > flingThresholdPx && velocityY > 800f)
+                            val shouldDismiss = (dismissOffsetY.value > dismissThresholdPx) ||
+                                ((dismissOffsetY.value > flingThresholdPx) && (velocityY > 800f))
                             if (shouldDismiss) {
                                 triggerAnimatedDismiss(velocityY)
                             } else {
                                 coroutineScope.launch {
                                     dismissOffsetY.animateTo(
                                         targetValue = 0f,
-                                        animationSpec = spring(dampingRatio = 0.8f, stiffness = Spring.StiffnessMediumLow)
+                                        animationSpec = spring(dampingRatio = 0.8f, stiffness = Spring.StiffnessMediumLow),
                                     )
                                 }
                             }
@@ -695,15 +694,15 @@ internal fun PhotoViewer(
                     },
                     onDismissRelease = { velocityY ->
                         if (!isDismissing) {
-                            val shouldDismiss = dismissOffsetY.value > dismissThresholdPx ||
-                                (dismissOffsetY.value > flingThresholdPx && velocityY > 800f)
+                            val shouldDismiss = (dismissOffsetY.value > dismissThresholdPx) ||
+                                ((dismissOffsetY.value > flingThresholdPx) && (velocityY > 800f))
                             if (shouldDismiss) {
                                 triggerAnimatedDismiss(velocityY)
                             } else {
                                 coroutineScope.launch {
                                     dismissOffsetY.animateTo(
                                         targetValue = 0f,
-                                        animationSpec = spring(dampingRatio = 0.8f, stiffness = Spring.StiffnessMediumLow)
+                                        animationSpec = spring(dampingRatio = 0.8f, stiffness = Spring.StiffnessMediumLow),
                                     )
                                 }
                             }
@@ -713,7 +712,7 @@ internal fun PhotoViewer(
                         if (!dismissedRotateTip) showRotateTipBanner = true
                     },
                     onGainmapDetected = { hasGainmap ->
-                        if (hasGainmap && page == pagerState.currentPage) {
+                        if (hasGainmap && (page == pagerState.currentPage)) {
                             currentPhotoHasGainmap = true
                         }
                     },
@@ -764,7 +763,7 @@ internal fun PhotoViewer(
             }
             val pageCountText = stringResource(R.string.viewer_page_count, pagerState.currentPage + 1, images.size)
             val pageCountPrefix = if (showViewerPageCount) "$pageCountText · " else ""
-            val customTitle = current.title.takeIf { it.isNotBlank() && it != current.name && it != current.name.substringBeforeLast('.') }
+            val customTitle = current.title.takeIf { it.isNotBlank() && (it != current.name) && (it != current.name.substringBeforeLast('.')) }
             val titleOrName = customTitle ?: current.name
 
             val (primaryHeaderText, secondaryHeaderText) = when (viewerHeaderStyle) {
@@ -806,47 +805,49 @@ internal fun PhotoViewer(
                 }
             }
             IconButton(onClick = { showInfo = true }) { Icon(Icons.Outlined.Info, stringResource(R.string.details_title), tint = Color.White) }
-            if (!isLocked && !isInTrash && (pageItem.id > 0 || resolvedPeer != null)) {
+            val isUnlockedMedia = !isLocked && !isInTrash
+            val hasValidPeerOrId = (pageItem.id > 0) || (resolvedPeer != null)
+            if (isUnlockedMedia && hasValidPeerOrId) {
                 Box {
                     IconButton(onClick = { viewerMenuExpanded = true }) {
                         Icon(Icons.Outlined.MoreVert, stringResource(R.string.action_more), tint = Color.White)
                     }
                     DropdownMenu(
                         expanded = viewerMenuExpanded,
-                        onDismissRequest = { viewerMenuExpanded = false }
+                        onDismissRequest = { viewerMenuExpanded = false },
                     ) {
-                        if (!pageItem.isVideo && resolvedPeer != null) {
+                        if ((!pageItem.isVideo) && (resolvedPeer != null)) {
                             val showingRaw = current.isRaw
                             DropdownMenuItem(
                                 text = {
                                     Text(
                                         stringResource(
                                             if (showingRaw) R.string.action_view_original_version
-                                            else R.string.action_view_raw_version
-                                        )
+                                            else R.string.action_view_raw_version,
+                                        ),
                                     )
                                 },
                                 leadingIcon = {
                                     Icon(
                                         if (showingRaw) Icons.Outlined.Image else Icons.Outlined.RawOn,
-                                        contentDescription = null
+                                        contentDescription = null,
                                     )
                                 },
                                 onClick = {
                                     viewerMenuExpanded = false
                                     val nextState = !isViewingRawPeer
                                     isViewingRawPeer = nextState
-                                    val targetMedia = if (nextState && resolvedPeer != null) resolvedPeer!! else pageItem
+                                    val targetMedia = if (nextState && (resolvedPeer != null)) resolvedPeer!! else pageItem
                                     Toast.makeText(
                                         context,
                                         context.applicationContext.getString(
                                             if (targetMedia.isRaw) R.string.toast_switched_to_raw
                                             else R.string.toast_switched_to_original,
-                                            targetMedia.name
+                                            targetMedia.name,
                                         ),
-                                        Toast.LENGTH_SHORT
+                                        Toast.LENGTH_SHORT,
                                     ).show()
-                                }
+                                },
                             )
                         }
                         if (current.id > 0) {
@@ -856,7 +857,7 @@ internal fun PhotoViewer(
                                 onClick = {
                                     viewerMenuExpanded = false
                                     viewerAlbumAction = AlbumAction.MOVE
-                                }
+                                },
                             )
                             DropdownMenuItem(
                                 text = { Text(stringResource(R.string.action_copy_to_album)) },
@@ -864,7 +865,7 @@ internal fun PhotoViewer(
                                 onClick = {
                                     viewerMenuExpanded = false
                                     viewerAlbumAction = AlbumAction.COPY
-                                }
+                                },
                             )
                             DropdownMenuItem(
                                 text = { Text(stringResource(R.string.action_rename)) },
@@ -872,7 +873,7 @@ internal fun PhotoViewer(
                                 onClick = {
                                     viewerMenuExpanded = false
                                     showRenameDialog = true
-                                }
+                                },
                             )
                         }
                         if (!current.isVideo) {
@@ -882,7 +883,7 @@ internal fun PhotoViewer(
                                 onClick = {
                                     viewerMenuExpanded = false
                                     copyImageToClipboard(context, current)
-                                }
+                                },
                             )
                             DropdownMenuItem(
                                 text = { Text(stringResource(R.string.action_set_as_wallpaper)) },
@@ -890,7 +891,7 @@ internal fun PhotoViewer(
                                 onClick = {
                                     viewerMenuExpanded = false
                                     showWallpaperSheet = true
-                                }
+                                },
                             )
                             DropdownMenuItem(
                                 text = { Text(stringResource(R.string.action_edit_builtin)) },
@@ -898,7 +899,7 @@ internal fun PhotoViewer(
                                 onClick = {
                                     viewerMenuExpanded = false
                                     onEdit(current)
-                                }
+                                },
                             )
                             DropdownMenuItem(
                                 text = { Text(stringResource(R.string.action_edit_external)) },
@@ -906,7 +907,7 @@ internal fun PhotoViewer(
                                 onClick = {
                                     viewerMenuExpanded = false
                                     launchExternalEditor(context, current)
-                                }
+                                },
                             )
                         } else {
                             DropdownMenuItem(
@@ -915,7 +916,7 @@ internal fun PhotoViewer(
                                 onClick = {
                                     viewerMenuExpanded = false
                                     launchExternalEditor(context, current)
-                                }
+                                },
                             )
                         }
                         DropdownMenuItem(
@@ -924,7 +925,7 @@ internal fun PhotoViewer(
                             onClick = {
                                 viewerMenuExpanded = false
                                 directPermanentDelete = true
-                            }
+                            },
                         )
                     }
                 }
@@ -933,9 +934,9 @@ internal fun PhotoViewer(
           }
         }
         // ---- Depth Photo control panel ----
-        if (depthPhoto != null && !current.isVideo) {
+        if ((depthPhoto != null) && !current.isVideo) {
             // Offset above the bottom control bar so it doesn't overlap the filmstrip.
-            val showFilmstripHere = showFilmstrip && images.size > 1
+            val showFilmstripHere = showFilmstrip && (images.size > 1)
             val bottomOffset = if (showFilmstripHere) 168.dp else 96.dp
             AnimatedVisibility(
                 visible = controlsVisible,
@@ -946,11 +947,10 @@ internal fun PhotoViewer(
                     .graphicsLayer { alpha = controlsDismissAlpha },
                 enter = fadeIn(tween(220)) + slideInVertically(
                     animationSpec = spring(dampingRatio = 0.82f, stiffness = Spring.StiffnessMediumLow),
-                    initialOffsetY = { it }
-                ),
+                ) { it },
                 exit = fadeOut(tween(160)) + slideOutVertically(
-                    animationSpec = tween(180), targetOffsetY = { it / 2 }
-                ),
+                    animationSpec = tween(180),
+                ) { it / 2 },
             ) {
                 Surface(
                     color = MaterialTheme.colorScheme.surfaceContainerHigh.copy(alpha = 0.92f),
@@ -1030,20 +1030,18 @@ internal fun PhotoViewer(
           enter = fadeIn(tween(220, easing = FastOutSlowInEasing)) +
                   slideInVertically(
                       animationSpec = spring(dampingRatio = 0.82f, stiffness = Spring.StiffnessMediumLow),
-                      initialOffsetY = { it }
-                  ) +
+                  ) { it } +
                   scaleIn(
                       animationSpec = spring(dampingRatio = 0.82f, stiffness = Spring.StiffnessMediumLow),
-                      initialScale = 0.90f
+                      initialScale = 0.90f,
                   ),
           exit = fadeOut(tween(160, easing = FastOutSlowInEasing)) +
                  slideOutVertically(
                      animationSpec = tween(180, easing = FastOutSlowInEasing),
-                     targetOffsetY = { it / 2 }
-                  ) +
+                 ) { it / 2 } +
                  scaleOut(
                      animationSpec = tween(160, easing = FastOutSlowInEasing),
-                     targetScale = 0.92f
+                     targetScale = 0.92f,
                   ),
         ) {
         Column(
@@ -1138,7 +1136,7 @@ internal fun PhotoViewer(
             }
 
             // Mini Filmstrip Thumbnail Carousel for Fast Visual Scrubbing (#40)
-            if (showFilmstrip && images.size > 1) {
+            if (showFilmstrip && (images.size > 1)) {
                 if (!dismissedFilmstripTip) {
                     Surface(
                         color = MaterialTheme.colorScheme.surfaceContainerHigh.copy(alpha = 0.95f),
@@ -1187,7 +1185,7 @@ internal fun PhotoViewer(
                 val filmstripListState = rememberLazyListState()
                 LaunchedEffect(pagerState.currentPage) {
                     filmstripListState.animateScrollToItem(
-                        (pagerState.currentPage - 2).coerceAtLeast(0)
+                        (pagerState.currentPage - 2).coerceAtLeast(0),
                     )
                 }
                 Surface(
@@ -1202,7 +1200,7 @@ internal fun PhotoViewer(
                         horizontalArrangement = Arrangement.spacedBy(6.dp),
                         verticalAlignment = Alignment.CenterVertically,
                     ) {
-                        itemsIndexed(images, key = { _, it -> it.id }) { index, item ->
+                        itemsIndexed(images, key = { _, (id) -> id }) { index, item ->
                             val isSelected = index == pagerState.currentPage
                             Box(
                                 modifier = Modifier
@@ -1210,7 +1208,7 @@ internal fun PhotoViewer(
                                     .clip(RoundedCornerShape(8.dp))
                                     .then(
                                         if (isSelected) Modifier.border(2.dp, MaterialTheme.colorScheme.primary, RoundedCornerShape(8.dp))
-                                        else Modifier.border(0.5.dp, Color.White.copy(alpha = 0.25f), RoundedCornerShape(8.dp))
+                                        else Modifier.border(0.5.dp, Color.White.copy(alpha = 0.25f), RoundedCornerShape(8.dp)),
                                     )
                                     .pointerInput(item.id) {
                                         awaitEachGesture {
@@ -1294,7 +1292,7 @@ internal fun PhotoViewer(
                                         SecureSharingMode.STRIP_LOCATION -> R.string.viewer_secure_sharing_tip_location
                                         SecureSharingMode.STRIP_ALL -> R.string.viewer_secure_sharing_tip_all
                                         SecureSharingMode.OFF -> R.string.viewer_secure_sharing_tip_off
-                                    }
+                                    },
                                 ),
                                 style = MaterialTheme.typography.labelSmall,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant,
@@ -1322,11 +1320,11 @@ internal fun PhotoViewer(
                 shape = RoundedCornerShape(32.dp),
                 tonalElevation = 8.dp,
             ) {
-              val isFav = pageItem.id in favorites || current.id in favorites
+              val isFav = (pageItem.id in favorites) || (current.id in favorites)
               val favScale by animateFloatAsState(
                   targetValue = if (isFav) 1.25f else 1.0f,
                   animationSpec = spring(dampingRatio = Spring.DampingRatioMediumBouncy, stiffness = Spring.StiffnessMediumLow),
-                  label = "fav_scale"
+                  label = "fav_scale",
               )
               Row(
                 modifier = Modifier.fillMaxWidth().padding(horizontal = 8.dp, vertical = 6.dp),
@@ -1401,7 +1399,7 @@ internal fun PhotoViewer(
                         label = stringResource(R.string.action_delete),
                         modifier = Modifier.weight(1f),
                     ) {
-                        if (isLocked || isInTrash || deleteMode == DeleteMode.ALWAYS_ASK || confirmDeleteSetting) {
+                        if (isLocked || isInTrash || (deleteMode == DeleteMode.ALWAYS_ASK) || confirmDeleteSetting) {
                             confirmDelete = true
                         } else if (deleteMode == DeleteMode.PERMANENT) {
                             onDelete(current, true)
@@ -1491,7 +1489,7 @@ internal fun PhotoViewer(
                                 val popupDate = remember(popupItem.dateTaken, currentLocale) {
                                     DateFormat.getDateInstance(DateFormat.MEDIUM, currentLocale).format(Date(popupItem.dateTaken))
                                 }
-                                val subtitle = if (popupItem.isVideo && popupItem.durationMs > 0) {
+                                val subtitle = if (popupItem.isVideo && (popupItem.durationMs > 0)) {
                                     val totalSecs = popupItem.durationMs / 1000
                                     val durStr = if (totalSecs >= 3600) {
                                         "%d:%02d:%02d".format(totalSecs / 3600, (totalSecs % 3600) / 60, totalSecs % 60)
@@ -1532,11 +1530,12 @@ internal fun PhotoViewer(
     }
 
     val canNavigatePrev = pagerState.currentPage > 0
-    val canNavigateNext = pagerState.currentPage < images.size - 1
+    val canNavigateNext = pagerState.currentPage < (images.size - 1)
     if (showInfo) PhotoDetailsSheet(
         image = current,
         timelineDateFormat = timelineDateFormat,
         customTimelineDateFormat = customTimelineDateFormat,
+        showAiInfo = showAiInfo,
         canNavigatePrevious = canNavigatePrev,
         canNavigateNext = canNavigateNext,
         onNavigatePrevious = {
@@ -1563,20 +1562,18 @@ internal fun PhotoViewer(
         RenameFileDialog(
             currentName = current.name,
             onDismiss = { showRenameDialog = false },
-            onConfirm = { newName ->
-                onRename(current, newName)
-                showRenameDialog = false
-            }
-        )
+        ) { newName ->
+            onRename(current, newName)
+            showRenameDialog = false
+        }
     }
     if (showWallpaperSheet) {
         WallpaperChoiceBottomSheet(
             image = current,
-            onDismiss = { showWallpaperSheet = false }
-        )
+        ) { showWallpaperSheet = false }
     }
     if (confirmDelete) {
-        val isPermanentlyDeleting = isLocked || isInTrash || deleteMode == DeleteMode.PERMANENT
+        val isPermanentlyDeleting = isLocked || isInTrash || (deleteMode == DeleteMode.PERMANENT)
         var deletePermanently by remember { mutableStateOf(isPermanentlyDeleting) }
         AlertDialog(
             onDismissRequest = { confirmDelete = false },
@@ -1588,7 +1585,7 @@ internal fun PhotoViewer(
                     } else {
                         if (current.isVideo) stringResource(R.string.delete_trash_video_title)
                         else stringResource(R.string.delete_trash_photo_title)
-                    }
+                    },
                 )
             },
             text = {
@@ -1596,7 +1593,7 @@ internal fun PhotoViewer(
                     Text(
                         if (isLocked) stringResource(R.string.delete_vault_desc)
                         else if (isPermanentlyDeleting || deletePermanently) stringResource(R.string.delete_permanent_desc)
-                        else stringResource(R.string.delete_trash_desc)
+                        else stringResource(R.string.delete_trash_desc),
                     )
                     if (!isPermanentlyDeleting) {
                         Row(
@@ -1609,11 +1606,11 @@ internal fun PhotoViewer(
                         ) {
                             Checkbox(
                                 checked = deletePermanently,
-                                onCheckedChange = { deletePermanently = it }
+                                onCheckedChange = { deletePermanently = it },
                             )
                             Text(
                                 text = stringResource(R.string.delete_permanently_checkbox),
-                                style = MaterialTheme.typography.bodyMedium
+                                style = MaterialTheme.typography.bodyMedium,
                             )
                         }
                     }
@@ -1635,7 +1632,9 @@ internal fun PhotoViewer(
                 }
             },
             dismissButton = {
-                TextButton(onClick = { confirmDelete = false }) {
+                TextButton(
+                    onClick = { confirmDelete = false },
+                ) {
                     Text(stringResource(R.string.action_cancel))
                 }
             },
@@ -1648,26 +1647,30 @@ internal fun PhotoViewer(
             title = {
                 Text(
                     if (current.isVideo) stringResource(R.string.delete_permanent_video_title)
-                    else stringResource(R.string.delete_permanent_photo_title)
+                    else stringResource(R.string.delete_permanent_photo_title),
                 )
             },
             text = {
                 Text(stringResource(R.string.delete_permanent_desc))
             },
             confirmButton = {
-                TextButton(onClick = {
-                    directPermanentDelete = false
-                    onDelete(current, true)
-                }) {
+                TextButton(
+                    onClick = {
+                        directPermanentDelete = false
+                        onDelete(current, true)
+                    },
+                ) {
                     Text(
                         stringResource(R.string.action_delete_permanently),
                         color = MaterialTheme.colorScheme.error,
-                        fontWeight = FontWeight.Bold
+                        fontWeight = FontWeight.Bold,
                     )
                 }
             },
             dismissButton = {
-                TextButton(onClick = { directPermanentDelete = false }) {
+                TextButton(
+                    onClick = { directPermanentDelete = false },
+                ) {
                     Text(stringResource(R.string.action_cancel))
                 }
             },
@@ -1686,28 +1689,28 @@ internal fun PhotoViewer(
                 val targetDir = getAlbumDir(album)
                 viewerAlbumAction = null
                 if (action == AlbumAction.MOVE) {
-                    onMoveToAlbum(listOf(current), targetDir, album.name) { result ->
-                        if (result.successCount > 0) {
+                    onMoveToAlbum(listOf(current), targetDir, album.name) { (successCount) ->
+                        if (successCount > 0) {
                             handleClose()
                         }
                     }
                 } else {
-                    onCopyToAlbum(listOf(current), targetDir, album.name) { }
+                    onCopyToAlbum(listOf(current), targetDir, album.name) { (_) -> }
                 }
             },
             onCreateAlbum = { newName ->
                 val targetDir = createAlbumDir(newName)
                 viewerAlbumAction = null
                 if (action == AlbumAction.MOVE) {
-                    onMoveToAlbum(listOf(current), targetDir, newName) { result ->
-                        if (result.successCount > 0) {
+                    onMoveToAlbum(listOf(current), targetDir, newName) { (successCount) ->
+                        if (successCount > 0) {
                             handleClose()
                         }
                     }
                 } else {
-                    onCopyToAlbum(listOf(current), targetDir, newName) { }
+                    onCopyToAlbum(listOf(current), targetDir, newName) { (_) -> }
                 }
-            }
+            },
         )
     }
 
@@ -1719,12 +1722,11 @@ internal fun PhotoViewer(
                 if (rememberChoice) onSetPreferredEditor(PreferredEditor.BUILT_IN)
                 onEdit(current)
             },
-            onChooseExternal = { rememberChoice ->
-                showEditChoiceSheet = false
-                if (rememberChoice) onSetPreferredEditor(PreferredEditor.EXTERNAL)
-                launchExternalEditor(context, current)
-            }
-        )
+        ) { rememberChoice ->
+            showEditChoiceSheet = false
+            if (rememberChoice) onSetPreferredEditor(PreferredEditor.EXTERNAL)
+            launchExternalEditor(context, current)
+        }
     }
 
     if (showSecureSharingHintDialog) {
@@ -1735,7 +1737,7 @@ internal fun PhotoViewer(
                     Icons.Outlined.Security,
                     contentDescription = null,
                     tint = MaterialTheme.colorScheme.primary,
-                    modifier = Modifier.size(28.dp)
+                    modifier = Modifier.size(28.dp),
                 )
             },
             title = { Text(stringResource(R.string.dialog_secure_sharing_hint_title)) },
@@ -1743,7 +1745,7 @@ internal fun PhotoViewer(
                 Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
                     Text(
                         stringResource(R.string.dialog_secure_sharing_hint_desc),
-                        style = MaterialTheme.typography.bodyMedium
+                        style = MaterialTheme.typography.bodyMedium,
                     )
                     Surface(
                         shape = RoundedCornerShape(10.dp),
@@ -1754,30 +1756,32 @@ internal fun PhotoViewer(
                             .clickable {
                                 showSecureSharingHintDialog = false
                                 showSecureSharingModePicker = true
-                            }
+                            },
                     ) {
                         Row(
                             modifier = Modifier.padding(10.dp),
                             verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.SpaceBetween
+                            horizontalArrangement = Arrangement.SpaceBetween,
                         ) {
                             Column(modifier = Modifier.weight(1f)) {
                                 Text(
                                     stringResource(R.string.settings_secure_sharing_title),
                                     style = MaterialTheme.typography.labelSmall,
-                                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
                                 )
                                 Text(
                                     stringResource(secureSharingMode.getTitleRes()),
                                     style = MaterialTheme.typography.bodyMedium,
                                     fontWeight = FontWeight.SemiBold,
-                                    color = if (secureSharingMode != SecureSharingMode.OFF) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurface
+                                    color = if (secureSharingMode != SecureSharingMode.OFF) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurface,
                                 )
                             }
-                            TextButton(onClick = {
-                                showSecureSharingHintDialog = false
-                                showSecureSharingModePicker = true
-                            }) {
+                            TextButton(
+                                onClick = {
+                                    showSecureSharingHintDialog = false
+                                    showSecureSharingModePicker = true
+                                },
+                            ) {
                                 Text(stringResource(R.string.action_configure))
                             }
                         }
@@ -1785,22 +1789,26 @@ internal fun PhotoViewer(
                 }
             },
             confirmButton = {
-                Button(onClick = {
-                    showSecureSharingHintDialog = false
-                    onDismissSecureSharingTip()
-                    doShare(current)
-                }) {
+                Button(
+                    onClick = {
+                        showSecureSharingHintDialog = false
+                        onDismissSecureSharingTip()
+                        doShare(current)
+                    },
+                ) {
                     Text(stringResource(R.string.action_share))
                 }
             },
             dismissButton = {
-                TextButton(onClick = {
-                    showSecureSharingHintDialog = false
-                    onDismissSecureSharingTip()
-                }) {
+                TextButton(
+                    onClick = {
+                        showSecureSharingHintDialog = false
+                        onDismissSecureSharingTip()
+                    },
+                ) {
                     Text(stringResource(R.string.action_dont_show_again))
                 }
-            }
+            },
         )
     }
 
@@ -1812,7 +1820,7 @@ internal fun PhotoViewer(
                     Icons.Outlined.Security,
                     contentDescription = null,
                     tint = MaterialTheme.colorScheme.primary,
-                    modifier = Modifier.size(28.dp)
+                    modifier = Modifier.size(28.dp),
                 )
             },
             title = { Text(stringResource(R.string.settings_secure_sharing_title)) },
@@ -1822,7 +1830,7 @@ internal fun PhotoViewer(
                         stringResource(R.string.settings_secure_sharing_desc),
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        modifier = Modifier.padding(bottom = 4.dp)
+                        modifier = Modifier.padding(bottom = 4.dp),
                     )
                     SecureSharingMode.entries.forEach { mode ->
                         val isSelected = secureSharingMode == mode
@@ -1837,7 +1845,7 @@ internal fun PhotoViewer(
                             else MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.25f),
                             border = BorderStroke(
                                 width = if (isSelected) 1.5.dp else 0.5.dp,
-                                color = if (isSelected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.4f)
+                                color = if (isSelected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.4f),
                             ),
                             modifier = Modifier
                                 .fillMaxWidth()
@@ -1845,30 +1853,30 @@ internal fun PhotoViewer(
                                 .clickable {
                                     onSetSecureSharingMode(mode)
                                     showSecureSharingModePicker = false
-                                }
+                                },
                         ) {
                             Row(
                                 modifier = Modifier.padding(horizontal = 12.dp, vertical = 10.dp),
                                 verticalAlignment = Alignment.CenterVertically,
-                                horizontalArrangement = Arrangement.spacedBy(12.dp)
+                                horizontalArrangement = Arrangement.spacedBy(12.dp),
                             ) {
                                 Icon(
                                     modeIcon,
                                     contentDescription = null,
                                     tint = if (isSelected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant,
-                                    modifier = Modifier.size(22.dp)
+                                    modifier = Modifier.size(22.dp),
                                 )
                                 Column(modifier = Modifier.weight(1f)) {
                                     Text(
                                         stringResource(mode.getTitleRes()),
                                         style = MaterialTheme.typography.bodyMedium,
                                         fontWeight = if (isSelected) FontWeight.Bold else FontWeight.SemiBold,
-                                        color = if (isSelected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurface
+                                        color = if (isSelected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurface,
                                     )
                                     Text(
                                         stringResource(mode.getDescriptionRes()),
                                         style = MaterialTheme.typography.bodySmall,
-                                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                                        color = MaterialTheme.colorScheme.onSurfaceVariant,
                                     )
                                 }
                                 RadioButton(
@@ -1876,7 +1884,7 @@ internal fun PhotoViewer(
                                     onClick = {
                                         onSetSecureSharingMode(mode)
                                         showSecureSharingModePicker = false
-                                    }
+                                    },
                                 )
                             }
                         }
@@ -1884,16 +1892,18 @@ internal fun PhotoViewer(
                 }
             },
             confirmButton = {
-                TextButton(onClick = { showSecureSharingModePicker = false }) {
+                TextButton(
+                    onClick = { showSecureSharingModePicker = false },
+                ) {
                     Text(stringResource(R.string.action_done_editing))
                 }
-            }
+            },
         )
     }
 }
 
 private fun copyImageToClipboard(context: android.content.Context, image: MediaImage) {
-    val uri = if (image.uri.scheme == "file" || image.path.startsWith(context.filesDir.absolutePath)) {
+    val uri = if ((image.uri.scheme == "file") || image.path.startsWith(context.filesDir.absolutePath)) {
         getShareUri(context, image)
     } else {
         image.uri
@@ -1918,11 +1928,11 @@ private fun ViewerIconButton(
     scaleEffect: Float = 1f,
     showBadge: Boolean = false,
     badgeColor: Color = MaterialTheme.colorScheme.primary,
-    onClick: () -> Unit
+    onClick: () -> Unit,
 ) {
     IconButton(
         onClick = onClick,
-        modifier = modifier.height(48.dp)
+        modifier = modifier.height(48.dp),
     ) {
         Box(contentAlignment = Alignment.Center) {
             Icon(
@@ -1931,14 +1941,14 @@ private fun ViewerIconButton(
                 tint = tint,
                 modifier = Modifier
                     .size(24.dp)
-                    .scale(scaleEffect)
+                    .scale(scaleEffect),
             )
             if (showBadge) {
                 Box(
                     modifier = Modifier
                         .align(Alignment.TopEnd)
                         .size(6.dp)
-                        .background(badgeColor, CircleShape)
+                        .background(badgeColor, CircleShape),
                 )
             }
         }

@@ -138,8 +138,10 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.material3.Checkbox
+import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.AnimatedVisibility
+import com.iris.gallery.data.search.IndexingStatus
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.scaleIn
@@ -271,7 +273,6 @@ internal fun GalleryScaffold(
     settingsPreferences: SettingsPreferences,
     images: List<MediaImage>,
     trashed: List<MediaImage>,
-    lockedIds: Set<Long>,
     lockedMedia: List<MediaImage>,
     pinnedAlbums: Set<Long>,
     albumCovers: Map<Long, Long>,
@@ -313,6 +314,11 @@ internal fun GalleryScaffold(
     excludedFolders: Set<String> = emptySet(),
     onAddExcludedFolder: (String) -> Unit = {},
     onRemoveExcludedFolder: (String) -> Unit = {},
+    searchResultIds: Set<Long>? = null,
+    indexingStatus: IndexingStatus = IndexingStatus(),
+    indexedPhotosCount: Int = 0,
+    onReindexPhotos: () -> Unit = {},
+    onSearchQueryChange: (String) -> Unit = {},
     initialMemories: Boolean,
     initialViewUri: Uri? = null,
     initialEditMode: Boolean = false,
@@ -480,6 +486,7 @@ internal fun GalleryScaffold(
         if (!canSearch && isFileSearching) {
             isFileSearching = false
             fileSearchQuery = ""
+            onSearchQueryChange("")
         }
     }
 
@@ -488,6 +495,7 @@ internal fun GalleryScaffold(
         val q = query.trim()
         val qLower = q.lowercase()
         return list.filter { item ->
+            (searchResultIds?.contains(item.id) == true) ||
             item.name.contains(q, ignoreCase = true) ||
             item.title.contains(q, ignoreCase = true) ||
             item.bucketName.contains(q, ignoreCase = true) ||
@@ -501,13 +509,13 @@ internal fun GalleryScaffold(
         }
     }
 
-    val displayedFavoritePhotos = remember(favoriteImages, fileSearchQuery) { filterMediaList(favoriteImages, fileSearchQuery) }
-    val displayedMedia = remember(images, fileSearchQuery) { filterMediaList(images, fileSearchQuery) }
-    val displayedPhotos = remember(images, fileSearchQuery) {
+    val displayedFavoritePhotos = remember(favoriteImages, fileSearchQuery, searchResultIds) { filterMediaList(favoriteImages, fileSearchQuery) }
+    val displayedMedia = remember(images, fileSearchQuery, searchResultIds) { filterMediaList(images, fileSearchQuery) }
+    val displayedPhotos = remember(images, fileSearchQuery, searchResultIds) {
         val allPhotos = images.filterNot { it.isVideo }
         filterMediaList(allPhotos, fileSearchQuery)
     }
-    val displayedVideos = remember(images, fileSearchQuery) {
+    val displayedVideos = remember(images, fileSearchQuery, searchResultIds) {
         val allVideos = images.filter { it.isVideo }
         filterMediaList(allVideos, fileSearchQuery)
     }
@@ -520,7 +528,7 @@ internal fun GalleryScaffold(
         }
     }
     val effectiveAlbumMediaSort = selectedAlbum?.id?.let { albumMediaSortOverrides[it] } ?: albumMediaSort
-    val displayedAlbumPhotos = remember(selectedAlbum, fileSearchQuery, effectiveAlbumMediaSort) {
+    val displayedAlbumPhotos = remember(selectedAlbum, fileSearchQuery, effectiveAlbumMediaSort, searchResultIds) {
         selectedAlbum?.let { album ->
             val filtered = filterMediaList(album.images, fileSearchQuery)
             when (effectiveAlbumMediaSort) {
@@ -655,6 +663,7 @@ internal fun GalleryScaffold(
             if (isFileSearching) {
                 isFileSearching = false
                 fileSearchQuery = ""
+                onSearchQueryChange("")
             }
             if (current == index) {
                 if (targetTab == GalleryTab.ALBUMS) selectedAlbumId = null
@@ -677,12 +686,16 @@ internal fun GalleryScaffold(
         topBar = {
           if (!(destination == 3 && librarySection == "folder_view")) {
             val canSearchOnScreen = destination == 0 || destination == 2 || (destination == 1 && selectedAlbum != null)
+            Column(modifier = Modifier.fillMaxWidth()) {
             TopAppBar(
                 title = {
                     if (isFileSearching && canSearchOnScreen) {
                         OutlinedTextField(
                             value = fileSearchQuery,
-                            onValueChange = { fileSearchQuery = it },
+                            onValueChange = {
+                                fileSearchQuery = it
+                                onSearchQueryChange(it)
+                            },
                             modifier = Modifier.fillMaxWidth(),
                             textStyle = MaterialTheme.typography.bodyMedium.copy(
                                 platformStyle = androidx.compose.ui.text.PlatformTextStyle(includeFontPadding = false)
@@ -709,7 +722,10 @@ internal fun GalleryScaffold(
                             leadingIcon = { Icon(Icons.Outlined.Search, contentDescription = null, tint = MaterialTheme.colorScheme.primary) },
                             trailingIcon = {
                                 if (fileSearchQuery.isNotEmpty()) {
-                                    IconButton(onClick = { fileSearchQuery = "" }) {
+                                    IconButton(onClick = {
+                                        fileSearchQuery = ""
+                                        onSearchQueryChange("")
+                                    }) {
                                         Icon(Icons.Filled.Clear, contentDescription = stringResource(R.string.clear_search))
                                     }
                                 }
@@ -752,7 +768,11 @@ internal fun GalleryScaffold(
                 },
                 navigationIcon = {
                     if (isFileSearching && canSearchOnScreen) {
-                        IconButton(onClick = { isFileSearching = false; fileSearchQuery = "" }) {
+                        IconButton(onClick = {
+                            isFileSearching = false
+                            fileSearchQuery = ""
+                            onSearchQueryChange("")
+                        }) {
                             Icon(Icons.AutoMirrored.Outlined.ArrowBack, stringResource(R.string.clear_search))
                         }
                     } else if (selectedIds.isNotEmpty()) {
@@ -760,7 +780,11 @@ internal fun GalleryScaffold(
                     } else if (destination == 1 && selectedAlbum != null) {
                         IconButton(onClick = {
                             selectedAlbumId = null
-                            if (isFileSearching) { isFileSearching = false; fileSearchQuery = "" }
+                            if (isFileSearching) {
+                                isFileSearching = false
+                                fileSearchQuery = ""
+                                onSearchQueryChange("")
+                            }
                         }) { Icon(Icons.AutoMirrored.Outlined.ArrowBack, albumsTabLabel) }
                     } else if (destination == 3 && librarySection == "locked" && selectedLockedAlbum != null) {
                         IconButton(onClick = { selectedLockedAlbum = null }) { Icon(Icons.AutoMirrored.Outlined.ArrowBack, stringResource(R.string.section_locked)) }
@@ -768,7 +792,11 @@ internal fun GalleryScaffold(
                         IconButton(onClick = {
                             librarySection = null
                             selectedLockedAlbum = null
-                            if (isFileSearching) { isFileSearching = false; fileSearchQuery = "" }
+                            if (isFileSearching) {
+                                isFileSearching = false
+                                fileSearchQuery = ""
+                                onSearchQueryChange("")
+                            }
                         }) { Icon(Icons.AutoMirrored.Outlined.ArrowBack, libraryTabLabel) }
                     }
                 },
@@ -891,7 +919,7 @@ internal fun GalleryScaffold(
                         }
                     } else if (!isFileSearching || !canSearchOnScreen) {
                         val canSearch = destination == 0 || destination == 2 || (destination == 1 && selectedAlbum != null)
-                        if (canSearch && !isFileSearching) {
+                        if (canSearch) {
                             IconButton(onClick = { isFileSearching = true }) {
                                 Icon(Icons.Outlined.Search, stringResource(R.string.action_search))
                             }
@@ -1104,6 +1132,45 @@ internal fun GalleryScaffold(
                 },
                 colors = TopAppBarDefaults.topAppBarColors(containerColor = Color.Transparent),
             )
+            if (isFileSearching && canSearchOnScreen && indexingStatus.isIndexing && indexingStatus.totalCount > 0) {
+                Surface(
+                    color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.85f),
+                    shape = RoundedCornerShape(12.dp),
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 16.dp, vertical = 4.dp)
+                ) {
+                    Column(modifier = Modifier.padding(horizontal = 12.dp, vertical = 8.dp)) {
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Text(
+                                text = "Indexiere Fotos...",
+                                style = MaterialTheme.typography.labelMedium,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                            Text(
+                                text = "${indexingStatus.indexedCount} / ${indexingStatus.totalCount}",
+                                style = MaterialTheme.typography.labelSmall,
+                                fontWeight = FontWeight.Bold,
+                                color = MaterialTheme.colorScheme.primary
+                            )
+                        }
+                        Spacer(Modifier.height(6.dp))
+                        LinearProgressIndicator(
+                            progress = {
+                                if (indexingStatus.totalCount > 0) {
+                                    (indexingStatus.indexedCount.toFloat() / indexingStatus.totalCount.toFloat()).coerceIn(0f, 1f)
+                                } else 0f
+                            },
+                            modifier = Modifier.fillMaxWidth(),
+                        )
+                    }
+                }
+            }
+          }
           }
         },
         bottomBar = {
@@ -2033,7 +2100,11 @@ internal fun GalleryScaffold(
     BackHandler(enabled = !isFileSearching && selectedIds.isNotEmpty()) { clearSelection() }
     BackHandler(enabled = selectedIds.isEmpty() && destination == 1 && selectedAlbum != null && !isFileSearching) {
         selectedAlbumId = null
-        if (isFileSearching) { isFileSearching = false; fileSearchQuery = "" }
+        if (isFileSearching) {
+            isFileSearching = false
+            fileSearchQuery = ""
+            onSearchQueryChange("")
+        }
     }
     BackHandler(enabled = selectedIds.isEmpty() && destination == 3 && librarySection == "locked" && selectedLockedAlbum != null && !isFileSearching) {
         selectedLockedAlbum = null
@@ -2041,11 +2112,16 @@ internal fun GalleryScaffold(
     BackHandler(enabled = selectedIds.isEmpty() && destination == 3 && librarySection != null && (librarySection != "locked" || selectedLockedAlbum == null) && !isFileSearching) {
         librarySection = null
         selectedLockedAlbum = null
-        if (isFileSearching) { isFileSearching = false; fileSearchQuery = "" }
+        if (isFileSearching) {
+            isFileSearching = false
+            fileSearchQuery = ""
+            onSearchQueryChange("")
+        }
     }
     BackHandler(enabled = isFileSearching) {
         isFileSearching = false
         fileSearchQuery = ""
+        onSearchQueryChange("")
     }
     BackHandler(enabled = editorImage != null) { editorImage = null }
     BackHandler(enabled = externalMedia != null) { externalMedia = null }
@@ -2137,6 +2213,7 @@ internal fun GalleryScaffold(
             },
             getAlbumDir = getAlbumDir,
             createAlbumDir = createAlbumDir,
+            showAiInfo = settings.aiInfoInDetailsEnabled,
         )
     }
 
@@ -2253,6 +2330,7 @@ internal fun GalleryScaffold(
             },
             getAlbumDir = getAlbumDir,
             createAlbumDir = createAlbumDir,
+            showAiInfo = settings.aiInfoInDetailsEnabled,
         )
     }
     AnimatedVisibility(
@@ -2387,6 +2465,9 @@ internal fun GalleryScaffold(
                 preferences = settingsPreferences,
                 excludedFolders = excludedFolders,
                 availableAlbums = availableAlbums,
+                indexingStatus = indexingStatus,
+                indexedPhotosCount = indexedPhotosCount,
+                onReindexPhotos = onReindexPhotos,
                 onRemoveExcludedFolder = onRemoveExcludedFolder,
                 onAddExcludedFolder = onAddExcludedFolder,
                 onOpenAbout = { activeOverlayScreen = "about" },

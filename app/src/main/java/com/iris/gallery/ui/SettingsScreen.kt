@@ -127,13 +127,14 @@ import com.iris.gallery.data.SUPPORTED_LANGUAGES
 import com.iris.gallery.data.ThemeMode
 import com.iris.gallery.data.TimelineDateFormat
 import com.iris.gallery.data.getSystemDefaultLocale
+import com.iris.gallery.data.search.IndexingStatus
+import androidx.compose.material3.LinearProgressIndicator
 import kotlin.math.roundToInt
 import androidx.core.net.toUri
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun SettingsScreen(
-    padding: PaddingValues = PaddingValues(0.dp),
     settings: SettingsState,
     preferences: SettingsPreferences,
     excludedFolders: Set<String> = emptySet(),
@@ -142,10 +143,14 @@ fun SettingsScreen(
     onAddExcludedFolder: (String) -> Unit = {},
     onOpenAbout: () -> Unit = {},
     onRescanMedia: () -> Unit = {},
+    indexingStatus: IndexingStatus = IndexingStatus(),
+    indexedPhotosCount: Int = 0,
+    onReindexPhotos: () -> Unit = {},
     onBack: () -> Unit,
 ) {
     val context = LocalContext.current
     var showResetDialog by remember { mutableStateOf(value = false) }
+    var showReindexDialog by remember { mutableStateOf(value = false) }
     var showSetPinDialog by remember { mutableStateOf(value = false) }
     var showChangePinDialog by remember { mutableStateOf(value = false) }
     var showDisablePinDialog by remember { mutableStateOf(value = false) }
@@ -199,23 +204,23 @@ fun SettingsScreen(
                 shape = RoundedCornerShape(16.dp),
                 onClick = { showLanguageDialog = true },
                 colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)),
-                modifier = Modifier.fillMaxWidth()
+                modifier = Modifier.fillMaxWidth(),
             ) {
                 Row(
                     modifier = Modifier
                         .fillMaxWidth()
                         .padding(16.dp),
                     verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.SpaceBetween
+                    horizontalArrangement = Arrangement.SpaceBetween,
                 ) {
                     Column(
                         modifier = Modifier.weight(1f),
-                        verticalArrangement = Arrangement.spacedBy(2.dp)
+                        verticalArrangement = Arrangement.spacedBy(2.dp),
                     ) {
                         Text(
                             text = stringResource(R.string.settings_language_title),
                             style = MaterialTheme.typography.bodyMedium,
-                            fontWeight = FontWeight.SemiBold
+                            fontWeight = FontWeight.SemiBold,
                         )
                         val langLabel = if (currentLangCode.isEmpty()) {
                             val sysLocale = getSystemDefaultLocale(context)
@@ -227,14 +232,14 @@ fun SettingsScreen(
                             text = langLabel,
                             style = MaterialTheme.typography.bodySmall,
                             color = MaterialTheme.colorScheme.primary,
-                            fontWeight = FontWeight.Medium
+                            fontWeight = FontWeight.Medium,
                         )
                     }
                     Icon(
                         Icons.AutoMirrored.Outlined.ArrowForwardIos,
                         contentDescription = null,
                         tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                        modifier = Modifier.size(16.dp)
+                        modifier = Modifier.size(16.dp),
                     )
                 }
             }
@@ -249,13 +254,13 @@ fun SettingsScreen(
             Card(
                 shape = RoundedCornerShape(16.dp),
                 colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)),
-                modifier = Modifier.fillMaxWidth()
+                modifier = Modifier.fillMaxWidth(),
             ) {
                 Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(14.dp)) {
                     Text(stringResource(R.string.settings_theme_mode), style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.SemiBold)
                     Row(
                         modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                        horizontalArrangement = Arrangement.spacedBy(8.dp),
                     ) {
                         ThemeMode.entries.forEach { mode ->
                             FilterChip(
@@ -270,9 +275,9 @@ fun SettingsScreen(
                                             ThemeMode.DARK -> stringResource(R.string.settings_theme_dark)
                                         },
                                         modifier = Modifier.fillMaxWidth(),
-                                        textAlign = TextAlign.Center
+                                        textAlign = TextAlign.Center,
                                     )
-                                }
+                                },
                             )
                         }
                     }
@@ -304,7 +309,7 @@ fun SettingsScreen(
                     Row(
                         modifier = Modifier.fillMaxWidth(),
                         horizontalArrangement = Arrangement.SpaceBetween,
-                        verticalAlignment = Alignment.CenterVertically
+                        verticalAlignment = Alignment.CenterVertically,
                     ) {
                         listOf(
                             AccentColor.IRIS to Brush.linearGradient(listOf(Color(0xFF8A4AF3), Color(0xFF6C5CE7))),
@@ -323,16 +328,16 @@ fun SettingsScreen(
                                     .clickable { preferences.setAccentColor(accent) }
                                     .then(
                                         if (isSelected) Modifier.border(3.dp, MaterialTheme.colorScheme.onSurface, CircleShape)
-                                        else Modifier.border(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f), CircleShape)
+                                        else Modifier.border(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f), CircleShape),
                                     ),
-                                contentAlignment = Alignment.Center
+                                contentAlignment = Alignment.Center,
                             ) {
                                 if (isSelected) {
                                     Icon(
                                         Icons.Outlined.Check,
                                         contentDescription = null,
                                         tint = Color.White,
-                                        modifier = Modifier.size(20.dp)
+                                        modifier = Modifier.size(20.dp),
                                     )
                                 }
                             }
@@ -351,7 +356,7 @@ fun SettingsScreen(
             Card(
                 shape = RoundedCornerShape(16.dp),
                 colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)),
-                modifier = Modifier.fillMaxWidth()
+                modifier = Modifier.fillMaxWidth(),
             ) {
                 Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(14.dp)) {
                     Text(stringResource(R.string.settings_corner_style), style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.SemiBold)
@@ -363,13 +368,13 @@ fun SettingsScreen(
                                 modifier = Modifier.weight(1f),
                                 selected = settings.cornerStyle == CornerStyle.SHARP,
                                 onClick = { preferences.setCornerStyle(CornerStyle.SHARP) },
-                                label = { Text(stringResource(R.string.settings_corner_sharp), modifier = Modifier.fillMaxWidth(), textAlign = TextAlign.Center) }
+                                label = { Text(stringResource(R.string.settings_corner_sharp), modifier = Modifier.fillMaxWidth(), textAlign = TextAlign.Center) },
                             )
                             FilterChip(
                                 modifier = Modifier.weight(1f),
                                 selected = settings.cornerStyle == CornerStyle.CLASSIC,
                                 onClick = { preferences.setCornerStyle(CornerStyle.CLASSIC) },
-                                label = { Text(stringResource(R.string.settings_corner_subtle), modifier = Modifier.fillMaxWidth(), textAlign = TextAlign.Center) }
+                                label = { Text(stringResource(R.string.settings_corner_subtle), modifier = Modifier.fillMaxWidth(), textAlign = TextAlign.Center) },
                             )
                         }
                         Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
@@ -377,13 +382,13 @@ fun SettingsScreen(
                                 modifier = Modifier.weight(1f),
                                 selected = settings.cornerStyle == CornerStyle.ROUNDED,
                                 onClick = { preferences.setCornerStyle(CornerStyle.ROUNDED) },
-                                label = { Text(stringResource(R.string.settings_corner_rounded), modifier = Modifier.fillMaxWidth(), textAlign = TextAlign.Center) }
+                                label = { Text(stringResource(R.string.settings_corner_rounded), modifier = Modifier.fillMaxWidth(), textAlign = TextAlign.Center) },
                             )
                             FilterChip(
                                 modifier = Modifier.weight(1f),
                                 selected = settings.cornerStyle == CornerStyle.SQUIRCLE,
                                 onClick = { preferences.setCornerStyle(CornerStyle.SQUIRCLE) },
-                                label = { Text(stringResource(R.string.settings_corner_pill), modifier = Modifier.fillMaxWidth(), textAlign = TextAlign.Center) }
+                                label = { Text(stringResource(R.string.settings_corner_pill), modifier = Modifier.fillMaxWidth(), textAlign = TextAlign.Center) },
                             )
                         }
                     }
@@ -393,7 +398,7 @@ fun SettingsScreen(
                     Text(stringResource(R.string.settings_grid_spacing), style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.SemiBold)
                     Row(
                         modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                        horizontalArrangement = Arrangement.spacedBy(8.dp),
                     ) {
                         GridSpacing.entries.forEach { spacing ->
                             FilterChip(
@@ -408,9 +413,9 @@ fun SettingsScreen(
                                             GridSpacing.RELAXED -> stringResource(R.string.settings_spacing_relaxed)
                                         },
                                         modifier = Modifier.fillMaxWidth(),
-                                        textAlign = TextAlign.Center
+                                        textAlign = TextAlign.Center,
                                     )
-                                }
+                                },
                             )
                         }
                     }
@@ -439,7 +444,7 @@ fun SettingsScreen(
                     val albumSpacingDp = (settings.gridSpacing.dp + 8).toFloat()
                     val albumPaddingDp = 12f
                     val albumAvailableWidth = (screenWidthDp - (2 * albumPaddingDp)).coerceAtLeast(100f)
-                    val minAlbumDp = maxOf(48f, ((albumAvailableWidth + albumSpacingDp) / 4.8f - albumSpacingDp).coerceAtLeast(48f))
+                    val minAlbumDp = maxOf(48f, (((albumAvailableWidth + albumSpacingDp) / 4.8f) - albumSpacingDp).coerceAtLeast(48f))
                     val maxAlbumDp = (albumAvailableWidth * 0.85f).coerceIn(200f, 420f)
                     val currentAlbumSize = settings.albumGridSize.coerceIn(minAlbumDp, maxAlbumDp)
                     val albumColumns = GridCalculations.calculateAlbumColumns(
@@ -454,42 +459,42 @@ fun SettingsScreen(
                         Triple(
                             listOf(colorScheme.primaryContainer, colorScheme.primary.copy(alpha = 0.35f)),
                             colorScheme.onPrimaryContainer,
-                            Icons.Outlined.PhotoCamera
+                            Icons.Outlined.PhotoCamera,
                         ),
                         Triple(
                             listOf(colorScheme.secondaryContainer, colorScheme.secondary.copy(alpha = 0.3f)),
                             colorScheme.onSecondaryContainer,
-                            Icons.Outlined.Landscape
+                            Icons.Outlined.Landscape,
                         ),
                         Triple(
                             listOf(colorScheme.tertiaryContainer, colorScheme.tertiary.copy(alpha = 0.35f)),
                             colorScheme.onTertiaryContainer,
-                            Icons.Outlined.Videocam
+                            Icons.Outlined.Videocam,
                         ),
                         Triple(
                             listOf(colorScheme.surfaceVariant, colorScheme.surfaceVariant.copy(alpha = 0.6f)),
                             colorScheme.onSurfaceVariant,
-                            Icons.Outlined.AutoAwesome
+                            Icons.Outlined.AutoAwesome,
                         ),
                         Triple(
                             listOf(colorScheme.inversePrimary.copy(alpha = 0.45f), colorScheme.primaryContainer),
                             colorScheme.primary,
-                            Icons.Outlined.WbSunny
+                            Icons.Outlined.WbSunny,
                         ),
                         Triple(
                             listOf(colorScheme.secondary.copy(alpha = 0.25f), colorScheme.tertiaryContainer),
                             colorScheme.onSecondaryContainer,
-                            Icons.Outlined.Folder
+                            Icons.Outlined.Folder,
                         ),
                         Triple(
                             listOf(colorScheme.tertiary.copy(alpha = 0.25f), colorScheme.primaryContainer),
                             colorScheme.onTertiaryContainer,
-                            Icons.Outlined.Image
+                            Icons.Outlined.Image,
                         ),
                         Triple(
                             listOf(colorScheme.primary.copy(alpha = 0.2f), colorScheme.secondaryContainer),
                             colorScheme.onPrimaryContainer,
-                            Icons.Outlined.PhotoAlbum
+                            Icons.Outlined.PhotoAlbum,
                         ),
                     )
 
@@ -524,7 +529,7 @@ fun SettingsScreen(
                                         verticalAlignment = Alignment.CenterVertically,
                                     ) {
                                         for (col in 0 until photoColumns) {
-                                            val index = (row * photoColumns + col) % materialYouTiles.size
+                                            val index = ((row * photoColumns) + col) % materialYouTiles.size
                                             val (gradient, tint, icon) = materialYouTiles[index]
                                             Box(
                                                 modifier = Modifier
@@ -545,7 +550,7 @@ fun SettingsScreen(
                                                             photoColumns >= 4 -> 15.dp
                                                             photoColumns >= 3 -> 18.dp
                                                             else -> 26.dp
-                                                        }
+                                                        },
                                                     ),
                                                 )
                                                 when (index) {
@@ -616,7 +621,7 @@ fun SettingsScreen(
                                             targetCols = targetCols,
                                             screenWidthDp = screenWidthDp,
                                             gridSpacingDp = photoSpacingDp,
-                                            density = density
+                                            density = density,
                                         ).coerceIn(minPhotoDp, maxPhotoDp)
                                         preferences.setPhotoGridSize(idealDp)
                                     },
@@ -637,7 +642,7 @@ fun SettingsScreen(
                         Row(
                             Modifier.fillMaxWidth().padding(horizontal = 4.dp),
                             horizontalArrangement = Arrangement.End,
-                            verticalAlignment = Alignment.CenterVertically
+                            verticalAlignment = Alignment.CenterVertically,
                         ) {
                             Surface(
                                 color = MaterialTheme.colorScheme.primaryContainer,
@@ -741,7 +746,7 @@ fun SettingsScreen(
                                             targetCols = targetCols,
                                             screenWidthDp = screenWidthDp,
                                             gridSpacingDp = settings.gridSpacing.dp.toFloat(),
-                                            density = density
+                                            density = density,
                                         ).coerceIn(minAlbumDp, maxAlbumDp)
                                         preferences.setAlbumGridSize(idealDp)
                                     },
@@ -762,7 +767,7 @@ fun SettingsScreen(
                         Row(
                             Modifier.fillMaxWidth().padding(horizontal = 4.dp),
                             horizontalArrangement = Arrangement.End,
-                            verticalAlignment = Alignment.CenterVertically
+                            verticalAlignment = Alignment.CenterVertically,
                         ) {
                             Surface(
                                 color = MaterialTheme.colorScheme.primaryContainer,
@@ -797,19 +802,20 @@ fun SettingsScreen(
             Card(
                 shape = RoundedCornerShape(16.dp),
                 colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)),
-                modifier = Modifier.fillMaxWidth()
+                modifier = Modifier.fillMaxWidth(),
             ) {
                 Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(14.dp)) {
                     SettingsSwitchRow(
                         title = stringResource(R.string.settings_show_timeline_title),
                         subtitle = stringResource(R.string.settings_show_timeline_desc),
                         checked = settings.showTimelineHeaders,
-                    ) { preferences.setShowTimelineHeaders(it) }
+                        onCheckedChange = preferences::setShowTimelineHeaders,
+                    )
 
                     AnimatedVisibility(
                         visible = settings.showTimelineHeaders,
                         enter = fadeIn() + expandVertically(),
-                        exit = fadeOut() + shrinkVertically()
+                        exit = fadeOut() + shrinkVertically(),
                     ) {
                         Column(verticalArrangement = Arrangement.spacedBy(14.dp)) {
                             HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.4f))
@@ -821,16 +827,16 @@ fun SettingsScreen(
                                     .clickable { showDateFormatDialog = true }
                                     .padding(vertical = 4.dp),
                                 verticalAlignment = Alignment.CenterVertically,
-                                horizontalArrangement = Arrangement.SpaceBetween
+                                horizontalArrangement = Arrangement.SpaceBetween,
                             ) {
                                 Column(
                                     modifier = Modifier.weight(1f),
-                                    verticalArrangement = Arrangement.spacedBy(2.dp)
+                                    verticalArrangement = Arrangement.spacedBy(2.dp),
                                 ) {
                                     Text(
                                         stringResource(R.string.settings_date_format_title),
                                         style = MaterialTheme.typography.bodyMedium,
-                                        fontWeight = FontWeight.SemiBold
+                                        fontWeight = FontWeight.SemiBold,
                                     )
                                     Text(
                                         if (settings.timelineDateFormat == TimelineDateFormat.CUSTOM) {
@@ -839,14 +845,14 @@ fun SettingsScreen(
                                             stringResource(settings.timelineDateFormat.getDisplayNameRes())
                                         },
                                         style = MaterialTheme.typography.bodySmall,
-                                        color = MaterialTheme.colorScheme.primary
+                                        color = MaterialTheme.colorScheme.primary,
                                     )
                                 }
                                 Icon(
                                     Icons.AutoMirrored.Outlined.ArrowForwardIos,
                                     contentDescription = null,
                                     tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                                    modifier = Modifier.size(16.dp)
+                                    modifier = Modifier.size(16.dp),
                                 )
                             }
 
@@ -856,7 +862,7 @@ fun SettingsScreen(
                                 title = stringResource(R.string.settings_relative_dates_title),
                                 subtitle = stringResource(R.string.settings_relative_dates_desc),
                                 checked = settings.useRelativeDates,
-                                onCheckedChange = { preferences.setUseRelativeDates(it) }
+                                onCheckedChange = preferences::setUseRelativeDates,
                             )
 
                             HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.4f))
@@ -865,13 +871,13 @@ fun SettingsScreen(
                                 title = stringResource(R.string.settings_show_day_of_week_title),
                                 subtitle = stringResource(R.string.settings_show_day_of_week_desc),
                                 checked = settings.showDayOfWeek,
-                                onCheckedChange = { preferences.setShowDayOfWeek(it) }
+                                onCheckedChange = preferences::setShowDayOfWeek,
                             )
 
                             AnimatedVisibility(
                                 visible = settings.showDayOfWeek,
                                 enter = fadeIn() + expandVertically(),
-                                exit = fadeOut() + shrinkVertically()
+                                exit = fadeOut() + shrinkVertically(),
                             ) {
                                 Column {
                                     HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.3f), modifier = Modifier.padding(bottom = 14.dp))
@@ -880,7 +886,7 @@ fun SettingsScreen(
                                         title = stringResource(R.string.settings_abbreviate_day_title),
                                         subtitle = stringResource(R.string.settings_abbreviate_day_desc),
                                         checked = settings.abbreviateDayOfWeek,
-                                        onCheckedChange = { preferences.setAbbreviateDayOfWeek(it) }
+                                        onCheckedChange = preferences::setAbbreviateDayOfWeek,
                                     )
                                 }
                             }
@@ -891,7 +897,7 @@ fun SettingsScreen(
                                 title = stringResource(R.string.settings_smart_year_title),
                                 subtitle = stringResource(R.string.settings_smart_year_desc),
                                 checked = settings.smartYearHiding,
-                                onCheckedChange = { preferences.setSmartYearHiding(it) }
+                                onCheckedChange = preferences::setSmartYearHiding,
                             )
                         }
                     }
@@ -902,7 +908,7 @@ fun SettingsScreen(
                         title = stringResource(R.string.settings_badge_duration_title),
                         subtitle = stringResource(R.string.settings_badge_duration_desc),
                         checked = settings.showVideoDurationBadge,
-                        onCheckedChange = { preferences.setShowVideoDurationBadge(it) }
+                        onCheckedChange = preferences::setShowVideoDurationBadge,
                     )
 
                     HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.4f))
@@ -911,7 +917,7 @@ fun SettingsScreen(
                         title = stringResource(R.string.settings_badge_formats_title),
                         subtitle = stringResource(R.string.settings_badge_formats_desc),
                         checked = settings.showMediaFormatBadge,
-                        onCheckedChange = { preferences.setShowMediaFormatBadge(it) }
+                        onCheckedChange = preferences::setShowMediaFormatBadge,
                     )
 
                     HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.4f))
@@ -920,7 +926,7 @@ fun SettingsScreen(
                         title = stringResource(R.string.settings_group_raw_photos_title),
                         subtitle = stringResource(R.string.settings_group_raw_photos_desc),
                         checked = settings.groupRawPhotos,
-                        onCheckedChange = { preferences.setGroupRawPhotos(it) }
+                        onCheckedChange = preferences::setGroupRawPhotos,
                     )
 
                     HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.4f))
@@ -929,7 +935,7 @@ fun SettingsScreen(
                         title = stringResource(R.string.settings_album_count_title),
                         subtitle = stringResource(R.string.settings_album_count_desc),
                         checked = settings.showAlbumCount,
-                        onCheckedChange = { preferences.setShowAlbumCount(it) }
+                        onCheckedChange = preferences::setShowAlbumCount,
                     )
                 }
             }
@@ -944,7 +950,7 @@ fun SettingsScreen(
             Card(
                 shape = RoundedCornerShape(16.dp),
                 colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)),
-                modifier = Modifier.fillMaxWidth()
+                modifier = Modifier.fillMaxWidth(),
             ) {
                 Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(14.dp)) {
                     Row(
@@ -953,28 +959,28 @@ fun SettingsScreen(
                             .clip(RoundedCornerShape(12.dp))
                             .clickable { showViewerHeaderDialog = true }
                             .padding(vertical = 4.dp),
-                        verticalAlignment = Alignment.CenterVertically
+                        verticalAlignment = Alignment.CenterVertically,
                     ) {
                         Column(
                             modifier = Modifier.weight(1f),
-                            verticalArrangement = Arrangement.spacedBy(2.dp)
+                            verticalArrangement = Arrangement.spacedBy(2.dp),
                         ) {
                             Text(
                                 stringResource(R.string.settings_viewer_header_title),
                                 style = MaterialTheme.typography.bodyMedium,
-                                fontWeight = FontWeight.SemiBold
+                                fontWeight = FontWeight.SemiBold,
                             )
                             Text(
                                 stringResource(settings.viewerHeaderStyle.getDisplayNameRes()),
                                 style = MaterialTheme.typography.bodySmall,
-                                color = MaterialTheme.colorScheme.primary
+                                color = MaterialTheme.colorScheme.primary,
                             )
                         }
                         Icon(
                             Icons.AutoMirrored.Outlined.ArrowForwardIos,
                             contentDescription = null,
                             tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                            modifier = Modifier.size(16.dp)
+                            modifier = Modifier.size(16.dp),
                         )
                     }
 
@@ -984,7 +990,7 @@ fun SettingsScreen(
                         title = stringResource(R.string.settings_autoplay_video_title),
                         subtitle = stringResource(R.string.settings_autoplay_video_desc),
                         checked = settings.autoPlayVideo,
-                        onCheckedChange = { preferences.setAutoPlayVideo(it) }
+                        onCheckedChange = preferences::setAutoPlayVideo,
                     )
 
                     HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.4f))
@@ -993,7 +999,7 @@ fun SettingsScreen(
                         title = stringResource(R.string.settings_loop_video_title),
                         subtitle = stringResource(R.string.settings_loop_video_desc),
                         checked = settings.loopVideo,
-                        onCheckedChange = { preferences.setLoopVideo(it) }
+                        onCheckedChange = preferences::setLoopVideo,
                     )
 
                     HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.4f))
@@ -1002,7 +1008,7 @@ fun SettingsScreen(
                         title = stringResource(R.string.settings_video_double_tap_zoom_title),
                         subtitle = stringResource(R.string.settings_video_double_tap_zoom_desc),
                         checked = settings.videoDoubleTapToZoom,
-                        onCheckedChange = { preferences.setVideoDoubleTapToZoom(it) }
+                        onCheckedChange = preferences::setVideoDoubleTapToZoom,
                     )
 
                     HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.4f))
@@ -1011,7 +1017,7 @@ fun SettingsScreen(
                         title = stringResource(R.string.settings_video_gesture_controls_title),
                         subtitle = stringResource(R.string.settings_video_gesture_controls_desc),
                         checked = settings.videoGestureControls,
-                        onCheckedChange = { preferences.setVideoGestureControls(it) }
+                        onCheckedChange = preferences::setVideoGestureControls,
                     )
 
                     HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.4f))
@@ -1020,7 +1026,7 @@ fun SettingsScreen(
                         title = stringResource(R.string.settings_show_user_comments_title),
                         subtitle = stringResource(R.string.settings_show_user_comments_desc),
                         checked = settings.showViewerUserComments,
-                        onCheckedChange = { preferences.setShowViewerUserComments(it) }
+                        onCheckedChange = preferences::setShowViewerUserComments,
                     )
 
                     HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.4f))
@@ -1029,7 +1035,7 @@ fun SettingsScreen(
                         title = stringResource(R.string.settings_show_filmstrip_title),
                         subtitle = stringResource(R.string.settings_show_filmstrip_desc),
                         checked = settings.showFilmstrip,
-                        onCheckedChange = { preferences.setShowFilmstrip(it) }
+                        onCheckedChange = preferences::setShowFilmstrip,
                     )
 
                     HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.4f))
@@ -1038,7 +1044,7 @@ fun SettingsScreen(
                         title = stringResource(R.string.settings_pinch_to_rotate_title),
                         subtitle = stringResource(R.string.settings_pinch_to_rotate_desc),
                         checked = settings.pinchToRotate,
-                        onCheckedChange = { preferences.setPinchToRotate(it) }
+                        onCheckedChange = preferences::setPinchToRotate,
                     )
 
                     HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.4f))
@@ -1047,13 +1053,13 @@ fun SettingsScreen(
                         title = stringResource(R.string.settings_multi_stage_zoom_title),
                         subtitle = stringResource(R.string.settings_multi_stage_zoom_desc),
                         checked = settings.multiStageZoom,
-                        onCheckedChange = { preferences.setMultiStageZoom(it) }
+                        onCheckedChange = preferences::setMultiStageZoom,
                     )
 
                     AnimatedVisibility(
                         visible = !settings.multiStageZoom,
                         enter = fadeIn() + expandVertically(),
-                        exit = fadeOut() + shrinkVertically()
+                        exit = fadeOut() + shrinkVertically(),
                     ) {
                         Column(verticalArrangement = Arrangement.spacedBy(14.dp)) {
                             HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.4f))
@@ -1061,21 +1067,21 @@ fun SettingsScreen(
                             Text(stringResource(R.string.settings_zoom_scale_title), style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.SemiBold)
                             Row(
                                 modifier = Modifier.fillMaxWidth(),
-                                horizontalArrangement = Arrangement.spacedBy(8.dp)
+                                horizontalArrangement = Arrangement.spacedBy(8.dp),
                             ) {
                                 listOf(2.0f, 2.5f, 3.0f, 4.0f).forEach { zoom ->
                                     FilterChip(
                                         modifier = Modifier.weight(1f),
                                         selected = settings.doubleTapZoomLevel == zoom,
                                         onClick = { preferences.setDoubleTapZoomLevel(zoom) },
-                                        label = { Text("${zoom}×", modifier = Modifier.fillMaxWidth(), textAlign = TextAlign.Center) }
+                                        label = { Text("${zoom}×", modifier = Modifier.fillMaxWidth(), textAlign = TextAlign.Center) },
                                     )
                                 }
                                 FilterChip(
                                     modifier = Modifier.weight(1f),
                                     selected = settings.doubleTapZoomLevel == -1.0f,
                                     onClick = { preferences.setDoubleTapZoomLevel(-1.0f) },
-                                    label = { Text("1:1", modifier = Modifier.fillMaxWidth(), textAlign = TextAlign.Center) }
+                                    label = { Text("1:1", modifier = Modifier.fillMaxWidth(), textAlign = TextAlign.Center) },
                                 )
                             }
                         }
@@ -1093,28 +1099,27 @@ fun SettingsScreen(
             Card(
                 shape = RoundedCornerShape(16.dp),
                 colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)),
-                modifier = Modifier.fillMaxWidth()
+                modifier = Modifier.fillMaxWidth(),
             ) {
                 Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(14.dp)) {
                     SettingsSwitchRow(
                         title = stringResource(R.string.setting_memories_notifications),
                         subtitle = stringResource(R.string.setting_memories_notifications_desc),
                         checked = settings.memoriesNotificationEnabled,
-                        onCheckedChange = { enabled ->
-                            preferences.setMemoriesNotificationEnabled(enabled)
-                            com.iris.gallery.MemoriesNotifications.schedule(
-                                context = context,
-                                enabled = enabled,
-                                hour = settings.memoriesNotificationHour,
-                                minute = settings.memoriesNotificationMinute
-                            )
-                        }
-                    )
+                    ) { enabled ->
+                        preferences.setMemoriesNotificationEnabled(enabled)
+                        com.iris.gallery.MemoriesNotifications.schedule(
+                            context = context,
+                            enabled = enabled,
+                            hour = settings.memoriesNotificationHour,
+                            minute = settings.memoriesNotificationMinute,
+                        )
+                    }
 
                     AnimatedVisibility(
                         visible = settings.memoriesNotificationEnabled,
                         enter = fadeIn() + expandVertically(),
-                        exit = fadeOut() + shrinkVertically()
+                        exit = fadeOut() + shrinkVertically(),
                     ) {
                         Column {
                             HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.4f), modifier = Modifier.padding(vertical = 6.dp))
@@ -1133,30 +1138,30 @@ fun SettingsScreen(
                                     .clickable { showTimePickerDialog = true }
                                     .padding(vertical = 4.dp),
                                 horizontalArrangement = Arrangement.SpaceBetween,
-                                verticalAlignment = Alignment.CenterVertically
+                                verticalAlignment = Alignment.CenterVertically,
                             ) {
                                 Column(modifier = Modifier.weight(1f).padding(end = 12.dp)) {
                                     Text(
                                         text = stringResource(R.string.setting_memories_time),
                                         style = MaterialTheme.typography.bodyLarge,
-                                        fontWeight = FontWeight.Medium
+                                        fontWeight = FontWeight.Medium,
                                     )
                                     Text(
                                         text = stringResource(R.string.setting_memories_time_desc),
                                         style = MaterialTheme.typography.bodyMedium,
-                                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                                        color = MaterialTheme.colorScheme.onSurfaceVariant,
                                     )
                                 }
                                 Surface(
                                     shape = RoundedCornerShape(8.dp),
                                     color = MaterialTheme.colorScheme.primaryContainer,
-                                    modifier = Modifier.clickable { showTimePickerDialog = true }
+                                    modifier = Modifier.clickable { showTimePickerDialog = true },
                                 ) {
                                     Text(
                                         text = formattedTime,
                                         style = MaterialTheme.typography.labelLarge,
                                         color = MaterialTheme.colorScheme.onPrimaryContainer,
-                                        modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp)
+                                        modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp),
                                     )
                                 }
                             }
@@ -1175,7 +1180,7 @@ fun SettingsScreen(
             Card(
                 shape = RoundedCornerShape(16.dp),
                 colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)),
-                modifier = Modifier.fillMaxWidth()
+                modifier = Modifier.fillMaxWidth(),
             ) {
                 Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(14.dp)) {
                     Text(stringResource(R.string.settings_navigation_tabs_title), style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.SemiBold)
@@ -1189,7 +1194,7 @@ fun SettingsScreen(
                                 onClick = {
                                     val next = !settings.showMediaTab
                                     preferences.setShowMediaTab(next)
-                                    if (!next && settings.startupTab == StartupTab.MEDIA) {
+                                    if (!next && (settings.startupTab == StartupTab.MEDIA)) {
                                         val fallback = when {
                                             settings.showAlbumsTab -> StartupTab.ALBUMS
                                             settings.showFavoritesTab -> StartupTab.FAVORITES
@@ -1199,7 +1204,7 @@ fun SettingsScreen(
                                         preferences.setStartupTab(fallback)
                                     }
                                 },
-                                label = { Text(stringResource(R.string.tab_media), modifier = Modifier.fillMaxWidth(), textAlign = TextAlign.Center) }
+                                label = { Text(stringResource(R.string.tab_media), modifier = Modifier.fillMaxWidth(), textAlign = TextAlign.Center) },
                             )
                             FilterChip(
                                 modifier = Modifier.weight(1f),
@@ -1207,7 +1212,7 @@ fun SettingsScreen(
                                 onClick = {
                                     val next = !settings.showAlbumsTab
                                     preferences.setShowAlbumsTab(next)
-                                    if (!next && settings.startupTab == StartupTab.ALBUMS) {
+                                    if (!next && (settings.startupTab == StartupTab.ALBUMS)) {
                                         val fallback = when {
                                             settings.showMediaTab -> StartupTab.MEDIA
                                             settings.showFavoritesTab -> StartupTab.FAVORITES
@@ -1217,7 +1222,7 @@ fun SettingsScreen(
                                         preferences.setStartupTab(fallback)
                                     }
                                 },
-                                label = { Text(stringResource(R.string.tab_albums), modifier = Modifier.fillMaxWidth(), textAlign = TextAlign.Center) }
+                                label = { Text(stringResource(R.string.tab_albums), modifier = Modifier.fillMaxWidth(), textAlign = TextAlign.Center) },
                             )
                         }
                         Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
@@ -1227,7 +1232,7 @@ fun SettingsScreen(
                                 onClick = {
                                     val next = !settings.showFavoritesTab
                                     preferences.setShowFavoritesTab(next)
-                                    if (!next && settings.startupTab == StartupTab.FAVORITES) {
+                                    if (!next && (settings.startupTab == StartupTab.FAVORITES)) {
                                         val fallback = when {
                                             settings.showMediaTab -> StartupTab.MEDIA
                                             settings.showAlbumsTab -> StartupTab.ALBUMS
@@ -1237,7 +1242,7 @@ fun SettingsScreen(
                                         preferences.setStartupTab(fallback)
                                     }
                                 },
-                                label = { Text(stringResource(R.string.tab_favorites), modifier = Modifier.fillMaxWidth(), textAlign = TextAlign.Center) }
+                                label = { Text(stringResource(R.string.tab_favorites), modifier = Modifier.fillMaxWidth(), textAlign = TextAlign.Center) },
                             )
                             FilterChip(
                                 modifier = Modifier.weight(1f),
@@ -1245,7 +1250,7 @@ fun SettingsScreen(
                                 onClick = {
                                     val next = !settings.showLibraryTab
                                     preferences.setShowLibraryTab(next)
-                                    if (!next && settings.startupTab == StartupTab.LIBRARY) {
+                                    if (!next && (settings.startupTab == StartupTab.LIBRARY)) {
                                         val fallback = when {
                                             settings.showMediaTab -> StartupTab.MEDIA
                                             settings.showAlbumsTab -> StartupTab.ALBUMS
@@ -1255,7 +1260,7 @@ fun SettingsScreen(
                                         preferences.setStartupTab(fallback)
                                     }
                                 },
-                                label = { Text(stringResource(R.string.tab_library), modifier = Modifier.fillMaxWidth(), textAlign = TextAlign.Center) }
+                                label = { Text(stringResource(R.string.tab_library), modifier = Modifier.fillMaxWidth(), textAlign = TextAlign.Center) },
                             )
                         }
                     }
@@ -1272,14 +1277,14 @@ fun SettingsScreen(
                                 selected = settings.startupTab == StartupTab.MEDIA,
                                 enabled = settings.showMediaTab,
                                 onClick = { preferences.setStartupTab(StartupTab.MEDIA) },
-                                label = { Text(stringResource(R.string.tab_media), modifier = Modifier.fillMaxWidth(), textAlign = TextAlign.Center) }
+                                label = { Text(stringResource(R.string.tab_media), modifier = Modifier.fillMaxWidth(), textAlign = TextAlign.Center) },
                             )
                             FilterChip(
                                 modifier = Modifier.weight(1f),
                                 selected = settings.startupTab == StartupTab.ALBUMS,
                                 enabled = settings.showAlbumsTab,
                                 onClick = { preferences.setStartupTab(StartupTab.ALBUMS) },
-                                label = { Text(stringResource(R.string.tab_albums), modifier = Modifier.fillMaxWidth(), textAlign = TextAlign.Center) }
+                                label = { Text(stringResource(R.string.tab_albums), modifier = Modifier.fillMaxWidth(), textAlign = TextAlign.Center) },
                             )
                         }
                         Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
@@ -1288,14 +1293,14 @@ fun SettingsScreen(
                                 selected = settings.startupTab == StartupTab.FAVORITES,
                                 enabled = settings.showFavoritesTab,
                                 onClick = { preferences.setStartupTab(StartupTab.FAVORITES) },
-                                label = { Text(stringResource(R.string.tab_favorites), modifier = Modifier.fillMaxWidth(), textAlign = TextAlign.Center) }
+                                label = { Text(stringResource(R.string.tab_favorites), modifier = Modifier.fillMaxWidth(), textAlign = TextAlign.Center) },
                             )
                             FilterChip(
                                 modifier = Modifier.weight(1f),
                                 selected = settings.startupTab == StartupTab.LIBRARY,
                                 enabled = settings.showLibraryTab,
                                 onClick = { preferences.setStartupTab(StartupTab.LIBRARY) },
-                                label = { Text(stringResource(R.string.tab_library), modifier = Modifier.fillMaxWidth(), textAlign = TextAlign.Center) }
+                                label = { Text(stringResource(R.string.tab_library), modifier = Modifier.fillMaxWidth(), textAlign = TextAlign.Center) },
                             )
                         }
                     }
@@ -1306,27 +1311,26 @@ fun SettingsScreen(
                         title = stringResource(R.string.settings_app_lock_title),
                         subtitle = stringResource(R.string.settings_app_lock_desc),
                         checked = settings.appLockEnabled && settings.hasPin,
-                        onCheckedChange = { isChecked ->
-                            if (isChecked) {
-                                if (settings.hasPin) {
-                                    preferences.setAppLockEnabled(enabled = true)
-                                } else {
-                                    showSetPinDialog = true
-                                }
+                    ) { isChecked ->
+                        if (isChecked) {
+                            if (settings.hasPin) {
+                                preferences.setAppLockEnabled(enabled = true)
                             } else {
-                                if (settings.hasPin) {
-                                    showDisablePinDialog = true
-                                } else {
-                                    preferences.setAppLockEnabled(enabled = false)
-                                }
+                                showSetPinDialog = true
+                            }
+                        } else {
+                            if (settings.hasPin) {
+                                showDisablePinDialog = true
+                            } else {
+                                preferences.setAppLockEnabled(enabled = false)
                             }
                         }
-                    )
+                    }
 
                     if (settings.hasPin) {
                         OutlinedButton(
                             onClick = { showChangePinDialog = true },
-                            modifier = Modifier.fillMaxWidth()
+                            modifier = Modifier.fillMaxWidth(),
                         ) {
                             Text(stringResource(R.string.settings_change_pin))
                         }
@@ -1338,7 +1342,7 @@ fun SettingsScreen(
                                 title = stringResource(R.string.settings_biometric_unlock_title),
                                 subtitle = stringResource(R.string.settings_biometric_unlock_desc),
                                 checked = settings.appLockBiometricsEnabled,
-                                onCheckedChange = { preferences.setAppLockBiometricsEnabled(it) }
+                                onCheckedChange = preferences::setAppLockBiometricsEnabled,
                             )
                         }
                     }
@@ -1349,42 +1353,42 @@ fun SettingsScreen(
                         title = stringResource(R.string.settings_hide_vault_title),
                         subtitle = stringResource(R.string.settings_hide_vault_desc),
                         checked = settings.vaultHideFromStorage,
-                        onCheckedChange = { preferences.setVaultHideFromStorage(it) }
+                        onCheckedChange = preferences::setVaultHideFromStorage,
                     )
 
-                    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R && settings.vaultHideFromStorage) {
+                    if ((Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) && settings.vaultHideFromStorage) {
                         val hasAllFiles = remember(context) { Environment.isExternalStorageManager() }
                         HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.4f))
                         Row(
                             modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp),
                             verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.SpaceBetween
+                            horizontalArrangement = Arrangement.SpaceBetween,
                         ) {
                             Column(modifier = Modifier.weight(1f).padding(end = 12.dp)) {
                                 Text(
                                     stringResource(R.string.settings_silent_vault_title),
                                     style = MaterialTheme.typography.bodyLarge,
-                                    fontWeight = FontWeight.Medium
+                                    fontWeight = FontWeight.Medium,
                                 )
                                 Text(
                                     if (hasAllFiles) stringResource(R.string.settings_silent_vault_desc_granted)
                                     else stringResource(R.string.settings_silent_vault_desc_prompt),
                                     style = MaterialTheme.typography.bodySmall,
-                                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
                                 )
                             }
                             if (hasAllFiles) {
                                 Surface(
                                     shape = CircleShape,
                                     color = MaterialTheme.colorScheme.primaryContainer,
-                                    modifier = Modifier.size(32.dp)
+                                    modifier = Modifier.size(32.dp),
                                 ) {
                                     Box(contentAlignment = Alignment.Center) {
                                         Icon(
                                             Icons.Outlined.Check,
                                             contentDescription = null,
                                             tint = MaterialTheme.colorScheme.primary,
-                                            modifier = Modifier.size(18.dp)
+                                            modifier = Modifier.size(18.dp),
                                         )
                                     }
                                 }
@@ -1401,7 +1405,7 @@ fun SettingsScreen(
                                                 }
                                             }
                                     },
-                                    contentPadding = PaddingValues(horizontal = 12.dp, vertical = 6.dp)
+                                    contentPadding = PaddingValues(horizontal = 12.dp, vertical = 6.dp),
                                 ) {
                                     Text(stringResource(R.string.action_grant), style = MaterialTheme.typography.labelMedium)
                                 }
@@ -1415,7 +1419,7 @@ fun SettingsScreen(
                         title = stringResource(R.string.settings_vault_biometric_title),
                         subtitle = stringResource(R.string.settings_vault_biometric_desc),
                         checked = settings.biometricLockEnabled,
-                        onCheckedChange = { preferences.setBiometricLockEnabled(it) }
+                        onCheckedChange = preferences::setBiometricLockEnabled,
                     )
 
                     HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.4f))
@@ -1424,7 +1428,7 @@ fun SettingsScreen(
                         title = stringResource(R.string.settings_confirm_delete_title),
                         subtitle = stringResource(R.string.settings_confirm_delete_desc),
                         checked = settings.confirmDelete,
-                        onCheckedChange = { preferences.setConfirmDelete(it) }
+                        onCheckedChange = preferences::setConfirmDelete,
                     )
 
                     HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.4f))
@@ -1433,34 +1437,34 @@ fun SettingsScreen(
                         Text(
                             stringResource(R.string.settings_delete_mode_title),
                             style = MaterialTheme.typography.bodyLarge,
-                            fontWeight = FontWeight.Medium
+                            fontWeight = FontWeight.Medium,
                         )
                         Text(
                             stringResource(R.string.settings_delete_mode_desc),
                             style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
                         )
                         Row(
                             modifier = Modifier.fillMaxWidth(),
-                            horizontalArrangement = Arrangement.spacedBy(8.dp)
+                            horizontalArrangement = Arrangement.spacedBy(8.dp),
                         ) {
                             FilterChip(
                                 modifier = Modifier.weight(1f),
                                 selected = settings.deleteMode == DeleteMode.TRASH,
                                 onClick = { preferences.setDeleteMode(DeleteMode.TRASH) },
-                                label = { Text(stringResource(R.string.settings_delete_mode_trash), modifier = Modifier.fillMaxWidth(), textAlign = TextAlign.Center, maxLines = 1, overflow = TextOverflow.Ellipsis) }
+                                label = { Text(stringResource(R.string.settings_delete_mode_trash), modifier = Modifier.fillMaxWidth(), textAlign = TextAlign.Center, maxLines = 1, overflow = TextOverflow.Ellipsis) },
                             )
                             FilterChip(
                                 modifier = Modifier.weight(1f),
                                 selected = settings.deleteMode == DeleteMode.PERMANENT,
                                 onClick = { preferences.setDeleteMode(DeleteMode.PERMANENT) },
-                                label = { Text(stringResource(R.string.settings_delete_mode_permanent), modifier = Modifier.fillMaxWidth(), textAlign = TextAlign.Center, maxLines = 1, overflow = TextOverflow.Ellipsis) }
+                                label = { Text(stringResource(R.string.settings_delete_mode_permanent), modifier = Modifier.fillMaxWidth(), textAlign = TextAlign.Center, maxLines = 1, overflow = TextOverflow.Ellipsis) },
                             )
                             FilterChip(
                                 modifier = Modifier.weight(1f),
                                 selected = settings.deleteMode == DeleteMode.ALWAYS_ASK,
                                 onClick = { preferences.setDeleteMode(DeleteMode.ALWAYS_ASK) },
-                                label = { Text(stringResource(R.string.settings_delete_mode_always_ask), modifier = Modifier.fillMaxWidth(), textAlign = TextAlign.Center, maxLines = 1, overflow = TextOverflow.Ellipsis) }
+                                label = { Text(stringResource(R.string.settings_delete_mode_always_ask), modifier = Modifier.fillMaxWidth(), textAlign = TextAlign.Center, maxLines = 1, overflow = TextOverflow.Ellipsis) },
                             )
                         }
                     }
@@ -1472,7 +1476,7 @@ fun SettingsScreen(
                             title = stringResource(R.string.settings_system_trash_title),
                             subtitle = stringResource(R.string.settings_system_trash_desc),
                             checked = settings.useSystemTrash,
-                            onCheckedChange = { preferences.setUseSystemTrash(it) }
+                            onCheckedChange = preferences::setUseSystemTrash,
                         )
                     }
 
@@ -1482,34 +1486,34 @@ fun SettingsScreen(
                         Text(
                             stringResource(R.string.settings_preferred_editor_title),
                             style = MaterialTheme.typography.bodyLarge,
-                            fontWeight = FontWeight.Medium
+                            fontWeight = FontWeight.Medium,
                         )
                         Text(
                             stringResource(R.string.settings_preferred_editor_desc),
                             style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
                         )
                         Row(
                             modifier = Modifier.fillMaxWidth(),
-                            horizontalArrangement = Arrangement.spacedBy(8.dp)
+                            horizontalArrangement = Arrangement.spacedBy(8.dp),
                         ) {
                             FilterChip(
                                 modifier = Modifier.weight(1f),
                                 selected = settings.preferredEditor == PreferredEditor.ALWAYS_ASK,
                                 onClick = { preferences.setPreferredEditor(PreferredEditor.ALWAYS_ASK) },
-                                label = { Text(stringResource(R.string.settings_editor_always_ask), modifier = Modifier.fillMaxWidth(), textAlign = TextAlign.Center) }
+                                label = { Text(stringResource(R.string.settings_editor_always_ask), modifier = Modifier.fillMaxWidth(), textAlign = TextAlign.Center) },
                             )
                             FilterChip(
                                 modifier = Modifier.weight(1f),
                                 selected = settings.preferredEditor == PreferredEditor.BUILT_IN,
                                 onClick = { preferences.setPreferredEditor(PreferredEditor.BUILT_IN) },
-                                label = { Text(stringResource(R.string.settings_editor_builtin), modifier = Modifier.fillMaxWidth(), textAlign = TextAlign.Center) }
+                                label = { Text(stringResource(R.string.settings_editor_builtin), modifier = Modifier.fillMaxWidth(), textAlign = TextAlign.Center) },
                             )
                             FilterChip(
                                 modifier = Modifier.weight(1f),
                                 selected = settings.preferredEditor == PreferredEditor.EXTERNAL,
                                 onClick = { preferences.setPreferredEditor(PreferredEditor.EXTERNAL) },
-                                label = { Text(stringResource(R.string.settings_editor_external), modifier = Modifier.fillMaxWidth(), textAlign = TextAlign.Center) }
+                                label = { Text(stringResource(R.string.settings_editor_external), modifier = Modifier.fillMaxWidth(), textAlign = TextAlign.Center) },
                             )
                         }
                     }
@@ -1520,7 +1524,7 @@ fun SettingsScreen(
                         title = stringResource(R.string.settings_editor_overwrite_title),
                         subtitle = stringResource(R.string.settings_editor_overwrite_desc),
                         checked = settings.editorOverwriteOriginal,
-                        onCheckedChange = { preferences.setEditorOverwriteOriginal(it) }
+                        onCheckedChange = preferences::setEditorOverwriteOriginal,
                     )
 
                     HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.4f))
@@ -1532,46 +1536,252 @@ fun SettingsScreen(
                             .clickable { showSecureSharingDialog = true }
                             .padding(vertical = 4.dp),
                         verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.SpaceBetween
+                        horizontalArrangement = Arrangement.SpaceBetween,
                     ) {
                         Column(
                             modifier = Modifier.weight(1f).padding(end = 12.dp),
-                            verticalArrangement = Arrangement.spacedBy(4.dp)
+                            verticalArrangement = Arrangement.spacedBy(4.dp),
                         ) {
                             Row(
                                 verticalAlignment = Alignment.CenterVertically,
-                                horizontalArrangement = Arrangement.spacedBy(8.dp)
+                                horizontalArrangement = Arrangement.spacedBy(8.dp),
                             ) {
                                 Icon(
                                     Icons.Outlined.Security,
                                     contentDescription = null,
                                     tint = if (settings.secureSharingMode != SecureSharingMode.OFF) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant,
-                                    modifier = Modifier.size(20.dp)
+                                    modifier = Modifier.size(20.dp),
                                 )
                                 Text(
                                     stringResource(R.string.settings_secure_sharing_title),
                                     style = MaterialTheme.typography.bodyLarge,
-                                    fontWeight = FontWeight.Medium
+                                    fontWeight = FontWeight.Medium,
                                 )
                             }
                             Text(
                                 stringResource(settings.secureSharingMode.getTitleRes()),
                                 style = MaterialTheme.typography.bodyMedium,
                                 color = if (settings.secureSharingMode != SecureSharingMode.OFF) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant,
-                                fontWeight = FontWeight.SemiBold
+                                fontWeight = FontWeight.SemiBold,
                             )
                             Text(
                                 stringResource(settings.secureSharingMode.getDescriptionRes()),
                                 style = MaterialTheme.typography.bodySmall,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
                             )
                         }
                         Icon(
                             Icons.AutoMirrored.Outlined.ArrowForwardIos,
                             contentDescription = null,
                             tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                            modifier = Modifier.size(16.dp)
+                            modifier = Modifier.size(16.dp),
                         )
+                    }
+                }
+            }
+        }
+
+        // Section: AI & Search / Künstliche Intelligenz (KI)
+        item {
+            SettingsSectionHeader(Icons.Outlined.AutoAwesome, stringResource(R.string.settings_section_ai))
+        }
+
+        item {
+            Card(
+                shape = RoundedCornerShape(16.dp),
+                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)),
+                modifier = Modifier.fillMaxWidth(),
+            ) {
+                Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(16.dp)) {
+                    // Master switch: AI Search
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                    ) {
+                        Column(modifier = Modifier.weight(1f)) {
+                            Text(
+                                text = stringResource(R.string.settings_ai_search_title),
+                                style = MaterialTheme.typography.bodyMedium,
+                                fontWeight = FontWeight.SemiBold,
+                            )
+                            Text(
+                                text = stringResource(R.string.settings_ai_search_desc),
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            )
+                        }
+                        Spacer(Modifier.width(8.dp))
+                        Switch(
+                            checked = settings.aiSearchEnabled,
+                            onCheckedChange = preferences::setAiSearchEnabled,
+                        )
+                    }
+
+                    if (settings.aiSearchEnabled) {
+                        HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f))
+
+                        // Switch: OCR
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                        ) {
+                            Column(modifier = Modifier.weight(1f)) {
+                                Text(
+                                    text = stringResource(R.string.settings_ai_ocr_title),
+                                    style = MaterialTheme.typography.bodyMedium,
+                                    fontWeight = FontWeight.SemiBold,
+                                )
+                                Text(
+                                    text = stringResource(R.string.settings_ai_ocr_desc),
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                )
+                            }
+                            Spacer(Modifier.width(8.dp))
+                            Switch(
+                                checked = settings.aiOcrEnabled,
+                                onCheckedChange = preferences::setAiOcrEnabled,
+                            )
+                        }
+
+                        HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f))
+
+                        // Switch: Object & Scene Labeling
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                        ) {
+                            Column(modifier = Modifier.weight(1f)) {
+                                Text(
+                                    text = stringResource(R.string.settings_ai_labeling_title),
+                                    style = MaterialTheme.typography.bodyMedium,
+                                    fontWeight = FontWeight.SemiBold,
+                                )
+                                Text(
+                                    text = stringResource(R.string.settings_ai_labeling_desc),
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                )
+                            }
+                            Spacer(Modifier.width(8.dp))
+                            Switch(
+                                checked = settings.aiLabelingEnabled,
+                                onCheckedChange = preferences::setAiLabelingEnabled,
+                            )
+                        }
+
+                        HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f))
+
+                        // Slider: Confidence Threshold
+                        Column(modifier = Modifier.fillMaxWidth()) {
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.SpaceBetween,
+                                verticalAlignment = Alignment.CenterVertically,
+                            ) {
+                                Text(
+                                    text = stringResource(R.string.settings_ai_confidence_title),
+                                    style = MaterialTheme.typography.bodyMedium,
+                                    fontWeight = FontWeight.SemiBold,
+                                )
+                                Text(
+                                    text = "${(settings.aiConfidenceThreshold * 100).toInt()}%",
+                                    style = MaterialTheme.typography.bodyMedium,
+                                    fontWeight = FontWeight.Bold,
+                                    color = MaterialTheme.colorScheme.primary,
+                                )
+                            }
+                            Text(
+                                text = stringResource(R.string.settings_ai_confidence_desc, (settings.aiConfidenceThreshold * 100).toInt()),
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            )
+                            Spacer(Modifier.height(4.dp))
+                            Slider(
+                                value = settings.aiConfidenceThreshold,
+                                onValueChange = { preferences.setAiConfidenceThreshold((it * 20).roundToInt() / 20f) },
+                                valueRange = 0.50f..0.90f,
+                                steps = 7,
+                            )
+                        }
+
+                        HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f))
+
+                        // Switch: Show AI info in photo details sheet
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                        ) {
+                            Column(modifier = Modifier.weight(1f)) {
+                                Text(
+                                    text = stringResource(R.string.settings_ai_info_in_details_title),
+                                    style = MaterialTheme.typography.bodyMedium,
+                                    fontWeight = FontWeight.SemiBold,
+                                )
+                                Text(
+                                    text = stringResource(R.string.settings_ai_info_in_details_desc),
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                )
+                            }
+                            Spacer(Modifier.width(8.dp))
+                            Switch(
+                                checked = settings.aiInfoInDetailsEnabled,
+                                onCheckedChange = preferences::setAiInfoInDetailsEnabled,
+                            )
+                        }
+
+                        HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f))
+
+                        // Status info: indexed count or indexing in progress
+                        Column(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .background(MaterialTheme.colorScheme.surfaceContainerHighest.copy(alpha = 0.4f), RoundedCornerShape(12.dp))
+                                .padding(12.dp),
+                            verticalArrangement = Arrangement.spacedBy(6.dp),
+                        ) {
+                            if (indexingStatus.isIndexing && (indexingStatus.totalCount > 0)) {
+                                Row(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    horizontalArrangement = Arrangement.SpaceBetween,
+                                    verticalAlignment = Alignment.CenterVertically,
+                                ) {
+                                    Text(
+                                        text = stringResource(R.string.settings_ai_indexing_status, indexingStatus.indexedCount, indexingStatus.totalCount),
+                                        style = MaterialTheme.typography.bodySmall,
+                                        fontWeight = FontWeight.Medium,
+                                        color = MaterialTheme.colorScheme.primary,
+                                    )
+                                }
+                                LinearProgressIndicator(
+                                    progress = {
+                                        (indexingStatus.indexedCount.toFloat() / indexingStatus.totalCount.toFloat()).coerceIn(0f, 1f)
+                                    },
+                                    modifier = Modifier.fillMaxWidth(),
+                                )
+                            } else {
+                                Text(
+                                    text = stringResource(R.string.settings_ai_indexed_status, indexedPhotosCount),
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                )
+                            }
+                        }
+
+                        // Reindex Button
+                        OutlinedButton(
+                            onClick = { showReindexDialog = true },
+                            modifier = Modifier.fillMaxWidth(),
+                        ) {
+                            Icon(Icons.Outlined.RestartAlt, contentDescription = null)
+                            Spacer(Modifier.width(8.dp))
+                            Text(stringResource(R.string.settings_ai_reindex_title))
+                        }
                     }
                 }
             }
@@ -1586,12 +1796,12 @@ fun SettingsScreen(
             Card(
                 shape = RoundedCornerShape(16.dp),
                 colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)),
-                modifier = Modifier.fillMaxWidth()
+                modifier = Modifier.fillMaxWidth(),
             ) {
                 Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
                     OutlinedButton(
                         onClick = onRescanMedia,
-                        modifier = Modifier.fillMaxWidth()
+                        modifier = Modifier.fillMaxWidth(),
                     ) {
                         Icon(Icons.Outlined.Refresh, contentDescription = null)
                         Spacer(Modifier.width(8.dp))
@@ -1600,7 +1810,7 @@ fun SettingsScreen(
 
                     OutlinedButton(
                         onClick = { showExcludedFoldersDialog = true },
-                        modifier = Modifier.fillMaxWidth()
+                        modifier = Modifier.fillMaxWidth(),
                     ) {
                         Icon(Icons.Outlined.FolderOff, contentDescription = null)
                         Spacer(Modifier.width(8.dp))
@@ -1609,7 +1819,7 @@ fun SettingsScreen(
 
                     OutlinedButton(
                         onClick = ::clearCache,
-                        modifier = Modifier.fillMaxWidth()
+                        modifier = Modifier.fillMaxWidth(),
                     ) {
                         Icon(Icons.Outlined.CleaningServices, contentDescription = null)
                         Spacer(Modifier.width(8.dp))
@@ -1618,7 +1828,7 @@ fun SettingsScreen(
 
                     OutlinedButton(
                         onClick = { showResetDialog = true },
-                        modifier = Modifier.fillMaxWidth()
+                        modifier = Modifier.fillMaxWidth(),
                     ) {
                         Icon(Icons.Outlined.RestartAlt, contentDescription = null)
                         Spacer(Modifier.width(8.dp))
@@ -1638,32 +1848,32 @@ fun SettingsScreen(
                 shape = RoundedCornerShape(16.dp),
                 onClick = onOpenAbout,
                 colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)),
-                modifier = Modifier.fillMaxWidth()
+                modifier = Modifier.fillMaxWidth(),
             ) {
                 Row(
                     modifier = Modifier
                         .fillMaxWidth()
                         .padding(16.dp),
                     horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment = Alignment.CenterVertically
+                    verticalAlignment = Alignment.CenterVertically,
                 ) {
                     Column(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(3.dp)) {
                         Text(
                             stringResource(R.string.library_about_title),
                             style = MaterialTheme.typography.titleMedium,
-                            fontWeight = FontWeight.SemiBold
+                            fontWeight = FontWeight.SemiBold,
                         )
                         Text(
                             stringResource(R.string.library_about_subtitle),
                             style = MaterialTheme.typography.bodyMedium,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
                         )
                     }
                     Icon(
                         Icons.AutoMirrored.Outlined.ArrowForwardIos,
                         contentDescription = null,
                         tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                        modifier = Modifier.size(16.dp)
+                        modifier = Modifier.size(16.dp),
                     )
                 }
             }
@@ -1674,35 +1884,54 @@ fun SettingsScreen(
     if (showSetPinDialog) {
         PinSetupBottomSheet(
             onDismiss = { showSetPinDialog = false },
-            onPinConfirmed = { pin ->
-                preferences.setPin(pin)
-                showSetPinDialog = false
-                Toast.makeText(context, context.applicationContext.getString(R.string.toast_pin_enabled), Toast.LENGTH_SHORT).show()
-            }
-        )
+        ) { pin ->
+            preferences.setPin(pin)
+            showSetPinDialog = false
+            Toast.makeText(context, context.applicationContext.getString(R.string.toast_pin_enabled), Toast.LENGTH_SHORT).show()
+        }
     }
 
     if (showChangePinDialog) {
         PinChangeBottomSheet(
             onDismiss = { showChangePinDialog = false },
-            onVerifyOldPin = { pin -> preferences.verifyPin(pin) },
-            onNewPinConfirmed = { pin ->
-                preferences.setPin(pin)
-                showChangePinDialog = false
-                Toast.makeText(context, context.applicationContext.getString(R.string.toast_pin_changed), Toast.LENGTH_SHORT).show()
-            }
-        )
+            onVerifyOldPin = preferences::verifyPin,
+        ) { pin ->
+            preferences.setPin(pin)
+            showChangePinDialog = false
+            Toast.makeText(context, context.applicationContext.getString(R.string.toast_pin_changed), Toast.LENGTH_SHORT).show()
+        }
     }
 
     if (showDisablePinDialog) {
         PinDisableBottomSheet(
             onDismiss = { showDisablePinDialog = false },
-            onVerifyPin = { pin -> preferences.verifyPin(pin) },
-            onSuccess = {
-                preferences.removePin()
-                showDisablePinDialog = false
-                Toast.makeText(context, context.applicationContext.getString(R.string.toast_pin_disabled), Toast.LENGTH_SHORT).show()
-            }
+            onVerifyPin = preferences::verifyPin,
+        ) {
+            preferences.removePin()
+            showDisablePinDialog = false
+            Toast.makeText(context, context.applicationContext.getString(R.string.toast_pin_disabled), Toast.LENGTH_SHORT).show()
+        }
+    }
+
+    if (showReindexDialog) {
+        AlertDialog(
+            onDismissRequest = { showReindexDialog = false },
+            title = { Text(stringResource(R.string.settings_ai_reindex_dialog_title)) },
+            text = { Text(stringResource(R.string.settings_ai_reindex_dialog_msg)) },
+            confirmButton = {
+                Button(
+                    onClick = {
+                        showReindexDialog = false
+                        onReindexPhotos()
+                        Toast.makeText(context, context.applicationContext.getString(R.string.settings_ai_reindex_started), Toast.LENGTH_SHORT).show()
+                    },
+                ) {
+                    Text(stringResource(R.string.settings_ai_reindex_title))
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { showReindexDialog = false }) { Text(stringResource(R.string.action_cancel)) }
+            },
         )
     }
 
@@ -1717,14 +1946,14 @@ fun SettingsScreen(
                         preferences.resetToDefaults()
                         showResetDialog = false
                         Toast.makeText(context, context.applicationContext.getString(R.string.toast_settings_reset), Toast.LENGTH_SHORT).show()
-                    }
+                    },
                 ) {
                     Text(stringResource(R.string.settings_reset_confirm))
                 }
             },
             dismissButton = {
                 TextButton(onClick = { showResetDialog = false }) { Text(stringResource(R.string.action_cancel)) }
-            }
+            },
         )
     }
 
@@ -1732,11 +1961,10 @@ fun SettingsScreen(
         LanguageSelectionBottomSheet(
             currentLanguageCode = settings.language,
             onDismiss = { showLanguageDialog = false },
-            onLanguageSelected = { code ->
-                preferences.setLanguage(code)
-                setAppLanguage(context, code)
-            }
-        )
+        ) { code ->
+            preferences.setLanguage(code)
+            setAppLanguage(context, code)
+        }
     }
 
     if (showDateFormatDialog) {
@@ -1746,12 +1974,8 @@ fun SettingsScreen(
             showDayOfWeek = settings.showDayOfWeek,
             abbreviateDayOfWeek = settings.abbreviateDayOfWeek,
             onDismiss = { showDateFormatDialog = false },
-            onFormatSelected = { format ->
-                preferences.setTimelineDateFormat(format)
-            },
-            onCustomPatternChange = { pattern ->
-                preferences.setCustomTimelineDateFormat(pattern)
-            }
+            onFormatSelected = preferences::setTimelineDateFormat,
+            onCustomPatternChange = preferences::setCustomTimelineDateFormat,
         )
     }
 
@@ -1761,15 +1985,9 @@ fun SettingsScreen(
             showPageCount = settings.showViewerPageCount,
             showTime = settings.showViewerTime,
             onDismiss = { showViewerHeaderDialog = false },
-            onStyleSelected = { style ->
-                preferences.setViewerHeaderStyle(style)
-            },
-            onShowPageCountChange = { show ->
-                preferences.setShowViewerPageCount(show)
-            },
-            onShowTimeChange = { show ->
-                preferences.setShowViewerTime(show)
-            }
+            onStyleSelected = preferences::setViewerHeaderStyle,
+            onShowPageCountChange = preferences::setShowViewerPageCount,
+            onShowTimeChange = preferences::setShowViewerTime,
         )
     }
 
@@ -1778,7 +1996,7 @@ fun SettingsScreen(
         val timePickerState = rememberTimePickerState(
             initialHour = settings.memoriesNotificationHour,
             initialMinute = settings.memoriesNotificationMinute,
-            is24Hour = is24Hour
+            is24Hour = is24Hour,
         )
         AlertDialog(
             onDismissRequest = { showTimePickerDialog = false },
@@ -1807,11 +2025,11 @@ fun SettingsScreen(
             text = {
                 Box(
                     modifier = Modifier.fillMaxWidth(),
-                    contentAlignment = Alignment.Center
+                    contentAlignment = Alignment.Center,
                 ) {
                     TimePicker(state = timePickerState)
                 }
-            }
+            },
         )
     }
 
@@ -1823,7 +2041,7 @@ fun SettingsScreen(
                     Icons.Outlined.Security,
                     contentDescription = null,
                     tint = MaterialTheme.colorScheme.primary,
-                    modifier = Modifier.size(28.dp)
+                    modifier = Modifier.size(28.dp),
                 )
             },
             title = { Text(stringResource(R.string.settings_secure_sharing_title)) },
@@ -1833,7 +2051,7 @@ fun SettingsScreen(
                         stringResource(R.string.settings_secure_sharing_desc),
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        modifier = Modifier.padding(bottom = 4.dp)
+                        modifier = Modifier.padding(bottom = 4.dp),
                     )
                     SecureSharingMode.entries.forEach { mode ->
                         val isSelected = settings.secureSharingMode == mode
@@ -1848,7 +2066,7 @@ fun SettingsScreen(
                             else MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.25f),
                             border = BorderStroke(
                                 width = if (isSelected) 1.5.dp else 0.5.dp,
-                                color = if (isSelected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.4f)
+                                color = if (isSelected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.4f),
                             ),
                             modifier = Modifier
                                 .fillMaxWidth()
@@ -1856,30 +2074,30 @@ fun SettingsScreen(
                                 .clickable {
                                     preferences.setSecureSharingMode(mode)
                                     showSecureSharingDialog = false
-                                }
+                                },
                         ) {
                             Row(
                                 modifier = Modifier.padding(horizontal = 12.dp, vertical = 10.dp),
                                 verticalAlignment = Alignment.CenterVertically,
-                                horizontalArrangement = Arrangement.spacedBy(12.dp)
+                                horizontalArrangement = Arrangement.spacedBy(12.dp),
                             ) {
                                 Icon(
                                     modeIcon,
                                     contentDescription = null,
                                     tint = if (isSelected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant,
-                                    modifier = Modifier.size(22.dp)
+                                    modifier = Modifier.size(22.dp),
                                 )
                                 Column(modifier = Modifier.weight(1f)) {
                                     Text(
                                         stringResource(mode.getTitleRes()),
                                         style = MaterialTheme.typography.bodyMedium,
                                         fontWeight = if (isSelected) FontWeight.Bold else FontWeight.SemiBold,
-                                        color = if (isSelected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurface
+                                        color = if (isSelected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurface,
                                     )
                                     Text(
                                         stringResource(mode.getDescriptionRes()),
                                         style = MaterialTheme.typography.bodySmall,
-                                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                                        color = MaterialTheme.colorScheme.onSurfaceVariant,
                                     )
                                 }
                                 RadioButton(
@@ -1887,7 +2105,7 @@ fun SettingsScreen(
                                     onClick = {
                                         preferences.setSecureSharingMode(mode)
                                         showSecureSharingDialog = false
-                                    }
+                                    },
                                 )
                             }
                         }
@@ -1895,10 +2113,12 @@ fun SettingsScreen(
                 }
             },
             confirmButton = {
-                TextButton(onClick = { showSecureSharingDialog = false }) {
+                TextButton(
+                    onClick = { showSecureSharingDialog = false },
+                ) {
                     Text(stringResource(R.string.action_done_editing))
                 }
-            }
+            },
         )
     }
 
@@ -1908,8 +2128,7 @@ fun SettingsScreen(
             availableAlbums = availableAlbums,
             onRemoveExcludedFolder = onRemoveExcludedFolder,
             onAddExcludedFolder = onAddExcludedFolder,
-            onDismissRequest = { showExcludedFoldersDialog = false }
-        )
+        ) { showExcludedFoldersDialog = false }
     }
 }
 
@@ -1925,7 +2144,7 @@ private fun getPathFromTreeUri(uri: Uri): String? {
         }
     }
     if (docId.isBlank()) return null
-    if (authority == "com.android.externalstorage.documents" || authority.endsWith(".documents")) {
+    if ((authority == "com.android.externalstorage.documents") || authority.endsWith(".documents")) {
         val split = docId.split(":")
         val type = split.getOrNull(0).orEmpty()
         val relPath = if (split.size > 1) split[1].removePrefix("/") else ""
@@ -1955,11 +2174,11 @@ fun ExcludedFoldersDialog(
     onDismissRequest: () -> Unit,
 ) {
     val context = LocalContext.current
-    var showChooserDialog by remember { mutableStateOf(false) }
-    var showAlbumPickerDialog by remember { mutableStateOf(false) }
+    var showChooserDialog by remember { mutableStateOf(value = false) }
+    var showAlbumPickerDialog by remember { mutableStateOf(value = false) }
 
     val openDocumentTreeLauncher = rememberLauncherForActivityResult(
-        contract = ActivityResultContracts.OpenDocumentTree()
+        contract = ActivityResultContracts.OpenDocumentTree(),
     ) { uri: Uri? ->
         if (uri != null) {
             val resolved = getPathFromTreeUri(uri)
@@ -1984,13 +2203,13 @@ fun ExcludedFoldersDialog(
             } else {
                 LazyColumn(
                     verticalArrangement = Arrangement.spacedBy(8.dp),
-                    modifier = Modifier.fillMaxWidth().heightIn(max = 320.dp)
+                    modifier = Modifier.fillMaxWidth().heightIn(max = 320.dp),
                 ) {
                     items(excludedFolders.toList()) { folderPath ->
                         Row(
                             modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp),
                             verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.SpaceBetween
+                            horizontalArrangement = Arrangement.SpaceBetween,
                         ) {
                             Column(Modifier.weight(1f)) {
                                 Text(folderPath.substringAfterLast('/'), style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.SemiBold)
@@ -2020,7 +2239,7 @@ fun ExcludedFoldersDialog(
             TextButton(onClick = onDismissRequest) {
                 Text(stringResource(R.string.action_done_editing))
             }
-        }
+        },
     )
 
     if (showChooserDialog) {
@@ -2037,29 +2256,29 @@ fun ExcludedFoldersDialog(
                             .clickable {
                                 showChooserDialog = false
                                 showAlbumPickerDialog = true
-                            }
+                            },
                     ) {
                         Row(
                             modifier = Modifier.padding(14.dp),
                             verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.spacedBy(12.dp)
+                            horizontalArrangement = Arrangement.spacedBy(12.dp),
                         ) {
                             Icon(
                                 Icons.Outlined.PhotoAlbum,
                                 contentDescription = null,
                                 tint = MaterialTheme.colorScheme.primary,
-                                modifier = Modifier.size(24.dp)
+                                modifier = Modifier.size(24.dp),
                             )
                             Column(modifier = Modifier.weight(1f)) {
                                 Text(
                                     stringResource(R.string.exclude_option_choose_album),
                                     style = MaterialTheme.typography.bodyMedium,
-                                    fontWeight = FontWeight.SemiBold
+                                    fontWeight = FontWeight.SemiBold,
                                 )
                                 Text(
                                     stringResource(R.string.exclude_option_choose_album_desc),
                                     style = MaterialTheme.typography.bodySmall,
-                                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
                                 )
                             }
                         }
@@ -2073,29 +2292,29 @@ fun ExcludedFoldersDialog(
                             .clickable {
                                 showChooserDialog = false
                                 openDocumentTreeLauncher.launch(null)
-                            }
+                            },
                     ) {
                         Row(
                             modifier = Modifier.padding(14.dp),
                             verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.spacedBy(12.dp)
+                            horizontalArrangement = Arrangement.spacedBy(12.dp),
                         ) {
                             Icon(
                                 Icons.Outlined.FolderOpen,
                                 contentDescription = null,
                                 tint = MaterialTheme.colorScheme.primary,
-                                modifier = Modifier.size(24.dp)
+                                modifier = Modifier.size(24.dp),
                             )
                             Column(modifier = Modifier.weight(1f)) {
                                 Text(
                                     stringResource(R.string.exclude_option_system_picker),
                                     style = MaterialTheme.typography.bodyMedium,
-                                    fontWeight = FontWeight.SemiBold
+                                    fontWeight = FontWeight.SemiBold,
                                 )
                                 Text(
                                     stringResource(R.string.exclude_option_system_picker_desc),
                                     style = MaterialTheme.typography.bodySmall,
-                                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
                                 )
                             }
                         }
@@ -2107,7 +2326,7 @@ fun ExcludedFoldersDialog(
                 TextButton(onClick = { showChooserDialog = false }) {
                     Text(stringResource(R.string.action_cancel))
                 }
-            }
+            },
         )
     }
 
@@ -2120,21 +2339,21 @@ fun ExcludedFoldersDialog(
                     Text(
                         stringResource(R.string.no_albums_to_exclude),
                         style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
                 } else {
                     LazyColumn(
                         verticalArrangement = Arrangement.spacedBy(8.dp),
-                        modifier = Modifier.fillMaxWidth().heightIn(max = 380.dp)
+                        modifier = Modifier.fillMaxWidth().heightIn(max = 380.dp),
                     ) {
-                        items(availableAlbums, key = { it.id }) { album ->
+                        items(availableAlbums, key = MediaAlbum::id) { album ->
                             val folderPath = remember(album) {
-                                album.images.firstOrNull { it.path.isNotBlank() }?.let { File(it.path).parent }
+                                album.images.firstOrNull { (_, _, path) -> path.isNotBlank() }?.let { (_, _, path) -> File(path).parent }
                                     ?: File(album.cover.path).parent
                                     ?: ""
                             }
                             val isAlreadyExcluded = remember(folderPath, excludedFolders) {
-                                folderPath.isNotBlank() && folderPath in excludedFolders
+                                folderPath.isNotBlank() && (folderPath in excludedFolders)
                             }
 
                             Card(
@@ -2143,7 +2362,7 @@ fun ExcludedFoldersDialog(
                                     containerColor = if (isAlreadyExcluded)
                                         MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.25f)
                                     else
-                                        MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)
+                                        MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f),
                                 ),
                                 modifier = Modifier
                                     .fillMaxWidth()
@@ -2154,16 +2373,16 @@ fun ExcludedFoldersDialog(
                                             Toast.makeText(context, R.string.toast_folder_excluded, Toast.LENGTH_SHORT).show()
                                             showAlbumPickerDialog = false
                                         }
-                                    }
+                                    },
                             ) {
                                 Row(
                                     modifier = Modifier.padding(8.dp),
                                     verticalAlignment = Alignment.CenterVertically,
-                                    horizontalArrangement = Arrangement.spacedBy(10.dp)
+                                    horizontalArrangement = Arrangement.spacedBy(10.dp),
                                 ) {
                                     Card(
                                         shape = RoundedCornerShape(8.dp),
-                                        modifier = Modifier.size(52.dp)
+                                        modifier = Modifier.size(52.dp),
                                     ) {
                                         MediaThumbnail(album.cover, Modifier.fillMaxSize())
                                     }
@@ -2173,7 +2392,7 @@ fun ExcludedFoldersDialog(
                                             style = MaterialTheme.typography.bodyMedium,
                                             fontWeight = FontWeight.SemiBold,
                                             maxLines = 1,
-                                            overflow = TextOverflow.Ellipsis
+                                            overflow = TextOverflow.Ellipsis,
                                         )
                                         Text(
                                             text = if (isAlreadyExcluded) {
@@ -2187,7 +2406,7 @@ fun ExcludedFoldersDialog(
                                             else
                                                 MaterialTheme.colorScheme.onSurfaceVariant,
                                             maxLines = 1,
-                                            overflow = TextOverflow.Ellipsis
+                                            overflow = TextOverflow.Ellipsis,
                                         )
                                     }
                                 }
@@ -2201,7 +2420,7 @@ fun ExcludedFoldersDialog(
                 TextButton(onClick = { showAlbumPickerDialog = false }) {
                     Text(stringResource(R.string.action_cancel))
                 }
-            }
+            },
         )
     }
 }
@@ -2213,14 +2432,14 @@ private fun SettingsSectionHeader(icon: ImageVector, title: String) {
             .fillMaxWidth()
             .padding(horizontal = 4.dp, vertical = 2.dp),
         verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(8.dp)
+        horizontalArrangement = Arrangement.spacedBy(8.dp),
     ) {
         Icon(icon, contentDescription = null, tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(20.dp))
         Text(
             title,
             style = MaterialTheme.typography.titleMedium,
             fontWeight = FontWeight.Bold,
-            color = MaterialTheme.colorScheme.primary
+            color = MaterialTheme.colorScheme.primary,
         )
     }
 }
@@ -2230,12 +2449,12 @@ private fun SettingsSwitchRow(
     title: String,
     subtitle: String,
     checked: Boolean,
-    onCheckedChange: (Boolean) -> Unit
+    onCheckedChange: (Boolean) -> Unit,
 ) {
     Row(
         modifier = Modifier.fillMaxWidth(),
         verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(12.dp)
+        horizontalArrangement = Arrangement.spacedBy(12.dp),
     ) {
         Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
             Text(title, style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.SemiBold)

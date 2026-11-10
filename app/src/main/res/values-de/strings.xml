@@ -99,7 +99,7 @@
     <string name="delete_permanent_desc">Dieses Element wird dauerhaft von deinem Gerät gelöscht. Dies kann nicht rückgängig gemacht werden.</string>
     <string name="delete_vault_desc">Dieses Element wird dauerhaft aus deinem privaten Tresor gelöscht.</string>
     <string name="prompt_free_vault_title">Tresor ohne Bestätigungsdialoge</string>
-    <string name="prompt_free_vault_desc">Durch das Gewähren von \'Vollzugriff auf Dateien\' kann Iris Gallery Fotos nahtlos in deinen privaten Tresor verschieben und verbergen, ohne dass Android jedes Mal nach einer Bestätigung fragt.\n\nIris arbeitet zu 100 % offline ohne Internetzugriff – deine Dateien verlassen dein Gerät niemals.</string>
+    <string name="prompt_free_vault_desc" formatted="false">Durch das Gewähren von \'Vollzugriff auf Dateien\' kann Iris Gallery Fotos nahtlos in deinen privaten Tresor verschieben und verbergen, ohne dass Android jedes Mal nach einer Bestätigung fragt.\n\nIris arbeitet zu 100 % offline ohne Internetzugriff – deine Dateien verlassen dein Gerät niemals.</string>
 
     <!-- Media Types & Titles -->
     <string name="format_image">Bild</string>
@@ -356,7 +356,7 @@
     <string name="about_license_name">Apache-Lizenz 2.0 (Open Source)</string>
     <string name="about_general_info">Allgemeine Informationen</string>
     <string name="about_arch_title">Architektur</string>
-    <string name="about_arch_desc">100 % Offline-First-Lokale Galerie ohne Netzwerkberechtigungen</string>
+    <string name="about_arch_desc" formatted="false">100 % Offline-First-Lokale Galerie ohne Netzwerkberechtigungen</string>
     <string name="about_ui_title">Benutzeroberfläche &amp; Design</string>
     <string name="about_ui_desc">Jetpack Compose, Material 3, dynamisches Material You &amp; AMOLED-Schwarz</string>
     <string name="about_img_engine_title">Bild-Engine</string>
@@ -430,4 +430,31 @@
     <string name="action_view_original_version">Originalfoto anzeigen</string>
     <string name="toast_switched_to_raw">RAW-Version wird angezeigt (%1$s)</string>
     <string name="toast_switched_to_original">Originalfoto wird angezeigt (%1$s)</string>
+
+    <!-- KI-Suche & Erkennung -->
+    <string name="details_section_ai">KI-Erkennung</string>
+    <string name="details_ai_analyzing">Analysiere Foto…</string>
+    <string name="details_ai_labels">Erkannte Objekte &amp; Szenen</string>
+    <string name="details_ai_ocr_text">Erkannter Text</string>
+    <string name="details_ai_ocr_copied">Text in Zwischenablage kopiert</string>
+    <string name="details_ai_no_data">Kein Text oder erkannte Objekte gefunden</string>
+
+    <string name="settings_section_ai">Künstliche Intelligenz (KI)</string>
+    <string name="settings_ai_search_title">Intelligente KI-Suche</string>
+    <string name="settings_ai_search_desc">Fotos nach erkanntem Text und Objekten komplett offline auf dem Gerät durchsuchen</string>
+    <string name="settings_ai_ocr_title">Texterkennung (OCR)</string>
+    <string name="settings_ai_ocr_desc">Texte auf Schildern, Dokumenten und Screenshots für die Suche indizieren</string>
+    <string name="settings_ai_labeling_title">Objekt- &amp; Szenenerkennung</string>
+    <string name="settings_ai_labeling_desc">Fotos nach Motiven wie Tieren, Natur, Autos oder Gebäuden kategorisieren</string>
+    <string name="settings_ai_confidence_title">Erkennungsschwelle</string>
+    <string name="settings_ai_confidence_desc">Minimale Zuverlässigkeit für Objekt-Tags (%1$d%%)</string>
+    <string name="settings_ai_info_in_details_title">KI-Info in Fotodetails anzeigen</string>
+    <string name="settings_ai_info_in_details_desc">Erkannte Objekte und Texte in den Fotodetails einblenden</string>
+    <string name="settings_ai_indexing_status">Fotos werden indexiert: %1$d / %2$d</string>
+    <string name="settings_ai_indexed_status">%1$d Fotos indexiert</string>
+    <string name="settings_ai_reindex_title">KI-Index neu aufbauen (Reindex)</string>
+    <string name="settings_ai_reindex_desc">Alle Fotos komplett neu analysieren und indexieren</string>
+    <string name="settings_ai_reindex_dialog_title">KI-Index neu aufbauen?</string>
+    <string name="settings_ai_reindex_dialog_msg">Alle bestehenden KI-Suchdaten werden gelöscht und im Hintergrund neu aufgebaut.</string>
+    <string name="settings_ai_reindex_started">Neu-Indexierung im Hintergrund gestartet</string>
 </resources>

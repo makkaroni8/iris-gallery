@@ -97,7 +97,7 @@
     <string name="delete_permanent_desc">Этот объект будет навсегда удален с вашего устройства. Это действие нельзя отменить.</string>
     <string name="delete_vault_desc">Этот объект будет навсегда удален из вашего личного хранилища.</string>
     <string name="prompt_free_vault_title">Хранилище без запросов</string>
-    <string name="prompt_free_vault_desc">Предоставление разрешения «Доступ ко всем файлам» позволяет Iris Gallery перемещать и скрывать фотографии в личном хранилище без постоянных подтверждений удаления от Android.\n\nIris работает на 100% офлайн без доступа к интернету, поэтому ваши файлы никогда не покинут устройство.</string>
+    <string name="prompt_free_vault_desc" formatted="false">Предоставление разрешения «Доступ ко всем файлам» позволяет Iris Gallery перемещать и скрывать фотографии в личном хранилище без постоянных подтверждений удаления от Android.\n\nIris работает на 100% офлайн без доступа к интернету, поэтому ваши файлы никогда не покинут устройство.</string>
 
     <!-- Media Types & Titles -->
     <string name="format_image">Изображение</string>
@@ -354,7 +354,7 @@
     <string name="about_license_name">Apache License 2.0 (Open Source)</string>
     <string name="about_general_info">Общая информация</string>
     <string name="about_arch_title">Архитектура</string>
-    <string name="about_arch_desc">100% автономная локальная галерея без разрешений на доступ к сети</string>
+    <string name="about_arch_desc" formatted="false">100% автономная локальная галерея без разрешений на доступ к сети</string>
     <string name="about_ui_title">Интерфейс и темы</string>
     <string name="about_ui_desc">Jetpack Compose, Material 3, динамический Material You и глубокий черный AMOLED</string>
     <string name="about_img_engine_title">Движок изображений</string>

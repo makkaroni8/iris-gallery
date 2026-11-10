@@ -97,7 +97,7 @@
     <string name="delete_permanent_desc">Bu öge cihazınızdan kalıcı olarak silinecektir. Bu işlem geri alınamaz.</string>
     <string name="delete_vault_desc">Bu öge gizli kasanızdan kalıcı olarak kaldırılacaktır.</string>
     <string name="prompt_free_vault_title">Onaysız Kasa</string>
-    <string name="prompt_free_vault_desc">\'Tüm Dosyalara Erişim\' izni vermek, Iris Gallery\'nin Android her seferinde silme onayı istemeden fotoğrafları sessizce gizli kasanıza taşımasına ve gizlemesine olanak tanır.\n\nIris sıfır internet erişimiyle %100 çevrimdışıdır, bu nedenle dosyalarınız asla cihazınızdan ayrılmaz.</string>
+    <string name="prompt_free_vault_desc" formatted="false">\'Tüm Dosyalara Erişim\' izni vermek, Iris Gallery\'nin Android her seferinde silme onayı istemeden fotoğrafları sessizce gizli kasanıza taşımasına ve gizlemesine olanak tanır.\n\nIris sıfır internet erişimiyle %100 çevrimdışıdır, bu nedenle dosyalarınız asla cihazınızdan ayrılmaz.</string>
 
     <!-- Media Types & Titles -->
     <string name="format_image">Görsel</string>

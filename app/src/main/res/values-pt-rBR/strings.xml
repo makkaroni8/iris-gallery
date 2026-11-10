@@ -1,8 +1,8 @@
 <?xml version="1.0" encoding="utf-8"?>
-<resources>
+<resources xmlns:tools="http://schemas.android.com/tools">
     <!-- App & General -->
     <string name="app_name">Iris Gallery</string>
-    <string name="app_description">Galeria de mídia para Android, 100% offline e inspirada em elementos botânicos</string>
+    <string name="app_description" formatted="false">Galeria de mídia para Android, 100% offline e inspirada em elementos botânicos</string>
     <string name="version_format">Versão %1$s (Build %2$d)</string>
 
     <!-- Navigation Tabs -->
@@ -91,7 +91,7 @@
 
     <!-- Dialogs -->
     <string name="empty_trash_dialog_title">Esvaziar lixeira?</string>
-    <string name="empty_trash_dialog_desc">Excluir permanentemente todos os %1$d item(ns) do dispositivo? Esta ação não pode ser desfeita.</string>
+    <string name="empty_trash_dialog_desc" tools:ignore="StringFormatCount">Excluir permanentemente todos os %1$d item(ns) do dispositivo? Esta ação não pode ser desfeita.</string>
     <string name="delete_trash_video_title">Mover vídeo para a lixeira?</string>
     <string name="delete_trash_photo_title">Mover foto para a lixeira?</string>
     <string name="delete_trash_desc">O Android solicitará confirmação para esta alteração.</string>
@@ -100,7 +100,7 @@
     <string name="delete_permanent_desc">Este item será excluído permanentemente do seu dispositivo. Esta ação não pode ser desfeita.</string>
     <string name="delete_vault_desc">Este item será removido permanentemente do seu cofre privado.</string>
     <string name="prompt_free_vault_title">Cofre sem confirmações</string>
-    <string name="prompt_free_vault_desc">Conceder \'Acesso a todos os arquivos\' permite ao Iris Gallery mover e ocultar fotos no seu cofre privado de forma silenciosa, sem que o Android peça confirmação de exclusão a cada vez.\n\nO Iris é 100% offline e não tem acesso à internet, garantindo que seus arquivos nunca saiam do dispositivo.</string>
+    <string name="prompt_free_vault_desc" formatted="false">Conceder \'Acesso a todos os arquivos\' permite ao Iris Gallery mover e ocultar fotos no seu cofre privado de forma silenciosa, sem que o Android peça confirmação de exclusão a cada vez.\n\nO Iris é 100% offline e não tem acesso à internet, garantindo que seus arquivos nunca saiam do dispositivo.</string>
 
     <!-- Media Types & Titles -->
     <string name="format_image">Imagem</string>
@@ -315,7 +315,7 @@
     <string name="action_sort">Ordenar</string>
     <string name="sort_date_desc">Mais recentes primeiro</string>
     <string name="sort_date_asc">Mais antigas primeiro</string>
-    <string name="sort_name_asc">Nome (A a Z)</string>
+    <string name="sort_name_asc" tools:ignore="Typos">Nome (A a Z)</string>
     <string name="sort_name_desc">Nome (Z a A)</string>
     <string name="sort_size_desc">Maiores primeiro</string>
     <string name="sort_size_asc">Menores primeiro</string>
@@ -497,7 +497,7 @@
     <string name="about_license_name">Apache License 2.0 (código aberto)</string>
     <string name="about_general_info">Informações gerais</string>
     <string name="about_arch_title">Arquitetura</string>
-    <string name="about_arch_desc">Galeria local 100% offline, sem nenhuma permissão de rede</string>
+    <string name="about_arch_desc" formatted="false">Galeria local 100% offline, sem nenhuma permissão de rede</string>
     <string name="about_ui_title">Interface e temas</string>
     <string name="about_ui_desc">Jetpack Compose, Material 3, Material You dinâmico e preto AMOLED</string>
     <string name="about_img_engine_title">Motor de imagem</string>

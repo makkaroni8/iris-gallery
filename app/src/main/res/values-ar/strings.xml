@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="utf-8"?>
-<resources>
+<resources xmlns:tools="http://schemas.android.com/tools">
     <!-- App & General -->
     <string name="app_name">معرض Iris</string>
     <string name="app_description">معرض وسائط أندرويد دون إنترنت، مستوحى من زهرة السوسن</string>
@@ -88,7 +88,7 @@
 
     <!-- Dialogs -->
     <string name="empty_trash_dialog_title">إفراغ سلة المهملات؟</string>
-    <string name="empty_trash_dialog_desc">حذف جميع العناصر البالغ عددها %1$d نهائياً من جهازك؟ لا يمكن التراجع عن هذا الإجراء.</string>
+    <string name="empty_trash_dialog_desc" tools:ignore="StringFormatCount">حذف جميع العناصر البالغ عددها %1$d نهائياً من جهازك؟ لا يمكن التراجع عن هذا الإجراء.</string>
     <string name="delete_trash_video_title">نقل الفيديو إلى سلة المهملات؟</string>
     <string name="delete_trash_photo_title">نقل الصورة إلى سلة المهملات؟</string>
     <string name="delete_trash_desc">سيطلب نظام أندرويد تأكيدك لتطبيق هذا التغيير.</string>
@@ -97,7 +97,7 @@
     <string name="delete_permanent_desc">سيتم حذف هذا العنصر نهائياً من جهازك. لا يمكن التراجع عن هذا الإجراء.</string>
     <string name="delete_vault_desc">سيتم حذف هذا العنصر نهائياً من خزنتك الخاصة.</string>
     <string name="prompt_free_vault_title">خزنة دون نوافذ تأكيد</string>
-    <string name="prompt_free_vault_desc">منح إذن \'الوصول إلى جميع الملفات\' يتيح لمعرض Iris نقل الصور وإخفاءها في خزنتك الخاصة بسلاسة دون أن يطلب أندرويد تأكيد الحذف في كل مرة.\n\nيعمل تطبيق Iris دون اتصال بالإنترنت بنسبة 100%، لذا لن تغادر ملفاتك جهازك أبداً.</string>
+    <string name="prompt_free_vault_desc" formatted="false">منح إذن \'الوصول إلى جميع الملفات\' يتيح لمعرض Iris نقل الصور وإخفاءها في خزنتك الخاصة بسلاسة دون أن يطلب أندرويد تأكيد الحذف في كل مرة.\n\nيعمل تطبيق Iris دون اتصال بالإنترنت بنسبة 100%، لذا لن تغادر ملفاتك جهازك أبداً.</string>
 
     <!-- Media Types & Titles -->
     <string name="format_image">صورة</string>
@@ -394,7 +394,7 @@
     <string name="about_license_name">رخصة أباتشي 2.0 (مفتوح المصدر)</string>
     <string name="about_general_info">معلومات عامة</string>
     <string name="about_arch_title">الهيكلية البرمجية</string>
-    <string name="about_arch_desc">معرض محلي يعمل دون إنترنت بنسبة 100% وبدون أي أذونات شبكة إطلاقاً</string>
+    <string name="about_arch_desc" formatted="false">معرض محلي يعمل دون إنترنت بنسبة 100% وبدون أي أذونات شبكة إطلاقاً</string>
     <string name="about_ui_title">واجهة المستخدم والسمات</string>
     <string name="about_ui_desc">مبني بـ Jetpack Compose وMaterial 3، مع دعم ألوان Material You والأسود النقي لـ AMOLED</string>
     <string name="about_img_engine_title">محرك معالجة الصور</string>

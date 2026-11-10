@@ -20,6 +20,20 @@ import com.iris.gallery.data.SettingsPreferences
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.drop
+import kotlinx.coroutines.flow.debounce
+import kotlinx.coroutines.flow.flatMapLatest
+import kotlinx.coroutines.flow.flow
+import kotlinx.coroutines.flow.SharingStarted
+import kotlinx.coroutines.flow.stateIn
+import kotlinx.coroutines.FlowPreview
+import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlin.time.Duration.Companion.milliseconds
+import kotlinx.coroutines.CancellationException
+import androidx.work.WorkInfo
+import androidx.work.WorkManager
+import com.iris.gallery.data.search.IndexingStatus
+import com.iris.gallery.data.search.PhotoIndexingWorker
+import com.iris.gallery.data.search.PhotoSearchDatabase
 import com.iris.gallery.data.DuplicateDetector
 import com.iris.gallery.data.DuplicateGroup
 import com.iris.gallery.data.ExifEditRequest
@@ -36,7 +50,6 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.withContext
 import java.io.File
 import androidx.core.content.edit
-import kotlin.time.Duration.Companion.milliseconds
 
 data class GalleryUiState(
     val loading: Boolean = false,
@@ -53,6 +66,8 @@ class GalleryViewModel(application: Application) : AndroidViewModel(application)
     private val trashRepository = TrashRepository(application)
     private val albumRepository = AlbumRepository(application)
     private val settingsPreferences = SettingsPreferences(application)
+    private val searchDatabase = PhotoSearchDatabase.getInstance(application)
+    private val searchDao = searchDatabase.photoSearchDao()
     private val preferences = application.getSharedPreferences("gallery", 0)
     private val _uiState = MutableStateFlow(GalleryUiState(images = repository.loadSnapshot(), trashed = trashRepository.trashedMedia.value))
     val uiState: StateFlow<GalleryUiState> = _uiState.asStateFlow()
@@ -62,6 +77,85 @@ class GalleryViewModel(application: Application) : AndroidViewModel(application)
     val favorites: StateFlow<Set<Long>> = _favorites.asStateFlow()
     val libraryState: StateFlow<LibraryPreferencesState> = libraryPreferences.state
     val vaultMedia: StateFlow<List<MediaImage>> = vaultRepository.vaultMedia
+
+    private val _searchQuery = MutableStateFlow("")
+
+    @OptIn(FlowPreview::class, ExperimentalCoroutinesApi::class)
+    val searchResultIds: StateFlow<Set<Long>?> = _searchQuery
+        .debounce(300.milliseconds)
+        .flatMapLatest { query ->
+            flow {
+                val trimmed = query.trim()
+                if (trimmed.isEmpty()) {
+                    emit(null)
+                } else {
+                    val clean = trimmed.replace(Regex("""['"*:]"""), " ").trim()
+                    val words = clean.split(Regex("""\s+""")).filter { it.isNotBlank() }
+                    if (words.isEmpty()) {
+                        emit(null)
+                    } else {
+                        val ftsQuery = words.joinToString(" ") { "$it*" }
+                        val matchingIds = runCatching {
+                            searchDao.searchMatchingIdsRaw(ftsQuery)
+                        }.getOrElse {
+                            runCatching { searchDao.searchMatchingIds(words.first()) }.getOrElse {
+                                searchDao.searchByLike(clean)
+                            }
+                        }.toMutableSet()
+                        runCatching {
+                            matchingIds.addAll(searchDao.searchByLike(clean))
+                        }
+                        emit(matchingIds)
+                    }
+                }
+            }
+        }
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), null)
+
+    fun setSearchQuery(query: String) {
+        _searchQuery.value = query
+    }
+
+    val indexingStatus: StateFlow<IndexingStatus> = WorkManager.getInstance(application)
+        .getWorkInfosForUniqueWorkFlow(PhotoIndexingWorker.UNIQUE_WORK_NAME)
+        .map { workInfos ->
+            val activeInfo = workInfos.firstOrNull {
+                (it.state == WorkInfo.State.RUNNING) || (it.state == WorkInfo.State.ENQUEUED)
+            }
+            if (activeInfo != null) {
+                val progress = activeInfo.progress
+                val indexed = progress.getInt(PhotoIndexingWorker.KEY_INDEXED_COUNT, 0)
+                val total = progress.getInt(PhotoIndexingWorker.KEY_TOTAL_COUNT, 0)
+                val isIndexing = progress.getBoolean(
+                    PhotoIndexingWorker.KEY_IS_INDEXING,
+                    activeInfo.state == WorkInfo.State.RUNNING,
+                )
+                IndexingStatus(
+                    isIndexing = isIndexing || ((total > 0) && (indexed < total)),
+                    indexedCount = indexed,
+                    totalCount = total,
+                )
+            } else {
+                IndexingStatus(isIndexing = false)
+            }
+        }
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), IndexingStatus())
+
+    val indexedPhotosCount: StateFlow<Int> = flow {
+        while (true) {
+            val count = runCatching { searchDao.getIndexedCount() }.getOrDefault(0)
+            emit(count)
+            delay(2000.milliseconds)
+        }
+    }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), 0)
+
+    fun reindexPhotos() {
+        viewModelScope.launch(Dispatchers.IO) {
+            searchDao.clearAll()
+            PhotoIndexingWorker.enqueue(getApplication(), force = true)
+        }
+    }
+
     private val duplicateDetector = DuplicateDetector(application)
     private var duplicateJob: Job? = null
     private val _duplicateState = MutableStateFlow(DuplicateScanState())
@@ -73,18 +167,19 @@ class GalleryViewModel(application: Application) : AndroidViewModel(application)
                 val systemTrash = if (android.os.Build.VERSION.SDK_INT >= 30) {
                     runCatching { repository.loadImages(trashed = true) }.getOrDefault(emptyList())
                 } else emptyList()
-                val combined = (trashedList + systemTrash).distinctBy { it.id }
+                val combined = (trashedList + systemTrash).distinctBy(MediaImage::id)
                 _uiState.value = _uiState.value.copy(trashed = combined)
             }
         }
         viewModelScope.launch {
-            settingsPreferences.state.map { it.useSystemTrash }.distinctUntilChanged().drop(1).collect {
+            settingsPreferences.state.map { s -> s.useSystemTrash }.distinctUntilChanged().drop(1).collect {
                 refresh(showLoading = false)
             }
         }
         viewModelScope.launch {
             // Adopt vault files that were copied but never made it into the index.
             vaultRepository.recoverOrphanedItems()
+            PhotoIndexingWorker.enqueue(application, force = true)
         }
     }
 
@@ -99,7 +194,7 @@ class GalleryViewModel(application: Application) : AndroidViewModel(application)
             }.onSuccess { groups ->
                 _duplicateState.value = DuplicateScanState(groups = groups, hasScanned = true)
             }.onFailure { error ->
-                if (error is kotlinx.coroutines.CancellationException) {
+                if (error is CancellationException) {
                     _duplicateState.value = DuplicateScanState()
                 } else _duplicateState.value = DuplicateScanState(hasScanned = true, error = error.message ?: "Scan failed")
             }
@@ -119,8 +214,8 @@ class GalleryViewModel(application: Application) : AndroidViewModel(application)
 
     suspend fun restoreFromTrash(mediaList: List<MediaImage>): List<MediaImage> {
         val result = trashRepository.restoreFromTrash(mediaList)
-        val restoredIds = result.map { it.id }.toSet()
-        val restoredPaths = result.map { it.path }.filter { it.isNotBlank() }.toSet()
+        val restoredIds = result.asSequence().map { it.id }.toSet()
+        val restoredPaths = result.asSequence().map { it.path }.filter { it.isNotBlank() }.toSet()
         repository.clearRecentMovedOrDeleted(restoredIds, restoredPaths)
         refresh()
         return result
@@ -134,9 +229,9 @@ class GalleryViewModel(application: Application) : AndroidViewModel(application)
     suspend fun moveMediaToAlbum(mediaList: List<MediaImage>, targetDir: File, targetAlbumName: String): AlbumOperationResult {
         val result = albumRepository.moveMedia(mediaList, targetDir, targetAlbumName)
         if (result.successCount > 0) {
-            val movedOldIds = result.successfulSourceMedia.map { it.id }.toSet()
-            val movedOldPaths = result.successfulSourceMedia.map { it.path }.toSet()
-            val newIds = result.movedMedia.map { it.id }.toSet()
+            val movedOldIds = result.successfulSourceMedia.asSequence().map { it.id }.toSet()
+            val movedOldPaths = result.successfulSourceMedia.asSequence().map { it.path }.toSet()
+            val newIds = result.movedMedia.asSequence().map { it.id }.toSet()
             result.successfulSourceMedia.forEach { item ->
                 ThumbnailCache.remove(item.id)
             }
@@ -162,11 +257,11 @@ class GalleryViewModel(application: Application) : AndroidViewModel(application)
         val result = albumRepository.copyMedia(mediaList, targetDir, targetAlbumName)
         if (result.successCount > 0) {
             val currentImages = _uiState.value.images
-            val updatedImages = (currentImages + result.movedMedia).distinctBy { it.path }.sortedWith(
+            val updatedImages = (currentImages + result.movedMedia).distinctBy(MediaImage::path).sortedWith(
                 compareByDescending<MediaImage> { it.dateTaken }
                     .thenByDescending { it.dateModified }
                     .thenByDescending { it.dateAdded }
-                    .thenByDescending { it.id }
+                    .thenByDescending { it.id },
             )
             _uiState.value = _uiState.value.copy(images = updatedImages)
         }
@@ -488,13 +583,13 @@ class GalleryViewModel(application: Application) : AndroidViewModel(application)
                     val systemTrash = if (android.os.Build.VERSION.SDK_INT >= 30 && settingsPreferences.state.value.useSystemTrash) {
                         try {
                             repository.loadImages(trashed = true)
-                        } catch (e: kotlinx.coroutines.CancellationException) {
+                        } catch (e: CancellationException) {
                             throw e
                         } catch (_: Exception) {
                             emptyList()
                         }
                     } else emptyList()
-                    val trashList = (internalTrash + systemTrash).distinctBy { it.id }
+                    val trashList = (internalTrash + systemTrash).distinctBy(MediaImage::id)
                     _uiState.update {
                         it.copy(
                             loading = showLoading || it.loading,
@@ -515,7 +610,7 @@ class GalleryViewModel(application: Application) : AndroidViewModel(application)
                             File(item.path).exists()
                         }
                         val combined = if (currentPending.isNotEmpty()) {
-                            (loaded + currentPending).distinctBy { it.id }.sortedWith(
+                            (loaded + currentPending).distinctBy(MediaImage::id).sortedWith(
                                 compareByDescending<MediaImage> { it.dateTaken }
                                     .thenByDescending { it.dateModified }
                                     .thenByDescending { it.dateAdded }
@@ -525,15 +620,17 @@ class GalleryViewModel(application: Application) : AndroidViewModel(application)
                             loaded
                         }
                         _uiState.update { it.copy(images = combined, loading = false, trashed = trashList, error = null) }
-                        repository.setSnapshotComplete(true)
+                        repository.setSnapshotComplete(complete = true)
+                        PhotoIndexingWorker.enqueue(getApplication(), force = true)
                         val generations = withContext(Dispatchers.IO) { repository.getGenerationByVolume() }
                         if (generations != null) {
                             lastGenerationByVolume = generations
                             repository.saveGenerationByVolume(generations)
                         }
                         if (_duplicateState.value.hasScanned) _duplicateState.value = DuplicateScanState()
+                    } catch (e: CancellationException) {
+                        throw e
                     } catch (e: Exception) {
-                        if (e is kotlinx.coroutines.CancellationException) throw e
                         android.util.Log.e("GalleryViewModel", "refresh loadImages failed", e)
                         if (_uiState.value.images.isEmpty()) {
                             _uiState.update { state -> state.copy(loading = false, error = e.message ?: "Could not load photos") }
@@ -542,8 +639,9 @@ class GalleryViewModel(application: Application) : AndroidViewModel(application)
                         }
                     }
                 }
+            } catch (e: CancellationException) {
+                throw e
             } catch (e: Exception) {
-                if (e is kotlinx.coroutines.CancellationException) throw e
                 android.util.Log.e("GalleryViewModel", "refresh overall failed", e)
                 _uiState.update { it.copy(loading = false) }
             } finally {

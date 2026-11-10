@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="utf-8"?>
-<resources>
+<resources xmlns:tools="http://schemas.android.com/tools" tools:ignore="MissingTranslation,TypographyDashes,UnusedResources">
     <!-- App & General -->
     <string name="app_name">Iris Gallery</string>
     <string name="app_description">Pure offline, botanical-inspired Android media gallery</string>
@@ -101,7 +101,7 @@
     <string name="delete_permanent_desc">This item will be permanently deleted from your device. This cannot be undone.</string>
     <string name="delete_vault_desc">This item will be permanently removed from your private vault.</string>
     <string name="prompt_free_vault_title">Prompt-Free Vault</string>
-    <string name="prompt_free_vault_desc">Granting \'All Files Access\' allows Iris Gallery to move and hide photos in your private vault silently without Android asking for delete confirmation each time.\n\nIris is 100% offline with zero internet access, so your files never leave your device.</string>
+    <string name="prompt_free_vault_desc" formatted="false">Granting \'All Files Access\' allows Iris Gallery to move and hide photos in your private vault silently without Android asking for delete confirmation each time.\n\nIris is 100% offline with zero internet access, so your files never leave your device.</string>
 
     <!-- Media Types & Titles -->
     <string name="format_image">Image</string>
@@ -504,7 +504,7 @@
     <string name="about_license_name">Apache License 2.0 (Open Source)</string>
     <string name="about_general_info">General Information</string>
     <string name="about_arch_title">Architecture</string>
-    <string name="about_arch_desc">100% Offline-first local gallery with zero network permissions</string>
+    <string name="about_arch_desc" formatted="false">100% Offline-first local gallery with zero network permissions</string>
     <string name="about_ui_title">UI &amp; Theming</string>
     <string name="about_ui_desc">Jetpack Compose, Material 3, dynamic Material You &amp; AMOLED black</string>
     <string name="about_img_engine_title">Image Engine</string>
@@ -729,4 +729,31 @@
     <string name="action_view_original_version">View standard photo</string>
     <string name="toast_switched_to_raw">Viewing RAW version (%1$s)</string>
     <string name="toast_switched_to_original">Viewing standard photo (%1$s)</string>
+
+    <!-- AI Search & Recognition -->
+    <string name="details_section_ai">AI Recognition</string>
+    <string name="details_ai_analyzing">Analyzing photo…</string>
+    <string name="details_ai_labels">Recognized Objects &amp; Scenes</string>
+    <string name="details_ai_ocr_text">Recognized Text</string>
+    <string name="details_ai_ocr_copied">Text copied to clipboard</string>
+    <string name="details_ai_no_data">No text or recognized objects found</string>
+
+    <string name="settings_section_ai">Artificial Intelligence (AI)</string>
+    <string name="settings_ai_search_title">Smart AI Search</string>
+    <string name="settings_ai_search_desc">Find photos by recognized text and objects offline on your device</string>
+    <string name="settings_ai_ocr_title">Text Recognition (OCR)</string>
+    <string name="settings_ai_ocr_desc">Scan photos for text so you can search for words on signs, receipts, or documents</string>
+    <string name="settings_ai_labeling_title">Object &amp; Scene Labeling</string>
+    <string name="settings_ai_labeling_desc">Categorize photos by content such as cars, cats, flowers, mountains, or beaches</string>
+    <string name="settings_ai_confidence_title">Confidence Threshold</string>
+    <string name="settings_ai_confidence_desc">Minimum confidence for object recognition (%1$d%%)</string>
+    <string name="settings_ai_info_in_details_title">Show AI Info in Photo Details</string>
+    <string name="settings_ai_info_in_details_desc">Display recognized objects and text when viewing photo details</string>
+    <string name="settings_ai_indexing_status">Indexing photos: %1$d / %2$d</string>
+    <string name="settings_ai_indexed_status">%1$d photos indexed</string>
+    <string name="settings_ai_reindex_title">Rebuild AI Index</string>
+    <string name="settings_ai_reindex_desc">Re-analyze all photos from scratch</string>
+    <string name="settings_ai_reindex_dialog_title">Rebuild AI Index?</string>
+    <string name="settings_ai_reindex_dialog_msg">All existing AI search index data will be reset and rebuilt in the background.</string>
+    <string name="settings_ai_reindex_started">Re-indexing started in background</string>
 </resources>

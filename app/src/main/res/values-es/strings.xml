@@ -2,7 +2,7 @@
 <resources>
     <!-- App & General -->
     <string name="app_name">Iris Gallery</string>
-    <string name="app_description">Galería multimedia para Android, 100% sin conexión e inspirada en la botánica</string>
+    <string name="app_description" formatted="false">Galería multimedia para Android, 100% sin conexión e inspirada en la botánica</string>
     <string name="version_format">Versión %1$s (Compilación %2$d)</string>
 
     <!-- Navigation Tabs -->
@@ -97,7 +97,7 @@
     <string name="delete_permanent_desc">Este elemento se eliminará permanentemente de tu dispositivo. Esta acción no se puede deshacer.</string>
     <string name="delete_vault_desc">Este elemento se eliminará permanentemente de tu bóveda privada.</string>
     <string name="prompt_free_vault_title">Bóveda sin confirmaciones</string>
-    <string name="prompt_free_vault_desc">Conceder \'Acceso a todos los archivos\' permite a Iris Gallery mover y ocultar fotos en tu bóveda privada silenciosamente sin que Android solicite confirmación de eliminación cada vez.\n\nIris funciona 100% sin conexión y sin acceso a internet, por lo que tus archivos nunca salen de tu dispositivo.</string>
+    <string name="prompt_free_vault_desc" formatted="false">Conceder \'Acceso a todos los archivos\' permite a Iris Gallery mover y ocultar fotos en tu bóveda privada silenciosamente sin que Android solicite confirmación de eliminación cada vez.\n\nIris funciona 100% sin conexión y sin acceso a internet, por lo que tus archivos nunca salen de tu dispositivo.</string>
 
     <!-- Media Types & Titles -->
     <string name="format_image">Imagen</string>
@@ -354,7 +354,7 @@
     <string name="about_license_name">Apache License 2.0 (Código abierto)</string>
     <string name="about_general_info">Información general</string>
     <string name="about_arch_title">Arquitectura</string>
-    <string name="about_arch_desc">Galería local 100% sin conexión con cero permisos de red</string>
+    <string name="about_arch_desc" formatted="false">Galería local 100% sin conexión con cero permisos de red</string>
     <string name="about_ui_title">IU &amp; Temas</string>
     <string name="about_ui_desc">Jetpack Compose, Material 3, Material You dinámico &amp; negro AMOLED</string>
     <string name="about_img_engine_title">Motor de imágenes</string>

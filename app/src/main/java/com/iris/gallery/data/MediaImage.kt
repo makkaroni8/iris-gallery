@@ -322,7 +322,7 @@ fun cleanUserComment(raw: String?): String? {
             break
         }
     }
-    text = text.trim { it <= ' ' }
+    text = text.trim()
     if (text.isBlank()) return null
 
     // Filter out OEM camera firmware internal debug dumps (e.g. "(0-0x0-0-0#)", "0-0x0-0-0#", "0x0000", etc.)

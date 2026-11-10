@@ -175,6 +175,11 @@ data class SettingsState(
     val dismissedMemoriesTip: Boolean = false,
     val secureSharingMode: SecureSharingMode = SecureSharingMode.OFF,
     val dismissedSecureSharingTip: Boolean = false,
+    val aiSearchEnabled: Boolean = true,
+    val aiOcrEnabled: Boolean = true,
+    val aiLabelingEnabled: Boolean = true,
+    val aiConfidenceThreshold: Float = 0.65f,
+    val aiInfoInDetailsEnabled: Boolean = true,
 ) {
     val hasPin: Boolean get() = appLockPinHash.isNotEmpty()
 }
@@ -258,6 +263,11 @@ class SettingsPreferences(context: Context) {
     fun setDismissedMemoriesTip(dismissed: Boolean) = update { copy(dismissedMemoriesTip = dismissed) }
     fun setSecureSharingMode(mode: SecureSharingMode) = update { copy(secureSharingMode = mode) }
     fun setDismissedSecureSharingTip(dismissed: Boolean) = update { copy(dismissedSecureSharingTip = dismissed) }
+    fun setAiSearchEnabled(enabled: Boolean) = update { copy(aiSearchEnabled = enabled) }
+    fun setAiOcrEnabled(enabled: Boolean) = update { copy(aiOcrEnabled = enabled) }
+    fun setAiLabelingEnabled(enabled: Boolean) = update { copy(aiLabelingEnabled = enabled) }
+    fun setAiConfidenceThreshold(threshold: Float) = update { copy(aiConfidenceThreshold = threshold.coerceIn(0.5f, 0.95f)) }
+    fun setAiInfoInDetailsEnabled(enabled: Boolean) = update { copy(aiInfoInDetailsEnabled = enabled) }
 
     /** PBKDF2 iteration count for new PIN hashes. */
     private val pinPbkdf2Iterations = 120_000
@@ -289,7 +299,7 @@ class SettingsPreferences(context: Context) {
             legacyHashPin(pin, current.appLockPinSalt) == stored
         }
         if (verified) {
-            if (current.appLockFailedAttempts != 0 || current.appLockLockoutUntil != 0L || !stored.startsWith("pbkdf2:")) {
+            if ((current.appLockFailedAttempts != 0) || (current.appLockLockoutUntil != 0L) || !stored.startsWith("pbkdf2:")) {
                 // Reset throttling and silently upgrade legacy hashes while the PIN is known.
                 val upgraded = if (stored.startsWith("pbkdf2:")) stored else (hashPin(pin, current.appLockPinSalt) ?: stored)
                 update {
@@ -447,6 +457,11 @@ class SettingsPreferences(context: Context) {
             dismissedMemoriesTip = prefs.getBoolean("dismissed_memories_tip", false),
             secureSharingMode = runCatching { SecureSharingMode.valueOf(prefs.getString("secure_sharing_mode", null).orEmpty()) }.getOrDefault(SecureSharingMode.OFF),
             dismissedSecureSharingTip = prefs.getBoolean("dismissed_secure_sharing_tip", false),
+            aiSearchEnabled = prefs.getBoolean("ai_search_enabled", true),
+            aiOcrEnabled = prefs.getBoolean("ai_ocr_enabled", true),
+            aiLabelingEnabled = prefs.getBoolean("ai_labeling_enabled", true),
+            aiConfidenceThreshold = prefs.getFloat("ai_confidence_threshold", 0.65f),
+            aiInfoInDetailsEnabled = prefs.getBoolean("ai_info_in_details_enabled", true),
         )
     }
 
@@ -512,6 +527,11 @@ class SettingsPreferences(context: Context) {
                 .putBoolean("dismissed_memories_tip", state.dismissedMemoriesTip)
                 .putString("secure_sharing_mode", state.secureSharingMode.name)
                 .putBoolean("dismissed_secure_sharing_tip", state.dismissedSecureSharingTip)
+                .putBoolean("ai_search_enabled", state.aiSearchEnabled)
+                .putBoolean("ai_ocr_enabled", state.aiOcrEnabled)
+                .putBoolean("ai_labeling_enabled", state.aiLabelingEnabled)
+                .putFloat("ai_confidence_threshold", state.aiConfidenceThreshold)
+                .putBoolean("ai_info_in_details_enabled", state.aiInfoInDetailsEnabled)
         }
     }
 }

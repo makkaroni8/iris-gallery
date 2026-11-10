@@ -97,7 +97,7 @@
     <string name="delete_permanent_desc">该项目将从您的设备中永久删除。此操作无法撤消。</string>
     <string name="delete_vault_desc">该项目将从您的私密相册中永久移除。</string>
     <string name="prompt_free_vault_title">免提示私密相册</string>
-    <string name="prompt_free_vault_desc">授予“所有文件访问权限”后，Iris Gallery 可以在将照片移入私密相册并隐藏时无需 Android 系统每次弹出删除确认提示。\n\nIris 是一款 100% 离线应用，完全没有网络访问权限，您的文件绝不会离开您的设备。</string>
+    <string name="prompt_free_vault_desc" formatted="false">授予“所有文件访问权限”后，Iris Gallery 可以在将照片移入私密相册并隐藏时无需 Android 系统每次弹出删除确认提示。\n\nIris 是一款 100% 离线应用，完全没有网络访问权限，您的文件绝不会离开您的设备。</string>
 
     <!-- Media Types & Titles -->
     <string name="format_image">图片</string>
@@ -374,7 +374,7 @@
     <string name="about_license_name">Apache License 2.0 (开源)</string>
     <string name="about_general_info">通用信息</string>
     <string name="about_arch_title">架构设计</string>
-    <string name="about_arch_desc">100% 离线优先的本地相册，零网络权限</string>
+    <string name="about_arch_desc" formatted="false">100% 离线优先的本地相册，零网络权限</string>
     <string name="about_ui_title">界面与主题</string>
     <string name="about_ui_desc">Jetpack Compose、Material 3、Material You 动态取色及 AMOLED 纯黑</string>
     <string name="about_img_engine_title">图像引擎</string>

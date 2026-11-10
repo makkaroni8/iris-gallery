@@ -1,7 +1,10 @@
 plugins {
     id("com.android.application")
     id("org.jetbrains.kotlin.plugin.compose")
+    id("com.google.devtools.ksp")
 }
+
+val isBuildingBundle = gradle.startParameter.taskNames.any { task: String -> task.contains("bundle", ignoreCase = true) }
 
 android {
     namespace = "com.iris.gallery"
@@ -15,6 +18,22 @@ android {
         versionName = "0.9.0"
     }
 
+    splits {
+        abi {
+            isEnable = !isBuildingBundle
+            reset()
+            include("arm64-v8a", "armeabi-v7a", "x86_64")
+            isUniversalApk = true
+        }
+    }
+
+    androidResources {
+        noCompress += listOf("tflite")
+        localeFilters += listOf(
+            "en", "ar", "de", "es", "fr", "it", "ja", "pl", "pt", "pt-rBR", "ru", "tr", "zh", "zh-rCN",
+        )
+    }
+
     buildFeatures {
         compose = true
         buildConfig = true
@@ -22,7 +41,7 @@ android {
 
     signingConfigs {
         create("debugConfig") {
-            val localKeystore = file("${rootDir}/debug.keystore")
+            val localKeystore = file("$rootDir/debug.keystore")
             storeFile = if (localKeystore.exists()) {
                 localKeystore
             } else {
@@ -54,10 +73,19 @@ android {
 
     lint {
         checkReleaseBuilds = false
+        disable += listOf("MissingTranslation", "ExtraTranslation", "TypographyDashes", "PluralsCandidate")
     }
 
     packaging {
-        resources.excludes += "/META-INF/{AL2.0,LGPL2.1}"
+        resources {
+            excludes += setOf(
+                "/META-INF/{AL2.0,LGPL2.1}",
+                "/META-INF/*.version",
+                "/META-INF/*.kotlin_module",
+                "kotlin/**",
+                "kotlintooling/**",
+            )
+        }
     }
 }
 
@@ -82,6 +110,21 @@ dependencies {
     implementation("androidx.exifinterface:exifinterface:1.4.2")
     implementation("org.aomedia.avif.android:avif:1.1.1.14d8e3c4")
 
+    // Room
+    val roomVersion = "2.8.5"
+    implementation("androidx.room:room-runtime:$roomVersion")
+    implementation("androidx.room:room-ktx:$roomVersion")
+    ksp("androidx.room:room-compiler:$roomVersion")
+
+    // ML Kit
+    implementation("com.google.mlkit:text-recognition:16.0.1")
+    implementation("com.google.mlkit:image-labeling:17.0.9")
+    implementation("org.jetbrains.kotlinx:kotlinx-coroutines-play-services:1.11.0")
+
+    // WorkManager
+    implementation("androidx.work:work-runtime-ktx:2.12.0")
+
     debugImplementation("androidx.compose.ui:ui-tooling")
     debugImplementation("androidx.compose.ui:ui-test-manifest")
 }
+

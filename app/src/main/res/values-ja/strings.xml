@@ -97,7 +97,7 @@
     <string name="delete_permanent_desc">このアイテムはお使いの端末から完全に削除されます。この操作は元に戻せません。</string>
     <string name="delete_vault_desc">このアイテムはプライベート保管庫から完全に削除されます。</string>
     <string name="prompt_free_vault_title">確認なしで保管庫を利用</string>
-    <string name="prompt_free_vault_desc">「すべてのファイルへのアクセス」を許可すると、Android の削除確認メッセージを表示することなく、写真をプライベート保管庫に移動して非表示にできます。\n\nIris は完全オフラインでインターネットアクセスを行わないため、ファイルが端末外に送信されることはありません。</string>
+    <string name="prompt_free_vault_desc" formatted="false">「すべてのファイルへのアクセス」を許可すると、Android の削除確認メッセージを表示することなく、写真をプライベート保管庫に移動して非表示にできます。\n\nIris は完全オフラインでインターネットアクセスを行わないため、ファイルが端末外に送信されることはありません。</string>
 
     <!-- Media Types & Titles -->
     <string name="format_image">画像</string>

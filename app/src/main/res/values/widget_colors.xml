@@ -3,4 +3,6 @@
     <color name="widget_accent_container">#FFEADDFF</color>
     <color name="widget_on_accent_container">#FF21005D</color>
     <string name="widget_description">A responsive Material You frame for moments from your Iris library</string>
+    <string name="widget_memory_desc">Memory from this day</string>
+    <string name="widget_next_memory_desc">Next memory</string>
 </resources>

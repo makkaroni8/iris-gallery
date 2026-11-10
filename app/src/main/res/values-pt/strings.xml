@@ -2,7 +2,7 @@
 <resources>
     <!-- App & General -->
     <string name="app_name">Iris Gallery</string>
-    <string name="app_description">Galeria de mídia para Android, 100% offline e inspirada em elementos botânicos</string>
+    <string name="app_description" formatted="false">Galeria de mídia para Android, 100% offline e inspirada em elementos botânicos</string>
     <string name="version_format">Versão %1$s (Build %2$d)</string>
 
     <!-- Navigation Tabs -->
@@ -97,7 +97,7 @@
     <string name="delete_permanent_desc">Este item será excluído permanentemente do seu dispositivo. Esta ação não pode ser desfeita.</string>
     <string name="delete_vault_desc">Este item será removido permanentemente do seu cofre privado.</string>
     <string name="prompt_free_vault_title">Cofre sem confirmações</string>
-    <string name="prompt_free_vault_desc">Conceder \'Acesso a todos os arquivos\' permite ao Iris Gallery mover e ocultar fotos no seu cofre privado de forma silenciosa, sem que o Android peça confirmação de exclusão a cada vez.\n\nO Iris é 100% offline e não tem acesso à internet, garantindo que seus arquivos nunca saiam do dispositivo.</string>
+    <string name="prompt_free_vault_desc" formatted="false">Conceder \'Acesso a todos os arquivos\' permite ao Iris Gallery mover e ocultar fotos no seu cofre privado de forma silenciosa, sem que o Android peça confirmação de exclusão a cada vez.\n\nO Iris é 100% offline e não tem acesso à internet, garantindo que seus arquivos nunca saiam do dispositivo.</string>
 
     <!-- Media Types & Titles -->
     <string name="format_image">Imagem</string>
@@ -354,7 +354,7 @@
     <string name="about_license_name">Apache License 2.0 (Código aberto)</string>
     <string name="about_general_info">Informações gerais</string>
     <string name="about_arch_title">Arquitetura</string>
-    <string name="about_arch_desc">Galeria local 100% offline com zero permissões de rede</string>
+    <string name="about_arch_desc" formatted="false">Galeria local 100% offline com zero permissões de rede</string>
     <string name="about_ui_title">Interface e temas</string>
     <string name="about_ui_desc">Jetpack Compose, Material 3, Material You dinâmico e preto AMOLED</string>
     <string name="about_img_engine_title">Motor de imagem</string>

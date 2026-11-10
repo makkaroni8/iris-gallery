@@ -6,12 +6,12 @@
         android:layout_width="match_parent" android:layout_height="match_parent">
         <ImageView android:id="@+id/widget_photo_0"
             android:layout_width="match_parent" android:layout_height="match_parent"
-            android:scaleType="fitXY" android:contentDescription="Memory from this day" />
+            android:scaleType="fitXY" android:contentDescription="@string/widget_memory_desc" />
     </FrameLayout>
     <ImageButton android:id="@+id/widget_next"
         android:layout_width="42dp" android:layout_height="42dp"
         android:layout_gravity="bottom|end" android:layout_margin="13dp"
         android:padding="10dp" android:src="@drawable/ic_widget_next"
         android:background="@drawable/widget_button_background"
-        android:contentDescription="Next memory" />
+        android:contentDescription="@string/widget_next_memory_desc" />
 </FrameLayout>

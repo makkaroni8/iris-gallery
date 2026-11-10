@@ -1,3 +1,5 @@
+@file:Suppress("Destructure")
+
 package com.iris.gallery.ui
 
 import android.Manifest
@@ -43,6 +45,7 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
+import com.iris.gallery.data.search.PhotoIndexingWorker
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
@@ -93,7 +96,7 @@ data class TrashFeedback(
     val type: TrashFeedbackType,
     val count: Int,
     val albumName: String = "",
-    val timestamp: Long = System.currentTimeMillis()
+    val timestamp: Long = System.currentTimeMillis(),
 )
 
 private fun requiredPermissions(): Array<String> = when {
@@ -136,9 +139,10 @@ private data class PendingMoveData(
     val targetDir: File,
     val targetAlbumName: String,
     val alreadyMoved: List<MediaImage>,
-    val callback: (AlbumOperationResult) -> Unit
+    val callback: (AlbumOperationResult) -> Unit,
 )
 
+@Suppress("Destructure")
 @Composable
 internal fun GalleryApp(
     settings: SettingsState,
@@ -160,6 +164,11 @@ internal fun GalleryApp(
     val permissionLauncher = rememberLauncherForActivityResult(ActivityResultContracts.RequestMultiplePermissions()) {
         permitted = hasMediaPermission(context)
     }
+    LaunchedEffect(permitted) {
+        if (permitted) {
+            PhotoIndexingWorker.enqueue(context, force = true)
+        }
+    }
     val notificationLauncher = rememberLauncherForActivityResult(ActivityResultContracts.RequestPermission()) { }
     var trashFeedback by remember { mutableStateOf<TrashFeedback?>(null) }
     var pendingPermanentDeleteMedia by remember { mutableStateOf<List<MediaImage>?>(null) }
@@ -171,8 +180,8 @@ internal fun GalleryApp(
         pendingPermanentDeleteCallback = null
         if (result.resultCode == Activity.RESULT_OK) {
             if (pending != null) {
-                val delIds = pending.map { it.id }.toSet()
-                val delPaths = pending.map { it.path }.toSet()
+                val delIds = pending.asSequence().map(MediaImage::id).toSet()
+                val delPaths = pending.asSequence().map(MediaImage::path).toSet()
                 viewModel.markMediaDeleted(delIds, delPaths)
                 trashFeedback = TrashFeedback(TrashFeedbackType.PERMANENTLY_DELETED, pending.size)
             }
@@ -184,7 +193,7 @@ internal fun GalleryApp(
     val renameLauncher = rememberLauncherForActivityResult(ActivityResultContracts.StartIntentSenderForResult()) { result ->
         val pending = pendingRename
         pendingRename = null
-        if (result.resultCode == Activity.RESULT_OK && pending != null) {
+        if ((result.resultCode == Activity.RESULT_OK) && (pending != null)) {
             val (media, newName, callback) = pending
             viewModel.renameMedia(media, newName) { updated ->
                 callback(updated)
@@ -198,14 +207,14 @@ internal fun GalleryApp(
     val metadataWriteLauncher = rememberLauncherForActivityResult(ActivityResultContracts.StartIntentSenderForResult()) {
         val pending = pendingMetadata
         pendingMetadata = null
-        if (it.resultCode == Activity.RESULT_OK && pending != null) {
+        if ((it.resultCode == Activity.RESULT_OK) && (pending != null)) {
             val (media, values, reqAndCb) = pending
             val (request, callback) = reqAndCb
             coroutineScope.launch {
                 val uri = canonicalMediaUri(context, media)
                 withContext(Dispatchers.IO) {
                     saveExifToMedia(context, uri, media.path, request)
-                    if (media.id > 0 && uri.toString().startsWith("content://media/")) {
+                    if ((media.id > 0) && uri.toString().startsWith("content://media/")) {
                         runCatching { context.contentResolver.update(uri, values, null, null) }
                     }
                 }
@@ -220,7 +229,7 @@ internal fun GalleryApp(
             pending?.third?.second?.invoke(null)
         }
     }
-    var lockedAuthorized by remember { mutableStateOf(false) }
+    var lockedAuthorized by remember { mutableStateOf(value = false) }
     var lastBackgroundTimestamp by remember { mutableLongStateOf(0L) }
     var isAppUnlocked by remember {
         mutableStateOf(!settings.appLockEnabled || !settings.hasPin || isSessionAppUnlocked)
@@ -234,7 +243,7 @@ internal fun GalleryApp(
                 if (permitted) {
                     viewModel.checkForChanges()
                 }
-                if (lastBackgroundTimestamp > 0L && System.currentTimeMillis() - lastBackgroundTimestamp > 300_000L) {
+                if ((lastBackgroundTimestamp > 0L) && ((System.currentTimeMillis() - lastBackgroundTimestamp) > 300_000L)) {
                     lockedAuthorized = false
                 }
             }
@@ -245,17 +254,21 @@ internal fun GalleryApp(
     val unlockLauncher = rememberLauncherForActivityResult(ActivityResultContracts.StartActivityForResult()) {
         lockedAuthorized = it.resultCode == Activity.RESULT_OK
     }
+    @Suppress("Destructure")
     val state by viewModel.uiState.collectAsStateWithLifecycle()
     val favorites by viewModel.favorites.collectAsStateWithLifecycle()
     val libraryState by viewModel.libraryState.collectAsStateWithLifecycle()
     val vaultMedia by viewModel.vaultMedia.collectAsStateWithLifecycle()
     val duplicateState by viewModel.duplicateState.collectAsStateWithLifecycle()
+    val searchResultIds by viewModel.searchResultIds.collectAsStateWithLifecycle()
+    val indexingStatus by viewModel.indexingStatus.collectAsStateWithLifecycle()
+    val indexedPhotosCount by viewModel.indexedPhotosCount.collectAsStateWithLifecycle()
 
     var pendingMove by remember { mutableStateOf<PendingMoveData?>(null) }
     val moveLauncher = rememberLauncherForActivityResult(ActivityResultContracts.StartIntentSenderForResult()) { result ->
         val pending = pendingMove
         pendingMove = null
-        if (result.resultCode == Activity.RESULT_OK && pending != null) {
+        if ((result.resultCode == Activity.RESULT_OK) && (pending != null)) {
             coroutineScope.launch {
                 val secondResult = viewModel.moveMediaToAlbum(pending.mediaList, pending.targetDir, pending.targetAlbumName)
                 val totalMoved = pending.alreadyMoved + secondResult.movedMedia
@@ -268,7 +281,7 @@ internal fun GalleryApp(
                     action = AlbumAction.MOVE,
                     movedMedia = totalMoved,
                     successfulSourceMedia = secondResult.successfulSourceMedia,
-                    failedMedia = secondResult.failedMedia
+                    failedMedia = secondResult.failedMedia,
                 )
                 pending.callback(combinedResult)
             }
@@ -281,7 +294,7 @@ internal fun GalleryApp(
                     action = AlbumAction.MOVE,
                     movedMedia = p.alreadyMoved,
                     successfulSourceMedia = emptyList(),
-                    failedMedia = p.mediaList
+                    failedMedia = p.mediaList,
                 )
                 p.callback(fallbackResult)
             }
@@ -294,8 +307,8 @@ internal fun GalleryApp(
         pendingVaultMove = null
         if (result.resultCode == Activity.RESULT_OK) {
             if (pending != null) {
-                val delIds = pending.originalMedia.map { it.id }.toSet()
-                val delPaths = pending.originalMedia.map { it.path }.toSet()
+                val delIds = pending.originalMedia.asSequence().map(MediaImage::id).toSet()
+                val delPaths = pending.originalMedia.asSequence().map(MediaImage::path).toSet()
                 viewModel.markMediaDeleted(delIds, delPaths)
             }
             viewModel.checkForChanges()
@@ -320,8 +333,8 @@ internal fun GalleryApp(
         pendingTrashCallback = null
         if (result.resultCode == Activity.RESULT_OK) {
             if (pending != null) {
-                val delIds = pending.originalMedia.map { it.id }.toSet()
-                val delPaths = pending.originalMedia.map { it.path }.toSet()
+                val delIds = pending.originalMedia.asSequence().map(MediaImage::id).toSet()
+                val delPaths = pending.originalMedia.asSequence().map(MediaImage::path).toSet()
                 viewModel.markMediaDeleted(delIds, delPaths)
             }
             viewModel.checkForChanges()
@@ -349,9 +362,9 @@ internal fun GalleryApp(
         pendingSystemTrashMedia = null
         pendingSystemTrashCallback = null
         pendingSystemTrashInternalMedia = null
-        if (result.resultCode == Activity.RESULT_OK && items != null) {
-            val delIds = items.map { it.id }.toSet()
-            val delPaths = items.map { it.path }.toSet()
+        if ((result.resultCode == Activity.RESULT_OK) && (items != null)) {
+            val delIds = items.asSequence().map(MediaImage::id).toSet()
+            val delPaths = items.asSequence().map(MediaImage::path).toSet()
             viewModel.markMediaDeleted(delIds, delPaths)
             viewModel.checkForChanges()
             trashFeedback = TrashFeedback(TrashFeedbackType.MOVED_TO_TRASH, items.size)
@@ -375,9 +388,9 @@ internal fun GalleryApp(
         val internalItems = pendingSystemRestoreInternalMedia
         pendingSystemRestoreMedia = null
         pendingSystemRestoreInternalMedia = null
-        if (result.resultCode == Activity.RESULT_OK && items != null) {
-            val ids = items.map { it.id }.toSet()
-            val paths = items.map { it.path }.toSet()
+        if ((result.resultCode == Activity.RESULT_OK) && (items != null)) {
+            val ids = items.asSequence().map(MediaImage::id).toSet()
+            val paths = items.asSequence().map(MediaImage::path).toSet()
             viewModel.restoreSystemTrash(ids, paths)
             val totalRestored = items.size + (internalItems?.size ?: 0)
             trashFeedback = TrashFeedback(TrashFeedbackType.RESTORED, totalRestored)
@@ -394,7 +407,7 @@ internal fun GalleryApp(
     var standaloneEditorMedia by remember { mutableStateOf<MediaImage?>(null) }
 
     LaunchedEffect(initialViewUri, initialEditMode, permitted) {
-        if (!permitted && initialViewUri != null) {
+        if ((!permitted) && (initialViewUri != null)) {
             val resolved = withContext(Dispatchers.IO) { resolveMediaUri(context, initialViewUri) }
             if (initialEditMode) {
                 standaloneEditorMedia = resolved
@@ -412,15 +425,23 @@ internal fun GalleryApp(
     }
     LaunchedEffect(Unit) {
         MemoriesNotifications.scheduleFromSettings(context)
-        if (settings.memoriesNotificationEnabled && Build.VERSION.SDK_INT >= 33 && ContextCompat.checkSelfPermission(context,
-                Manifest.permission.POST_NOTIFICATIONS) != PermissionChecker.PERMISSION_GRANTED) {
+        if (settings.memoriesNotificationEnabled &&
+            (Build.VERSION.SDK_INT >= 33) &&
+            (ContextCompat.checkSelfPermission(
+                context,
+                Manifest.permission.POST_NOTIFICATIONS,
+            ) != PermissionChecker.PERMISSION_GRANTED)
+        ) {
             notificationLauncher.launch(Manifest.permission.POST_NOTIFICATIONS)
         }
     }
 
     if (!permitted) {
         if (standaloneEditorMedia != null) {
-            EditorScreen(standaloneEditorMedia!!, onClose = { standaloneEditorMedia = null }, onSaved = { saved, overwritten ->
+            EditorScreen(
+                standaloneEditorMedia!!,
+                onClose = { standaloneEditorMedia = null },
+            ) { saved, overwritten ->
                 if (saved) standaloneEditorMedia = null
                 val msg = if (!saved) {
                     context.applicationContext.getString(R.string.toast_edited_failed)
@@ -430,7 +451,7 @@ internal fun GalleryApp(
                     context.applicationContext.getString(R.string.toast_edited_saved)
                 }
                 Toast.makeText(context, msg, Toast.LENGTH_SHORT).show()
-            })
+            }
         } else if (standaloneExternalMedia != null) {
             PhotoViewer(
                 images = listOf(standaloneExternalMedia!!),
@@ -443,17 +464,17 @@ internal fun GalleryApp(
                 secureSharingMode = settings.secureSharingMode,
                 onSetSecureSharingMode = { settingsPreferences.setSecureSharingMode(it) },
                 dismissedSecureSharingTip = settings.dismissedSecureSharingTip,
-                onDismissSecureSharingTip = { settingsPreferences.setDismissedSecureSharingTip(true) },
+                onDismissSecureSharingTip = { settingsPreferences.setDismissedSecureSharingTip(dismissed = true) },
                 showViewerUserComments = settings.showViewerUserComments,
                 viewerHeaderStyle = settings.viewerHeaderStyle,
                 showViewerPageCount = settings.showViewerPageCount,
                 showViewerTime = settings.showViewerTime,
                 showFilmstrip = settings.showFilmstrip,
                 dismissedFilmstripTip = settings.dismissedFilmstripTip,
-                onDismissFilmstripTip = { settingsPreferences.setDismissedFilmstripTip(true) },
+                onDismissFilmstripTip = { settingsPreferences.setDismissedFilmstripTip(dismissed = true) },
                 pinchToRotate = settings.pinchToRotate,
                 dismissedRotateTip = settings.dismissedRotateTip,
-                onDismissRotateTip = { settingsPreferences.setDismissedRotateTip(true) },
+                onDismissRotateTip = { settingsPreferences.setDismissedRotateTip(dismissed = true) },
                 doubleTapZoomLevel = settings.doubleTapZoomLevel,
                 multiStageZoom = settings.multiStageZoom,
                 timelineDateFormat = settings.timelineDateFormat,
@@ -473,7 +494,7 @@ internal fun GalleryApp(
                 onDelete = { item, _ ->
                     val deleted = runCatching { context.contentResolver.delete(item.uri, null, null) > 0 }
                         .onFailure { android.util.Log.w("IrisGallery", "standalone delete failed", it) }
-                        .getOrDefault(false)
+                        .getOrDefault(defaultValue = false)
                     if (deleted) {
                         standaloneExternalMedia = null
                     } else {
@@ -499,10 +520,10 @@ internal fun GalleryApp(
                  scaleIn(initialScale = 0.94f, animationSpec = tween(320, easing = FastOutSlowInEasing)))
                     .togetherWith(
                         fadeOut(animationSpec = tween(220, easing = FastOutSlowInEasing)) +
-                        scaleOut(targetScale = 1.06f, animationSpec = tween(220, easing = FastOutSlowInEasing))
+                        scaleOut(targetScale = 1.06f, animationSpec = tween(220, easing = FastOutSlowInEasing)),
                     )
             },
-            label = "AppLockTransition"
+            label = "AppLockTransition",
         ) { unlocked ->
             if (!unlocked) {
                 AppLockScreen(
@@ -514,11 +535,10 @@ internal fun GalleryApp(
                         settingsPreferences.removePin()
                         Toast.makeText(context, R.string.app_lock_reset_success, Toast.LENGTH_LONG).show()
                     },
-                    onUnlocked = {
-                        isSessionAppUnlocked = true
-                        isAppUnlocked = true
-                    }
-                )
+                ) {
+                    isSessionAppUnlocked = true
+                    isAppUnlocked = true
+                }
             } else {
                 val visibleMedia = remember(state.images, requestedType, libraryState.lockedMedia, libraryState.excludedFolders, settings.groupRawPhotos) {
                     val requested = when {
@@ -526,15 +546,17 @@ internal fun GalleryApp(
                         requestedType?.startsWith("video/") == true -> state.images.filter { it.isVideo }
                         else -> state.images
                     }
-                    requested.filterNot { it.id in libraryState.lockedMedia }
+                    requested.asSequence()
+                        .filterNot { it.id in libraryState.lockedMedia }
                         .filterNot { img -> isPathExcluded(img.path, libraryState.excludedFolders) }
+                        .toList()
                         .groupRawPhotos(settings.groupRawPhotos)
                 }
                 val allLockedMedia = remember(vaultMedia, state.images, libraryState.lockedMedia) {
                     val galleryLocked = state.images.filter { it.id in libraryState.lockedMedia }
                     vaultMedia + galleryLocked
                 }
-                var showAllFilesAccessPromptDialog by remember { mutableStateOf(false) }
+                var showAllFilesAccessPromptDialog by remember { mutableStateOf(value = false) }
                 var pendingVaultItems by remember { mutableStateOf<List<MediaImage>?>(null) }
 
                 fun executeVaultMove(mediaList: List<MediaImage>) {
@@ -552,7 +574,7 @@ internal fun GalleryApp(
                                     pendingVaultMove = moveResult
                                     val request = MediaStore.createDeleteRequest(
                                         context.contentResolver,
-                                        moveResult.originalMedia.map { canonicalMediaUri(it) }
+                                        moveResult.originalMedia.map { canonicalMediaUri(it) },
                                     )
                                     vaultDeleteLauncher.launch(IntentSenderRequest.Builder(request.intentSender).build())
                                 }.onFailure {
@@ -563,9 +585,9 @@ internal fun GalleryApp(
                             } else {
                                 val allDeleted = moveResult.originalMedia.all { item ->
                                     runCatching {
-                                        context.contentResolver.delete(canonicalMediaUri(item), null, null) > 0 ||
+                                        (context.contentResolver.delete(canonicalMediaUri(item), null, null) > 0) ||
                                         File(item.path).delete()
-                                    }.getOrDefault(false)
+                                    }.getOrDefault(defaultValue = false)
                                 }
                                 if (allDeleted) {
                                     viewModel.refresh()
@@ -582,7 +604,7 @@ internal fun GalleryApp(
                 val onLockMedia: (List<MediaImage>) -> Unit = { mediaList ->
                     if (mediaList.isNotEmpty()) {
                         if (settings.vaultHideFromStorage) {
-                            val hasAccess = Build.VERSION.SDK_INT < 30 || Environment.isExternalStorageManager()
+                            val hasAccess = (Build.VERSION.SDK_INT < 30) || Environment.isExternalStorageManager()
                             if (hasAccess) {
                                 executeVaultMove(mediaList)
                             } else {
@@ -590,15 +612,19 @@ internal fun GalleryApp(
                                 showAllFilesAccessPromptDialog = true
                             }
                         } else {
-                            viewModel.setLocked(mediaList.map { it.id }, true)
+                            val ids = mediaList.asSequence().map(MediaImage::id).toList()
+                            viewModel.setLocked(ids, locked = true)
                             Toast.makeText(context, "${mediaList.size} item(s) hidden in Iris Gallery", Toast.LENGTH_SHORT).show()
                         }
                     }
                 }
                 val onUnlockMedia: (List<MediaImage>) -> Unit = { mediaList ->
                     if (mediaList.isNotEmpty()) {
-                        val vaultItems = mediaList.filter { it.id < 0 || it.path.startsWith(context.filesDir.absolutePath) }
-                        val galleryLockedIds = mediaList.filter { it.id > 0 && !it.path.startsWith(context.filesDir.absolutePath) }.map { it.id }
+                        val vaultItems = mediaList.filter { (it.id < 0) || it.path.startsWith(context.filesDir.absolutePath) }
+                        val galleryLockedIds = mediaList.asSequence()
+                            .filter { (it.id > 0) && (!it.path.startsWith(context.filesDir.absolutePath)) }
+                            .map(MediaImage::id)
+                            .toList()
                         coroutineScope.launch {
                             var restoredCount = 0
                             if (vaultItems.isNotEmpty()) {
@@ -606,7 +632,7 @@ internal fun GalleryApp(
                                 restoredCount += restored.size
                             }
                             if (galleryLockedIds.isNotEmpty()) {
-                                viewModel.setLocked(galleryLockedIds, false)
+                                viewModel.setLocked(galleryLockedIds, locked = false)
                                 restoredCount += galleryLockedIds.size
                             }
                             viewModel.refresh()
@@ -628,8 +654,8 @@ internal fun GalleryApp(
                     if (mediaList.isEmpty()) {
                         onDone()
                     } else {
-                        val vaultItems = mediaList.filter { it.id < 0 || it.path.startsWith(context.filesDir.absolutePath) }
-                        val galleryLockedItems = mediaList.filter { it.id > 0 && !it.path.startsWith(context.filesDir.absolutePath) }
+                        val vaultItems = mediaList.filter { (it.id < 0) || it.path.startsWith(context.filesDir.absolutePath) }
+                        val galleryLockedItems = mediaList.filter { (it.id > 0) && (!it.path.startsWith(context.filesDir.absolutePath)) }
                         var pendingParts = 0
                         if (vaultItems.isNotEmpty()) pendingParts++
                         if (galleryLockedItems.isNotEmpty()) pendingParts++
@@ -639,8 +665,8 @@ internal fun GalleryApp(
                         }
                         if (vaultItems.isNotEmpty()) {
                             coroutineScope.launch {
-                                val delIds = vaultItems.map { it.id }.toSet()
-                                val delPaths = vaultItems.map { it.path }.toSet()
+                                val delIds = vaultItems.asSequence().map(MediaImage::id).toSet()
+                                val delPaths = vaultItems.asSequence().map(MediaImage::path).toSet()
                                 viewModel.markMediaDeleted(delIds, delPaths)
                                 viewModel.deletePermanentlyFromVault(vaultItems)
                                 viewModel.checkForChanges()
@@ -650,8 +676,10 @@ internal fun GalleryApp(
                         }
                         if (galleryLockedItems.isNotEmpty()) {
                             if (Build.VERSION.SDK_INT >= 30) runCatching {
-                                val request = MediaStore.createDeleteRequest(context.contentResolver,
-                                    galleryLockedItems.map { canonicalMediaUri(it) })
+                                val request = MediaStore.createDeleteRequest(
+                                    context.contentResolver,
+                                    galleryLockedItems.map { canonicalMediaUri(it) },
+                                )
                                 pendingPermanentDeleteMedia = galleryLockedItems
                                 pendingPermanentDeleteCallback = onPartConfirmed
                                 deleteLauncher.launch(IntentSenderRequest.Builder(request.intentSender).build())
@@ -661,8 +689,8 @@ internal fun GalleryApp(
                                 Toast.makeText(context, "Could not request deletion", Toast.LENGTH_LONG).show()
                             }
                             else runCatching {
-                                val delIds = galleryLockedItems.map { it.id }.toSet()
-                                val delPaths = galleryLockedItems.map { it.path }.toSet()
+                                val delIds = galleryLockedItems.asSequence().map(MediaImage::id).toSet()
+                                val delPaths = galleryLockedItems.asSequence().map(MediaImage::path).toSet()
                                 viewModel.markMediaDeleted(delIds, delPaths)
                                 galleryLockedItems.forEach { context.contentResolver.delete(canonicalMediaUri(it), null, null) }
                                 viewModel.checkForChanges()
@@ -678,10 +706,10 @@ internal fun GalleryApp(
                          scaleIn(initialScale = 0.98f, animationSpec = tween(280, easing = FastOutSlowInEasing)))
                             .togetherWith(
                                 fadeOut(animationSpec = tween(180, easing = FastOutSlowInEasing)) +
-                                scaleOut(targetScale = 1.01f, animationSpec = tween(180, easing = FastOutSlowInEasing))
+                                scaleOut(targetScale = 1.01f, animationSpec = tween(180, easing = FastOutSlowInEasing)),
                             )
                     },
-                    label = "language_transition"
+                    label = "language_transition",
                 ) { targetLanguage ->
                     GalleryScaffold(
                         trashFeedback = trashFeedback,
@@ -690,7 +718,6 @@ internal fun GalleryApp(
                         settingsPreferences = settingsPreferences,
                         images = visibleMedia,
                         trashed = state.trashed,
-                        lockedIds = libraryState.lockedMedia,
                         lockedMedia = allLockedMedia,
                         pinnedAlbums = libraryState.pinnedAlbums,
                         albumCovers = libraryState.albumCovers,
@@ -716,6 +743,11 @@ internal fun GalleryApp(
                         excludedFolders = libraryState.excludedFolders,
                         onAddExcludedFolder = viewModel::addExcludedFolder,
                         onRemoveExcludedFolder = viewModel::removeExcludedFolder,
+                        searchResultIds = searchResultIds,
+                        indexingStatus = indexingStatus,
+                        indexedPhotosCount = indexedPhotosCount,
+                        onReindexPhotos = viewModel::reindexPhotos,
+                        onSearchQueryChange = viewModel::setSearchQuery,
                         onRequestUnlock = {
                             if (!settings.biometricLockEnabled) {
                                 lockedAuthorized = true
@@ -729,9 +761,9 @@ internal fun GalleryApp(
                         onPick = onPick,
                         onTrash = { media, onConfirmed ->
                             if (media.isNotEmpty()) {
-                                val systemMedia = media.filter { it.id > 0 && !it.path.startsWith(context.filesDir.absolutePath) }
-                                val internalMedia = media.filter { it.id < 0 || it.path.startsWith(context.filesDir.absolutePath) }
-                                if (settings.useSystemTrash && Build.VERSION.SDK_INT >= 30 && systemMedia.isNotEmpty()) {
+                                val systemMedia = media.filter { (it.id > 0) && (!it.path.startsWith(context.filesDir.absolutePath)) }
+                                val internalMedia = media.filter { (it.id < 0) || it.path.startsWith(context.filesDir.absolutePath) }
+                                if (settings.useSystemTrash && (Build.VERSION.SDK_INT >= 30) && systemMedia.isNotEmpty()) {
                                     val uris = systemMedia.map { canonicalMediaUri(context, it) }
                                     val request = runCatching {
                                         MediaStore.createTrashRequest(context.contentResolver, uris, true)
@@ -750,8 +782,8 @@ internal fun GalleryApp(
                                             val moveResult = viewModel.moveToTrash(media)
                                             if (moveResult.trashedMedia.isNotEmpty()) {
                                                 if (moveResult.silentSuccess) {
-                                                    val delIds = moveResult.originalMedia.map { it.id }.toSet()
-                                                    val delPaths = moveResult.originalMedia.map { it.path }.toSet()
+                                                    val delIds = moveResult.originalMedia.asSequence().map(MediaImage::id).toSet()
+                                                    val delPaths = moveResult.originalMedia.asSequence().map(MediaImage::path).toSet()
                                                     viewModel.markMediaDeleted(delIds, delPaths)
                                                     viewModel.checkForChanges()
                                                     trashFeedback = TrashFeedback(TrashFeedbackType.MOVED_TO_TRASH, moveResult.trashedMedia.size)
@@ -763,19 +795,19 @@ internal fun GalleryApp(
                                                         pendingTrashCallback = onConfirmed
                                                         val delRequest = MediaStore.createDeleteRequest(
                                                             context.contentResolver,
-                                                            moveResult.originalMedia.map { canonicalMediaUri(context, it) }
+                                                            moveResult.originalMedia.map { canonicalMediaUri(context, it) },
                                                         )
                                                         trashDeleteLauncher.launch(IntentSenderRequest.Builder(delRequest.intentSender).build())
                                                     }.onFailure {
                                                         val allDeleted = moveResult.originalMedia.all { item ->
                                                             runCatching {
-                                                                context.contentResolver.delete(canonicalMediaUri(context, item), null, null) > 0 ||
+                                                                (context.contentResolver.delete(canonicalMediaUri(context, item), null, null) > 0) ||
                                                                 File(item.path).delete()
-                                                            }.getOrDefault(false)
+                                                            }.getOrDefault(defaultValue = false)
                                                         }
                                                         if (allDeleted) {
-                                                            val delIds = moveResult.originalMedia.map { it.id }.toSet()
-                                                            val delPaths = moveResult.originalMedia.map { it.path }.toSet()
+                                                            val delIds = moveResult.originalMedia.asSequence().map(MediaImage::id).toSet()
+                                                            val delPaths = moveResult.originalMedia.asSequence().map(MediaImage::path).toSet()
                                                             viewModel.markMediaDeleted(delIds, delPaths)
                                                             viewModel.checkForChanges()
                                                             trashFeedback = TrashFeedback(TrashFeedbackType.MOVED_TO_TRASH, moveResult.trashedMedia.size)
@@ -797,8 +829,8 @@ internal fun GalleryApp(
                                         val moveResult = viewModel.moveToTrash(media)
                                         if (moveResult.trashedMedia.isNotEmpty()) {
                                             if (moveResult.silentSuccess) {
-                                                val delIds = moveResult.originalMedia.map { it.id }.toSet()
-                                                val delPaths = moveResult.originalMedia.map { it.path }.toSet()
+                                                val delIds = moveResult.originalMedia.asSequence().map(MediaImage::id).toSet()
+                                                val delPaths = moveResult.originalMedia.asSequence().map(MediaImage::path).toSet()
                                                 viewModel.markMediaDeleted(delIds, delPaths)
                                                 viewModel.checkForChanges()
                                                 trashFeedback = TrashFeedback(TrashFeedbackType.MOVED_TO_TRASH, moveResult.trashedMedia.size)
@@ -810,19 +842,19 @@ internal fun GalleryApp(
                                                     pendingTrashCallback = onConfirmed
                                                     val request = MediaStore.createDeleteRequest(
                                                         context.contentResolver,
-                                                        moveResult.originalMedia.map { canonicalMediaUri(context, it) }
+                                                        moveResult.originalMedia.map { canonicalMediaUri(context, it) },
                                                     )
                                                     trashDeleteLauncher.launch(IntentSenderRequest.Builder(request.intentSender).build())
                                                 }.onFailure {
                                                     val allDeleted = moveResult.originalMedia.all { item ->
                                                         runCatching {
-                                                            context.contentResolver.delete(canonicalMediaUri(context, item), null, null) > 0 ||
+                                                            (context.contentResolver.delete(canonicalMediaUri(context, item), null, null) > 0) ||
                                                             File(item.path).delete()
-                                                        }.getOrDefault(false)
+                                                        }.getOrDefault(defaultValue = false)
                                                     }
                                                     if (allDeleted) {
-                                                        val delIds = moveResult.originalMedia.map { it.id }.toSet()
-                                                        val delPaths = moveResult.originalMedia.map { it.path }.toSet()
+                                                        val delIds = moveResult.originalMedia.asSequence().map(MediaImage::id).toSet()
+                                                        val delPaths = moveResult.originalMedia.asSequence().map(MediaImage::path).toSet()
                                                         viewModel.markMediaDeleted(delIds, delPaths)
                                                         viewModel.checkForChanges()
                                                         trashFeedback = TrashFeedback(TrashFeedbackType.MOVED_TO_TRASH, moveResult.trashedMedia.size)
@@ -838,13 +870,13 @@ internal fun GalleryApp(
                                             } else {
                                                 val allDeleted = moveResult.originalMedia.all { item ->
                                                     runCatching {
-                                                        context.contentResolver.delete(canonicalMediaUri(context, item), null, null) > 0 ||
+                                                        (context.contentResolver.delete(canonicalMediaUri(context, item), null, null) > 0) ||
                                                         File(item.path).delete()
-                                                    }.getOrDefault(false)
+                                                    }.getOrDefault(defaultValue = false)
                                                 }
                                                 if (allDeleted) {
-                                                    val delIds = moveResult.originalMedia.map { it.id }.toSet()
-                                                    val delPaths = moveResult.originalMedia.map { it.path }.toSet()
+                                                    val delIds = moveResult.originalMedia.asSequence().map(MediaImage::id).toSet()
+                                                    val delPaths = moveResult.originalMedia.asSequence().map(MediaImage::path).toSet()
                                                     viewModel.markMediaDeleted(delIds, delPaths)
                                                     viewModel.checkForChanges()
                                                     trashFeedback = TrashFeedback(TrashFeedbackType.MOVED_TO_TRASH, moveResult.trashedMedia.size)
@@ -862,9 +894,9 @@ internal fun GalleryApp(
                         },
                         onRestore = { media ->
                             if (media.isNotEmpty()) {
-                                val systemMedia = media.filter { it.id > 0 && !it.path.startsWith(context.filesDir.absolutePath) }
-                                val internalMedia = media.filter { it.id < 0 || it.path.startsWith(context.filesDir.absolutePath) }
-                                if (Build.VERSION.SDK_INT >= 30 && systemMedia.isNotEmpty()) {
+                                val systemMedia = media.filter { (it.id > 0) && (!it.path.startsWith(context.filesDir.absolutePath)) }
+                                val internalMedia = media.filter { (it.id < 0) || it.path.startsWith(context.filesDir.absolutePath) }
+                                if ((Build.VERSION.SDK_INT >= 30) && systemMedia.isNotEmpty()) {
                                     runCatching {
                                         pendingSystemRestoreMedia = systemMedia
                                         pendingSystemRestoreInternalMedia = internalMedia
@@ -891,12 +923,12 @@ internal fun GalleryApp(
                         },
                         onDeletePermanently = { media, onConfirmed ->
                             if (media.isNotEmpty()) {
-                                val internalItems = media.filter { it.id < 0 || it.path.startsWith(context.filesDir.absolutePath) }
-                                val externalItems = media.filter { it.id > 0 && !it.path.startsWith(context.filesDir.absolutePath) }
+                                val internalItems = media.filter { (it.id < 0) || it.path.startsWith(context.filesDir.absolutePath) }
+                                val externalItems = media.filter { (it.id > 0) && (!it.path.startsWith(context.filesDir.absolutePath)) }
                                 coroutineScope.launch {
                                     if (internalItems.isNotEmpty()) {
-                                        val delIds = internalItems.map { it.id }.toSet()
-                                        val delPaths = internalItems.map { it.path }.toSet()
+                                        val delIds = internalItems.asSequence().map(MediaImage::id).toSet()
+                                        val delPaths = internalItems.asSequence().map(MediaImage::path).toSet()
                                         viewModel.markMediaDeleted(delIds, delPaths)
                                         viewModel.deletePermanently(internalItems)
                                         if (externalItems.isEmpty()) {
@@ -909,7 +941,7 @@ internal fun GalleryApp(
                                             runCatching {
                                                 val request = MediaStore.createDeleteRequest(
                                                     context.contentResolver,
-                                                    externalItems.map { canonicalMediaUri(context, it) }
+                                                    externalItems.map { canonicalMediaUri(context, it) },
                                                 )
                                                 pendingPermanentDeleteMedia = externalItems
                                                 pendingPermanentDeleteCallback = onConfirmed
@@ -917,13 +949,13 @@ internal fun GalleryApp(
                                             }.onFailure {
                                                 val allDeleted = externalItems.all { item ->
                                                     runCatching {
-                                                        context.contentResolver.delete(canonicalMediaUri(context, item), null, null) > 0 ||
+                                                        (context.contentResolver.delete(canonicalMediaUri(context, item), null, null) > 0) ||
                                                         File(item.path).delete()
-                                                    }.getOrDefault(false)
+                                                    }.getOrDefault(defaultValue = false)
                                                 }
                                                 if (allDeleted) {
-                                                    val delIds = externalItems.map { it.id }.toSet()
-                                                    val delPaths = externalItems.map { it.path }.toSet()
+                                                    val delIds = externalItems.asSequence().map(MediaImage::id).toSet()
+                                                    val delPaths = externalItems.asSequence().map(MediaImage::path).toSet()
                                                     viewModel.markMediaDeleted(delIds, delPaths)
                                                     viewModel.deletePermanently(externalItems)
                                                     trashFeedback = TrashFeedback(TrashFeedbackType.PERMANENTLY_DELETED, externalItems.size)
@@ -935,8 +967,8 @@ internal fun GalleryApp(
                                                 }
                                             }
                                         } else {
-                                            val delIds = externalItems.map { it.id }.toSet()
-                                            val delPaths = externalItems.map { it.path }.toSet()
+                                            val delIds = externalItems.asSequence().map(MediaImage::id).toSet()
+                                            val delPaths = externalItems.asSequence().map(MediaImage::path).toSet()
                                             viewModel.markMediaDeleted(delIds, delPaths)
                                             viewModel.deletePermanently(externalItems)
                                             trashFeedback = TrashFeedback(TrashFeedbackType.PERMANENTLY_DELETED, externalItems.size)
@@ -969,13 +1001,13 @@ internal fun GalleryApp(
                             val directSaved = withContext(Dispatchers.IO) {
                                 runCatching {
                                     saveExifToMedia(context, uri, media.path, request)
-                                }.getOrDefault(false)
+                                }.getOrDefault(defaultValue = false)
                             }
 
                             val mediaStoreUpdated = withContext(Dispatchers.IO) {
                                 runCatching {
-                                    media.id > 0 && uri.toString().startsWith("content://media/") && context.contentResolver.update(uri, values, null, null) > 0
-                                }.getOrDefault(false)
+                                    (media.id > 0) && uri.toString().startsWith("content://media/") && (context.contentResolver.update(uri, values, null, null) > 0)
+                                }.getOrDefault(defaultValue = false)
                             }
 
                             if (directSaved || mediaStoreUpdated) {
@@ -1011,8 +1043,8 @@ internal fun GalleryApp(
                         onMoveToAlbum = { media, dir, name, onComplete ->
                             coroutineScope.launch {
                                 val firstResult = viewModel.moveMediaToAlbum(media, dir, name)
-                                if (firstResult.failedMedia.isNotEmpty() && Build.VERSION.SDK_INT >= 30 && !Environment.isExternalStorageManager()) {
-                                    val uris = firstResult.failedMedia.filter { it.id > 0 }.map { canonicalMediaUri(context, it) }
+                                if (firstResult.failedMedia.isNotEmpty() && (Build.VERSION.SDK_INT >= 30) && (!Environment.isExternalStorageManager())) {
+                                    val uris = firstResult.failedMedia.asSequence().filter { it.id > 0 }.map { canonicalMediaUri(context, it) }.toList()
                                     if (uris.isNotEmpty()) {
                                         runCatching {
                                             val writeReq = MediaStore.createWriteRequest(context.contentResolver, uris)
@@ -1021,7 +1053,7 @@ internal fun GalleryApp(
                                                 targetDir = dir,
                                                 targetAlbumName = name,
                                                 alreadyMoved = firstResult.movedMedia,
-                                                callback = onComplete
+                                                callback = onComplete,
                                             )
                                             moveLauncher.launch(IntentSenderRequest.Builder(writeReq.intentSender).build())
                                         }.onFailure { e ->
@@ -1050,12 +1082,14 @@ internal fun GalleryApp(
                             viewModel.renameMedia(media, newName) { updated ->
                                 if (updated != null) {
                                     callback(updated)
-                                } else if (Build.VERSION.SDK_INT >= 30) {
+                                    return@renameMedia
+                                }
+                                if (Build.VERSION.SDK_INT >= 30) {
                                     runCatching {
                                         pendingRename = Triple(media, newName, callback)
                                         val writeReq = MediaStore.createWriteRequest(
                                             context.contentResolver,
-                                            listOf(canonicalMediaUri(media))
+                                            listOf(canonicalMediaUri(media)),
                                         )
                                         renameLauncher.launch(IntentSenderRequest.Builder(writeReq.intentSender).build())
                                     }.onFailure {
@@ -1072,11 +1106,10 @@ internal fun GalleryApp(
                         initialEditMode = initialEditMode,
                         initialOpenLatest = initialOpenLatest,
                         initialIntentGeneration = initialIntentGeneration,
-                        onInvalidMedia = { ghost ->
-                            viewModel.markMediaDeleted(setOf(ghost.id), setOf(ghost.path))
-                            viewModel.purgeGhostMedia(ghost)
-                        },
-                    )
+                    ) { ghost ->
+                        viewModel.markMediaDeleted(setOf(ghost.id), setOf(ghost.path))
+                        viewModel.purgeGhostMedia(ghost)
+                    }
                 }
 
                 if (showAllFilesAccessPromptDialog) {
@@ -1089,43 +1122,51 @@ internal fun GalleryApp(
                             Text(stringResource(R.string.prompt_free_vault_desc))
                         },
                         confirmButton = {
-                            Button(onClick = {
-                                showAllFilesAccessPromptDialog = false
-                                val intent = Intent(android.provider.Settings.ACTION_MANAGE_APP_ALL_FILES_ACCESS_PERMISSION).apply {
-                                    data = "package:${context.packageName}".toUri()
-                                }
-                                runCatching { context.startActivity(intent) }
-                                    .onFailure {
-                                        runCatching {
-                                            context.startActivity(Intent(android.provider.Settings.ACTION_MANAGE_ALL_FILES_ACCESS_PERMISSION))
+                            Button(
+                                onClick = {
+                                    showAllFilesAccessPromptDialog = false
+                                    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
+                                        val intent = Intent(android.provider.Settings.ACTION_MANAGE_APP_ALL_FILES_ACCESS_PERMISSION).apply {
+                                            data = "package:${context.packageName}".toUri()
                                         }
+                                        runCatching { context.startActivity(intent) }
+                                            .onFailure {
+                                                runCatching {
+                                                    context.startActivity(Intent(android.provider.Settings.ACTION_MANAGE_ALL_FILES_ACCESS_PERMISSION))
+                                                }
+                                            }
                                     }
-                            }) {
+                                },
+                            ) {
                                 Text(stringResource(R.string.action_grant_access))
                             }
                         },
                         dismissButton = {
                             Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
-                                TextButton(onClick = {
-                                    showAllFilesAccessPromptDialog = false
-                                    if (pending != null) {
-                                        val lockedIds = pending.map { it.id }.toSet()
-                                        viewModel.setLocked(lockedIds, true)
-                                        viewModel.refresh()
-                                        Toast.makeText(context, context.applicationContext.getString(R.string.toast_vault_items_locked_gallery, pending.size), Toast.LENGTH_SHORT).show()
-                                    }
-                                    pendingVaultItems = null
-                                }) {
+                                TextButton(
+                                    onClick = {
+                                        showAllFilesAccessPromptDialog = false
+                                        if (pending != null) {
+                                            val lockedIds = pending.asSequence().map(MediaImage::id).toSet()
+                                            viewModel.setLocked(lockedIds, locked = true)
+                                            viewModel.refresh()
+                                            Toast.makeText(context, context.applicationContext.getString(R.string.toast_vault_items_locked_gallery, pending.size), Toast.LENGTH_SHORT).show()
+                                        }
+                                        pendingVaultItems = null
+                                    },
+                                ) {
                                     Text(stringResource(R.string.action_hide_in_iris))
                                 }
-                                TextButton(onClick = {
-                                    showAllFilesAccessPromptDialog = false
-                                    pendingVaultItems = null
-                                }) {
+                                TextButton(
+                                    onClick = {
+                                        showAllFilesAccessPromptDialog = false
+                                        pendingVaultItems = null
+                                    },
+                                ) {
                                     Text(stringResource(R.string.action_cancel))
                                 }
                             }
-                        }
+                        },
                     )
                 }
             }

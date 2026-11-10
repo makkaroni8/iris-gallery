@@ -2,7 +2,7 @@
 <resources>
     <!-- App & General -->
     <string name="app_name">Iris Gallery</string>
-    <string name="app_description">Galerie multimédia Android 100 % hors-ligne, d\'inspiration botanique</string>
+    <string name="app_description" formatted="false">Galerie multimédia Android 100 % hors-ligne, d\'inspiration botanique</string>
     <string name="version_format">Version %1$s (Build %2$d)</string>
 
     <!-- Navigation Tabs -->
@@ -97,7 +97,7 @@
     <string name="delete_permanent_desc">Cet élément sera définitivement supprimé de votre appareil. Cette action est irréversible.</string>
     <string name="delete_vault_desc">Cet élément sera définitivement supprimé de votre coffre privé.</string>
     <string name="prompt_free_vault_title">Coffre sans invite système</string>
-    <string name="prompt_free_vault_desc">Accorder l\'accès à tous les fichiers permet à Iris Gallery de déplacer et masquer vos photos dans votre coffre privé en toute discrétion, sans qu\'Android ne vous demande une confirmation de suppression à chaque fois.\n\nIris fonctionne 100 % hors-ligne sans aucun accès à Internet : vos fichiers ne quittent jamais votre appareil.</string>
+    <string name="prompt_free_vault_desc" formatted="false">Accorder l\'accès à tous les fichiers permet à Iris Gallery de déplacer et masquer vos photos dans votre coffre privé en toute discrétion, sans qu\'Android ne vous demande une confirmation de suppression à chaque fois.\n\nIris fonctionne 100 % hors-ligne sans aucun accès à Internet : vos fichiers ne quittent jamais votre appareil.</string>
 
     <!-- Media Types & Titles -->
     <string name="format_image">Image</string>
@@ -379,7 +379,7 @@
     <string name="about_license_name">Licence Apache 2.0 (Open Source)</string>
     <string name="about_general_info">Informations générales</string>
     <string name="about_arch_title">Architecture</string>
-    <string name="about_arch_desc">Galerie locale 100 % hors-ligne sans aucune permission réseau</string>
+    <string name="about_arch_desc" formatted="false">Galerie locale 100 % hors-ligne sans aucune permission réseau</string>
     <string name="about_ui_title">Interface et thèmes</string>
     <string name="about_ui_desc">Jetpack Compose, Material 3, couleurs dynamiques Material You et noir AMOLED</string>
     <string name="about_img_engine_title">Moteur d\'image</string>

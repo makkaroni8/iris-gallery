@@ -9,6 +9,7 @@ import coil3.decode.StaticImageDecoder
 import coil3.gif.AnimatedImageDecoder
 import coil3.gif.GifDecoder
 import com.iris.gallery.decoder.AvifCoilDecoder
+import com.iris.gallery.data.search.PhotoIndexingWorker
 
 class IrisApplication : Application(), SingletonImageLoader.Factory {
     companion object {
@@ -19,6 +20,7 @@ class IrisApplication : Application(), SingletonImageLoader.Factory {
     override fun onCreate() {
         super.onCreate()
         instance = this
+        PhotoIndexingWorker.enqueue(this)
     }
 
     override fun newImageLoader(context: PlatformContext): ImageLoader {

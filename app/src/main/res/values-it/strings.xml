@@ -2,7 +2,7 @@
 <resources>
     <!-- App & General -->
     <string name="app_name">Iris Gallery</string>
-    <string name="app_description">Galleria multimediale per Android 100% offline, di ispirazione botanica</string>
+    <string name="app_description" formatted="false">Galleria multimediale per Android 100% offline, di ispirazione botanica</string>
     <string name="version_format">Versione %1$s (Build %2$d)</string>
 
     <!-- Navigation Tabs -->
@@ -97,7 +97,7 @@
     <string name="delete_permanent_desc">Questo elemento verrà eliminato definitivamente dal tuo dispositivo. Questa azione non può essere annullata.</string>
     <string name="delete_vault_desc">Questo elemento verrà rimosso definitivamente dalla tua cassaforte privata.</string>
     <string name="prompt_free_vault_title">Cassaforte senza conferme</string>
-    <string name="prompt_free_vault_desc">Concedere l\'\"Accesso a tutti i file\" consente a Iris Gallery di spostare e nascondere le foto nella cassaforte privata senza che Android richieda ogni volta la conferma di eliminazione.\n\nIris è al 100% offline e senza accesso a Internet, pertanto i tuoi file non lasciano mai il dispositivo.</string>
+    <string name="prompt_free_vault_desc" formatted="false">Concedere l\'\"Accesso a tutti i file\" consente a Iris Gallery di spostare e nascondere le foto nella cassaforte privata senza che Android richieda ogni volta la conferma di eliminazione.\n\nIris è al 100% offline e senza accesso a Internet, pertanto i tuoi file non lasciano mai il dispositivo.</string>
 
     <!-- Media Types & Titles -->
     <string name="format_image">Immagine</string>
@@ -354,7 +354,7 @@
     <string name="about_license_name">Apache License 2.0 (Open Source)</string>
     <string name="about_general_info">Informazioni generali</string>
     <string name="about_arch_title">Architettura</string>
-    <string name="about_arch_desc">Galleria locale 100% offline con zero autorizzazioni di rete</string>
+    <string name="about_arch_desc" formatted="false">Galleria locale 100% offline con zero autorizzazioni di rete</string>
     <string name="about_ui_title">Interfaccia utente e temi</string>
     <string name="about_ui_desc">Jetpack Compose, Material 3, Material You dinamico e nero assoluto AMOLED</string>
     <string name="about_img_engine_title">Motore di rendering immagini</string>

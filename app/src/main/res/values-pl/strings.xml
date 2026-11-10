@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="utf-8"?>
-<resources>
+<resources xmlns:tools="http://schemas.android.com/tools">
     <!--  App & General  -->
     <string name="app_name">Galeria Iris</string>
     <string name="app_description">Działająca w pełni offline, inspirowana botaniką galeria multimediów na Androida</string>
@@ -91,7 +91,7 @@
 
     <!--  Dialogs  -->
     <string name="empty_trash_dialog_title">Opróżnić kosz?</string>
-    <string name="empty_trash_dialog_desc">Trwale usunąć wszystkie elementy (%1$d) z urządzenia? Tej operacji nie można cofnąć.</string>
+    <string name="empty_trash_dialog_desc" tools:ignore="StringFormatCount">Trwale usunąć wszystkie elementy (%1$d) z urządzenia? Tej operacji nie można cofnąć.</string>
     <string name="delete_trash_video_title">Przenieść wideo do kosza?</string>
     <string name="delete_trash_photo_title">Przenieść zdjęcie do kosza?</string>
     <string name="delete_trash_desc">System Android poprosi Cię o potwierdzenie tej zmiany.</string>
@@ -100,7 +100,7 @@
     <string name="delete_permanent_desc">Ten element zostanie trwale usunięty z urządzenia. Tej operacji nie można cofnąć.</string>
     <string name="delete_vault_desc">Ten element zostanie trwale usunięty z Twojego prywatnego sejfu.</string>
     <string name="prompt_free_vault_title">Sejf bez komunikatów</string>
-    <string name="prompt_free_vault_desc">Przyznanie „Dostępu do wszystkich plików” pozwala galerii Iris na ciche przenoszenie i ukrywanie zdjęć w prywatnym sejfie, bez konieczności każdorazowego potwierdzania usunięcia przez system Android.\n\nIris działa w 100% offline i nie ma dostępu do internetu, więc Twoje pliki nigdy nie opuszczają urządzenia.</string>
+    <string name="prompt_free_vault_desc" formatted="false">Przyznanie „Dostępu do wszystkich plików” pozwala galerii Iris na ciche przenoszenie i ukrywanie zdjęć w prywatnym sejfie, bez konieczności każdorazowego potwierdzania usunięcia przez system Android.\n\nIris działa w 100% offline i nie ma dostępu do internetu, więc Twoje pliki nigdy nie opuszczają urządzenia.</string>
 
     <!--  Media Types & Titles  -->
     <string name="format_image">Obraz</string>
@@ -497,7 +497,7 @@
     <string name="about_license_name">Apache License 2.0 (Open Source)</string>
     <string name="about_general_info">Informacje ogólne</string>
     <string name="about_arch_title">Architektura</string>
-    <string name="about_arch_desc">Lokalna galeria działająca w 100% offline, bez żadnych uprawnień sieciowych</string>
+    <string name="about_arch_desc" formatted="false">Lokalna galeria działająca w 100% offline, bez żadnych uprawnień sieciowych</string>
     <string name="about_ui_title">Interfejs i motywy</string>
     <string name="about_ui_desc">Jetpack Compose, Material 3, dynamiczne kolory Material You i głęboka czerń AMOLED</string>
     <string name="about_img_engine_title">Silnik renderowania obrazu</string>
