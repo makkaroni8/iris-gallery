@@ -100,7 +100,7 @@ fun ExifEditorSheet(
     var mediaTitle by remember(image.id, exif, initialTitle) { mutableStateOf(initialTitle) }
     val initialDateStr = remember(image.id, exif?.dateTimeOriginal, photoTimeZone) {
         val raw = exif?.dateTimeOriginal?.trim()
-        if (!raw.isNullOrBlank() && raw.length >= 19) {
+        if (!raw.isNullOrBlank() && (raw.length >= 19)) {
             val parts = raw.split(" ")
             if (parts.size == 2) {
                 val datePart = parts[0].replace(':', '-')
@@ -114,7 +114,7 @@ fun ExifEditorSheet(
         }
     }
     var dateTakenStr by remember(image.id, initialDateStr) { mutableStateOf(initialDateStr) }
-    var orientation by remember(image.id) { mutableIntStateOf((image.orientation % 360 + 360) % 360) }
+    var orientation by remember(image.id) { mutableIntStateOf(((image.orientation % 360) + 360) % 360) }
 
     // Notes & Info State
     var userComment by remember(image.id, exif) { mutableStateOf(exif?.userComment ?: "") }
@@ -143,14 +143,14 @@ fun ExifEditorSheet(
     // Location State
     var latitudeStr by remember(image.id, exif) { mutableStateOf(exif?.latitude?.let { "%.6f".format(Locale.US, it) } ?: "") }
     var longitudeStr by remember(image.id, exif) { mutableStateOf(exif?.longitude?.let { "%.6f".format(Locale.US, it) } ?: "") }
-    var removeGps by remember { mutableStateOf(false) }
-    var stripAllExif by remember { mutableStateOf(false) }
+    var removeGps by remember { mutableStateOf(value = false) }
+    var stripAllExif by remember { mutableStateOf(value = false) }
 
     fun revertAll() {
         val t = exif?.title?.takeIf { it.isNotBlank() } ?: image.title
-        mediaTitle = if (t.isBlank() || t == image.name || t == image.name.substringBeforeLast('.')) "" else t
+        mediaTitle = if (t.isBlank() || (t == image.name) || (t == image.name.substringBeforeLast('.'))) "" else t
         dateTakenStr = initialDateStr
-        orientation = (image.orientation % 360 + 360) % 360
+        orientation = ((image.orientation % 360) + 360) % 360
 
         userComment = exif?.userComment ?: ""
         imageDescription = exif?.imageDescription ?: image.description
@@ -231,7 +231,7 @@ fun ExifEditorSheet(
                     ),
                 )
 
-                if (latitudeStr.isNotBlank() || longitudeStr.isNotBlank() || exif?.latitude != null) {
+                if (latitudeStr.isNotBlank() || longitudeStr.isNotBlank() || (exif?.latitude != null)) {
                     AssistChip(
                         onClick = {
                             removeGps = !removeGps
@@ -424,7 +424,7 @@ fun ExifEditorSheet(
                                 OutlinedTextField(
                                     value = latitudeStr,
                                     onValueChange = {
-                                        latitudeStr = it.filter { c -> c.isDigit() || c == '.' || c == '-' }
+                                        latitudeStr = it.filter { c -> c.isDigit() || (c == '.') || (c == '-') }
                                         if (latitudeStr.isNotBlank()) removeGps = false
                                     },
                                     label = { Text(stringResource(R.string.exif_latitude_label)) },
@@ -438,7 +438,7 @@ fun ExifEditorSheet(
                                 OutlinedTextField(
                                     value = longitudeStr,
                                     onValueChange = {
-                                        longitudeStr = it.filter { c -> c.isDigit() || c == '.' || c == '-' }
+                                        longitudeStr = it.filter { c -> c.isDigit() || (c == '.') || (c == '-') }
                                         if (longitudeStr.isNotBlank()) removeGps = false
                                     },
                                     label = { Text(stringResource(R.string.exif_longitude_label)) },
@@ -542,7 +542,7 @@ fun ExifEditorSheet(
                                 )
                                 OutlinedTextField(
                                     value = apertureStr,
-                                    onValueChange = { apertureStr = it.filter { c -> c.isDigit() || c == '.' } },
+                                    onValueChange = { apertureStr = it.filter { c -> c.isDigit() || (c == '.') } },
                                     label = { Text(stringResource(R.string.exif_aperture_label)) },
                                     placeholder = { Text("1.8") },
                                     keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
@@ -564,7 +564,7 @@ fun ExifEditorSheet(
                                 )
                                 OutlinedTextField(
                                     value = focalLengthStr,
-                                    onValueChange = { focalLengthStr = it.filter { c -> c.isDigit() || c == '.' } },
+                                    onValueChange = { focalLengthStr = it.filter { c -> c.isDigit() || (c == '.') } },
                                     label = { Text(stringResource(R.string.exif_focal_length_label)) },
                                     placeholder = { Text("50.0") },
                                     keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
@@ -631,7 +631,7 @@ fun ExifEditorSheet(
                             val parts = shutterSpeedStr.split("/")
                             val num = parts.getOrNull(0)?.toDoubleOrNull()
                             val den = parts.getOrNull(1)?.toDoubleOrNull()
-                            if (num != null && den != null && den > 0) num / den else null
+                            if ((num != null) && (den != null) && (den > 0)) num / den else null
                         } else {
                             shutterSpeedStr.toDoubleOrNull()
                         }
@@ -660,7 +660,7 @@ fun ExifEditorSheet(
                             latitude = parsedLat,
                             longitude = parsedLng,
                             // Strip-all clears the fields; anything typed after that still wins.
-                            removeGps = !(stripAllExif && parsedLat != null && parsedLng != null) && (removeGps || (parsedLat == null && parsedLng == null && exif?.latitude != null)),
+                            removeGps = !(stripAllExif && (parsedLat != null) && (parsedLng != null)) && (removeGps || ((parsedLat == null) && (parsedLng == null) && (exif?.latitude != null))),
                             stripAllExif = stripAllExif,
                             offsetTimeOriginal = exif?.offsetTimeOriginal,
                         )

@@ -237,7 +237,7 @@ class GalleryViewModel(application: Application) : AndroidViewModel(application)
             }
             // Only mark IDs in recentMovedOrDeletedIds if the row was truly deleted/recreated with a new ID.
             // In-place MediaStore RELATIVE_PATH moves preserve the item's row ID, so suppressing it would hide the moved photo!
-            val trulyDeletedOldIds = movedOldIds.filterNot { it in newIds }.toSet()
+            val trulyDeletedOldIds = movedOldIds.asSequence().filterNot { it in newIds }.toSet()
             repository.markMovedOrDeleted(trulyDeletedOldIds, movedOldPaths)
             val currentImages = _uiState.value.images
             val remainingImages = currentImages.filterNot { (it.id in movedOldIds) || (it.path in movedOldPaths) }
@@ -257,12 +257,12 @@ class GalleryViewModel(application: Application) : AndroidViewModel(application)
         val result = albumRepository.copyMedia(mediaList, targetDir, targetAlbumName)
         if (result.successCount > 0) {
             val currentImages = _uiState.value.images
-            val updatedImages = (currentImages + result.movedMedia).distinctBy(MediaImage::path).sortedWith(
+            val updatedImages = (currentImages + result.movedMedia).asSequence().distinctBy(MediaImage::path).sortedWith(
                 compareByDescending<MediaImage> { it.dateTaken }
                     .thenByDescending { it.dateModified }
                     .thenByDescending { it.dateAdded }
                     .thenByDescending { it.id },
-            )
+            ).toList()
             _uiState.value = _uiState.value.copy(images = updatedImages)
         }
         refresh(showLoading = false)
@@ -316,7 +316,7 @@ class GalleryViewModel(application: Application) : AndroidViewModel(application)
                             pendingChangedUris.toSet().also { pendingChangedUris.clear() }
                         }
                         val itemUris = batch.filter { it.lastPathSegment?.toLongOrNull() != null }
-                        if (batch.isNotEmpty() && itemUris.size == batch.size && itemUris.size <= 200) {
+                        if (batch.isNotEmpty() && (itemUris.size == batch.size) && (itemUris.size <= 200)) {
                             applyIncrementalMediaChanges(itemUris)
                         } else {
                             checkForChanges()
@@ -333,6 +333,7 @@ class GalleryViewModel(application: Application) : AndroidViewModel(application)
             val volumes = if (android.os.Build.VERSION.SDK_INT >= 29) {
                 runCatching { MediaStore.getExternalVolumeNames(getApplication()) }
                     .getOrNull()
+                    ?.asSequence()
                     ?.filter { it.isNotBlank() }
                     ?.toMutableSet()
                     ?: mutableSetOf(externalVolume)
@@ -371,7 +372,7 @@ class GalleryViewModel(application: Application) : AndroidViewModel(application)
             if (updated != null) {
                 _uiState.update { state ->
                     state.copy(
-                        images = state.images.map { if (it.id == item.id) updated else it }
+                        images = state.images.map { if (it.id == item.id) updated else it },
                     )
                 }
                 ThumbnailCache.remove(item.id)
@@ -415,12 +416,12 @@ class GalleryViewModel(application: Application) : AndroidViewModel(application)
         idSet.forEach { ThumbnailCache.remove(it) }
         _uiState.update { state ->
             state.copy(
-                images = state.images.filterNot { it.id in idSet || it.path in pathSet }
+                images = state.images.filterNot { (it.id in idSet) || (it.path in pathSet) },
             )
         }
         if (_duplicateState.value.groups.isNotEmpty()) {
             val updatedGroups = _duplicateState.value.groups.mapNotNull { group ->
-                val remainingItems = group.items.filterNot { it.id in idSet || it.path in pathSet }
+                val remainingItems = group.items.filterNot { (it.id in idSet) || (it.path in pathSet) }
                 if (remainingItems.size > 1) group.copy(items = remainingItems) else null
             }
             _duplicateState.update { it.copy(groups = updatedGroups) }
@@ -450,6 +451,7 @@ class GalleryViewModel(application: Application) : AndroidViewModel(application)
         var merged: List<MediaImage> = emptyList()
         _uiState.update { state ->
             merged = (state.images.filterNot { it.id in idSet } + changed)
+                .asSequence()
                 .distinctBy { it.id }
                 .sortedWith(
                     compareByDescending<MediaImage> { it.dateTaken }
@@ -457,6 +459,7 @@ class GalleryViewModel(application: Application) : AndroidViewModel(application)
                         .thenByDescending { it.dateAdded }
                         .thenByDescending { it.id }
                 )
+                .toList()
             state.copy(images = merged)
         }
         if (merged.isNotEmpty()) {
@@ -480,7 +483,7 @@ class GalleryViewModel(application: Application) : AndroidViewModel(application)
             refresh(showLoading = false)
             return
         }
-        val ids = uris.mapNotNull { it.lastPathSegment?.toLongOrNull() }.toSet()
+        val ids = uris.asSequence().mapNotNull { it.lastPathSegment?.toLongOrNull() }.toSet()
         val loaded = mutableListOf<MediaImage>()
         val pending = mutableListOf<Uri>()
         for (uri in uris) {
@@ -512,7 +515,7 @@ class GalleryViewModel(application: Application) : AndroidViewModel(application)
                 val stillPending = mutableListOf<Uri>()
                 for (uri in pending) {
                     val item = runCatching { repository.loadImageByUri(uri) }.getOrNull()
-                    val ready = item != null &&
+                    val ready = (item != null) &&
                         item.path.isNotBlank() &&
                         isOnKnownStoragePath(item.path) &&
                         File(item.path).exists()
@@ -537,7 +540,7 @@ class GalleryViewModel(application: Application) : AndroidViewModel(application)
             }
             val previous = lastGenerationByVolume ?: repository.loadGenerationByVolume()
             val current = runCatching { repository.getGenerationByVolume() }.getOrNull()
-            if (previous != null && current != null && repository.isSnapshotComplete()) {
+            if ((previous != null) && (current != null) && repository.isSnapshotComplete()) {
                 val changed = runCatching { repository.getChangedUrisSince(previous) }.getOrDefault(emptyList())
                 lastGenerationByVolume = current
                 repository.saveGenerationByVolume(current)
@@ -580,7 +583,7 @@ class GalleryViewModel(application: Application) : AndroidViewModel(application)
                         vaultRepository.loadVaultItems()
                         trashRepository.loadTrashItems()
                     }
-                    val systemTrash = if (android.os.Build.VERSION.SDK_INT >= 30 && settingsPreferences.state.value.useSystemTrash) {
+                    val systemTrash = if ((android.os.Build.VERSION.SDK_INT >= 30) && settingsPreferences.state.value.useSystemTrash) {
                         try {
                             repository.loadImages(trashed = true)
                         } catch (e: CancellationException) {
@@ -604,18 +607,18 @@ class GalleryViewModel(application: Application) : AndroidViewModel(application)
                         val loadedIds = loaded.mapTo(HashSet(loaded.size)) { it.id }
                         val currentPending = _uiState.value.images.filter { item ->
                             item.path.isNotBlank() &&
-                            item.path !in loadedPaths &&
-                            item.id !in loadedIds &&
+                            (item.path !in loadedPaths) &&
+                            (item.id !in loadedIds) &&
                             !repository.isMarkedMovedOrDeleted(item.id, item.path) &&
                             File(item.path).exists()
                         }
                         val combined = if (currentPending.isNotEmpty()) {
-                            (loaded + currentPending).distinctBy(MediaImage::id).sortedWith(
+                            (loaded + currentPending).asSequence().distinctBy(MediaImage::id).sortedWith(
                                 compareByDescending<MediaImage> { it.dateTaken }
                                     .thenByDescending { it.dateModified }
                                     .thenByDescending { it.dateAdded }
                                     .thenByDescending { it.id }
-                            )
+                            ).toList()
                         } else {
                             loaded
                         }

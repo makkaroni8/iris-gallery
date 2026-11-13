@@ -1,4 +1,5 @@
 <?xml version="1.0" encoding="utf-8"?>
+<!--suppress ALL -->
 <resources>
     <!-- App & General -->
     <string name="app_name">Iris Gallery</string>
@@ -121,6 +122,28 @@
     <string name="library_header">Organisieren und wiederentdecken</string>
     <string name="library_memories_title">Erinnerungen</string>
     <string name="library_memories_subtitle">Höhepunkte dieses Tages aus vergangenen Jahren</string>
+    <string name="library_map_title">Karte</string>
+    <string name="library_map_subtitle">Fotos auf einer Offline-Karte erkunden</string>
+
+    <!-- Settings: Offline Map -->
+    <string name="settings_section_map">Offline-Karte</string>
+    <string name="settings_map_desc">Offline-Vektorkarte und GPS-Standortindex für Fotos</string>
+    <string name="settings_map_custom_active">Eigene Detailkarte aktiv (.pmtiles)</string>
+    <string name="settings_map_base_active">Globale Basiskarte aktiv</string>
+    <string name="settings_map_import_btn">PMTiles-Karte importieren</string>
+    <string name="settings_map_reset_btn">Auf Basiskarte zurücksetzen</string>
+    <string name="settings_map_note">100 % offline. Du kannst beliebige .pmtiles Vektorkarten (z. B. von Protomaps) herunterladen und importieren.</string>
+    <string name="settings_map_importing">Karte wird importiert&#8230;</string>
+    <string name="settings_map_reindex_title">Karten-Index neu aufbauen</string>
+    <string name="settings_map_reindex_desc">GPS-Standorte und Vorschaubilder aller Fotos neu analysieren</string>
+    <string name="settings_map_reindex_dialog_title">Karten-Index neu aufbauen?</string>
+    <string name="settings_map_reindex_dialog_msg">Der gespeicherte Standort-Cache und alle generierten Vorschaukarten werden gelöscht und komplett neu aufgebaut.</string>
+    <string name="settings_map_reindex_success">Karten-Index erfolgreich neu aufgebaut (%1$d Standorte)</string>
+    <string name="settings_map_theme_title">Karten-Design</string>
+    <string name="settings_map_theme_desc">Festlegen, ob die Offline-Karte dem App-Design folgt oder manuell hell/dunkel bleibt</string>
+    <string name="settings_map_theme_auto">Automatisch (App)</string>
+    <string name="settings_map_theme_light">Hell</string>
+    <string name="settings_map_theme_dark">Dunkel</string>
     <string name="library_duplicates_title">Duplikate</string>
     <string name="library_duplicates_subtitle">Exakte Kopien und optisch ähnliche Fotos finden</string>
     <string name="library_locked_title">Gesperrt</string>

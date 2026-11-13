@@ -505,9 +505,9 @@ internal fun PhotoDetailsSheet(
                     }
                     if (image.orientation != 0) DetailItem(stringResource(R.string.details_orientation), "${image.orientation}°")
                     if (isVideo && (image.durationMs > 0)) DetailItem(stringResource(R.string.details_duration), formatMediaDuration(image.durationMs))
-                    if (!isVideo && (currentExif?.isUltraHdr == true || ThumbnailCache.isHdr(image.id) == true)) {
+                    if (!isVideo && ((currentExif?.isUltraHdr == true) || (ThumbnailCache.isHdr(image.id) == true))) {
                         DetailItem(stringResource(R.string.details_dynamic_range), stringResource(R.string.details_ultra_hdr))
-                    } else if (isVideo && videoHdrTransfer != null) {
+                    } else if (isVideo && (videoHdrTransfer != null)) {
                         DetailItem(stringResource(R.string.details_dynamic_range), videoHdrTransfer!!)
                     }
                 }
@@ -718,7 +718,7 @@ internal fun PhotoDetailsSheet(
                             image.dateModified
                         } else {
                             val f = File(image.path)
-                            if (f.exists() && f.lastModified() > 0) f.lastModified() else image.dateTaken
+                            if (f.exists() && (f.lastModified() > 0)) f.lastModified() else image.dateTaken
                         }
                     }
                     val formattedModifiedDate = remember(modifiedMillis, currentLocale, timelineDateFormat, customTimelineDateFormat) {

@@ -44,7 +44,7 @@ class AlbumRepository(private val context: Context) {
             val parts = path.split('/')
             if (parts.size > 2) {
                 val candidate = parts[2]
-                if (candidate != "emulated" && candidate != "self") {
+                if ((candidate != "emulated") && (candidate != "self")) {
                     return candidate
                 }
             }
@@ -150,14 +150,14 @@ class AlbumRepository(private val context: Context) {
             var finalId = item.id
             var finalUri = item.uri
 
-            if (srcFile != null && srcFile.exists() && srcFile.parentFile?.canonicalPath == targetDir.canonicalPath) {
+            if ((srcFile != null) && srcFile.exists() && (srcFile.parentFile?.canonicalPath == targetDir.canonicalPath)) {
                 done = true
                 finalPath = srcFile.absolutePath
                 finalName = srcFile.name
             }
 
             // 1. Try MediaStore RELATIVE_PATH update on API 29+ within the same volume
-            if (!done && Build.VERSION.SDK_INT >= 29 && sameVolume && item.id > 0) {
+            if (!done && (Build.VERSION.SDK_INT >= 29) && sameVolume && (item.id > 0)) {
                 val values = android.content.ContentValues().apply {
                     put(MediaStore.MediaColumns.RELATIVE_PATH, targetRelativePath)
                 }
@@ -197,14 +197,14 @@ class AlbumRepository(private val context: Context) {
                     finalId = item.id
                     finalUri = canonicalUri
                     pathsToScan.add(resolvedPath)
-                    if (srcFile != null && srcFile.absolutePath != resolvedPath) {
+                    if ((srcFile != null) && (srcFile.absolutePath != resolvedPath)) {
                         pathsToScan.add(srcFile.absolutePath)
                     }
                 }
             }
 
             // 2. Direct filesystem rename (for All Files Access or API <= 28)
-            if (!done && srcFile != null && srcFile.exists()) {
+            if (!done && (srcFile != null) && srcFile.exists()) {
                 val destFile = getUniqueDestinationFile(targetDir, item.name.ifBlank { "media_${System.currentTimeMillis()}" })
                 val renamed = runCatching { srcFile.renameTo(destFile) }.getOrDefault(defaultValue = false)
                 if (renamed) {
@@ -234,12 +234,12 @@ class AlbumRepository(private val context: Context) {
             }
 
             // 3. Fallback to copy + delete (cross-volume move)
-            if (!done && (!sameVolume || hasManager)) {
+            if (!done && ((!sameVolume) || hasManager)) {
                 val destFile = getUniqueDestinationFile(targetDir, item.name.ifBlank { "media_${System.currentTimeMillis()}" })
                 var copied = false
-                if (hasManager && srcFile != null && srcFile.exists()) {
+                if (hasManager && (srcFile != null) && srcFile.exists()) {
                     copied = runCatching {
-                        srcFile.copyTo(destFile, overwrite = true).exists() && destFile.length() > 0
+                        (srcFile.copyTo(destFile, overwrite = true).exists()) && (destFile.length() > 0)
                     }.getOrDefault(defaultValue = false)
                 }
                 if (!copied) {
@@ -249,12 +249,12 @@ class AlbumRepository(private val context: Context) {
                                 input.copyTo(output)
                             }
                         }
-                        destFile.exists() && destFile.length() > 0
+                        destFile.exists() && (destFile.length() > 0)
                     }.getOrDefault(defaultValue = false)
                 }
-                val srcLen = if (srcFile != null && srcFile.exists()) srcFile.length() else item.sizeBytes
-                val copyVerified = copied && destFile.exists() && destFile.length() > 0 &&
-                    (srcLen <= 0L || destFile.length() == srcLen)
+                val srcLen = if ((srcFile != null) && srcFile.exists()) srcFile.length() else item.sizeBytes
+                val copyVerified = copied && destFile.exists() && (destFile.length() > 0) &&
+                    ((srcLen <= 0L) || (destFile.length() == srcLen))
 
                 if (copyVerified) {
                     if (item.dateModified > 0) {
@@ -263,7 +263,7 @@ class AlbumRepository(private val context: Context) {
                         runCatching { destFile.setLastModified(item.dateTaken) }
                     }
                     val deleted = deleteSourceMedia(item)
-                    if (deleted || (srcFile != null && !srcFile.exists())) {
+                    if (deleted || ((srcFile != null) && (!srcFile.exists()))) {
                         done = true
                         finalPath = destFile.absolutePath
                         finalName = destFile.name
@@ -302,9 +302,9 @@ class AlbumRepository(private val context: Context) {
         }
 
         val resolvedMoved = moved.map { movedItem ->
-            if (movedItem.id < 0 && movedItem.path.isNotBlank()) {
+            if ((movedItem.id < 0) && movedItem.path.isNotBlank()) {
                 val resolvedId = queryMediaStoreIdByPath(movedItem.path, movedItem.isVideo)
-                if (resolvedId != null && resolvedId > 0) {
+                if ((resolvedId != null) && (resolvedId > 0)) {
                     val vol = if (Build.VERSION.SDK_INT >= 29) resolveVolumeName(movedItem.path) else "external"
                     val baseTable = if (movedItem.isVideo) {
                         if (Build.VERSION.SDK_INT >= 29) MediaStore.Video.Media.getContentUri(vol)
@@ -358,9 +358,9 @@ class AlbumRepository(private val context: Context) {
             val destFile = getUniqueDestinationFile(targetDir, item.name.ifBlank { "media_${System.currentTimeMillis()}" })
 
             var done = false
-            if (hasManager && srcFile != null && srcFile.exists()) {
+            if (hasManager && (srcFile != null) && srcFile.exists()) {
                 done = runCatching {
-                    srcFile.copyTo(destFile, overwrite = false).exists() && destFile.length() > 0
+                    (srcFile.copyTo(destFile, overwrite = false).exists()) && (destFile.length() > 0)
                 }.getOrDefault(defaultValue = false)
             }
 
@@ -371,7 +371,7 @@ class AlbumRepository(private val context: Context) {
                             input.copyTo(output)
                         }
                     }
-                    destFile.exists() && destFile.length() > 0
+                    destFile.exists() && (destFile.length() > 0)
                 }.getOrDefault(defaultValue = false)
                 if (copyOk) done = true
             }
@@ -407,7 +407,7 @@ class AlbumRepository(private val context: Context) {
 
         val resolvedCopied = copied.map { copiedItem ->
             val resolvedId = queryMediaStoreIdByPath(copiedItem.path, copiedItem.isVideo)
-            if (resolvedId != null && resolvedId > 0) {
+            if ((resolvedId != null) && (resolvedId > 0)) {
                 val vol = if (Build.VERSION.SDK_INT >= 29) resolveVolumeName(copiedItem.path) else "external"
                 val baseTable = if (copiedItem.isVideo) {
                     if (Build.VERSION.SDK_INT >= 29) MediaStore.Video.Media.getContentUri(vol)
@@ -440,7 +440,7 @@ class AlbumRepository(private val context: Context) {
         val samplePath = album.images.firstOrNull()?.path
         if (!samplePath.isNullOrBlank()) {
             val parent = File(samplePath).parentFile
-            if (parent != null && parent.exists()) {
+            if ((parent != null) && parent.exists()) {
                 return parent
             }
         }
@@ -476,8 +476,8 @@ class AlbumRepository(private val context: Context) {
             val file = File(item.path)
             fileDeleted = if (file.exists()) {
                 val fDel = runCatching { file.delete() }.getOrDefault(defaultValue = false)
-                val cDel = !fDel && file.exists() && runCatching { file.canonicalFile.delete() }.getOrDefault(defaultValue = false)
-                (fDel || cDel) || !file.exists()
+                val cDel = (!fDel) && file.exists() && runCatching { file.canonicalFile.delete() }.getOrDefault(defaultValue = false)
+                (fDel || cDel) || (!file.exists())
             } else {
                 true
             }

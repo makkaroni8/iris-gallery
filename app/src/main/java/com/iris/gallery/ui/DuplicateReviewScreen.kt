@@ -103,8 +103,13 @@ internal fun DuplicateReviewScreen(
             }
         }
         if (state.hasScanned && state.groups.isEmpty() && (state.error == null)) {
-            item { Text(stringResource(R.string.duplicates_empty_state),
-                modifier = Modifier.padding(12.dp), style = MaterialTheme.typography.titleMedium) }
+            item {
+                Text(
+                    text = stringResource(R.string.duplicates_empty_state),
+                    modifier = Modifier.padding(12.dp),
+                    style = MaterialTheme.typography.titleMedium,
+                )
+            }
         }
         if (state.groups.isNotEmpty()) {
             item {

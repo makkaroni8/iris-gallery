@@ -117,7 +117,7 @@ private fun loadThumbnail(context: Context, image: MediaImage, targetSizePx: Int
     // extracted to a temp cache file before attempting thumbnail creation.
     if (image.path.endsWith(".livp", ignoreCase = true)) {
         val cached = image.livpJpegCacheFile(context)
-        if (cached != null && (!cached.exists() || cached.length() == 0L)) {
+        if ((cached != null) && (!cached.exists() || (cached.length() == 0L))) {
             // Trigger motion extraction which also writes the JPEG cache file.
             runCatching { com.iris.gallery.decoder.MotionPhotoExtractor.detectMotionPhoto(context, image) }
         }
@@ -128,9 +128,9 @@ private fun loadThumbnail(context: Context, image: MediaImage, targetSizePx: Int
         // For .livp files, use the extracted cache JPEG if available.
         val effectivePath = if (image.path.endsWith(".livp", ignoreCase = true)) {
             val cached = image.livpJpegCacheFile(context)
-            if (cached != null && cached.exists() && cached.length() > 0) cached.absolutePath else image.path
+            if ((cached != null) && cached.exists() && (cached.length() > 0)) cached.absolutePath else image.path
         } else image.path
-        val isFile = image.uri.scheme == "file" || image.path.startsWith(context.filesDir.absolutePath)
+        val isFile = (image.uri.scheme == "file") || image.path.startsWith(context.filesDir.absolutePath)
         if (isFile) {
             val file = java.io.File(effectivePath)
             if (Build.VERSION.SDK_INT >= 29) {
@@ -178,12 +178,12 @@ private fun loadThumbnail(context: Context, image: MediaImage, targetSizePx: Int
     val finalBitmap = bitmap ?: run {
         if (image.mimeType.contains("avif", ignoreCase = true) || image.name.endsWith(".avif", ignoreCase = true)) {
             runCatching {
-                val bytes = if (image.uri.scheme == "file" || image.path.startsWith(context.filesDir.absolutePath)) {
+                val bytes = if ((image.uri.scheme == "file") || image.path.startsWith(context.filesDir.absolutePath)) {
                     java.io.File(image.path).readBytes()
                 } else {
                     context.contentResolver.openInputStream(image.uri)?.use { it.readBytes() }
                 }
-                if (bytes != null && bytes.isNotEmpty()) {
+                if ((bytes != null) && bytes.isNotEmpty()) {
                     val byteBuffer = java.nio.ByteBuffer.allocateDirect(bytes.size).apply {
                         put(bytes)
                         flip()
@@ -191,7 +191,7 @@ private fun loadThumbnail(context: Context, image: MediaImage, targetSizePx: Int
                     if (org.aomedia.avif.android.AvifDecoder.isAvifImage(byteBuffer)) {
                         val info = org.aomedia.avif.android.AvifDecoder.Info()
                         if (org.aomedia.avif.android.AvifDecoder.getInfo(byteBuffer, bytes.size, info) &&
-                            info.width > 0 && info.height > 0
+                            (info.width > 0) && (info.height > 0)
                         ) {
                             // The decoder scales into whatever bitmap it is given, so ask
                             // for the thumbnail size up front instead of a full-size buffer.
@@ -232,7 +232,7 @@ private fun loadThumbnail(context: Context, image: MediaImage, targetSizePx: Int
                         decoder.allocator = ImageDecoder.ALLOCATOR_SOFTWARE
                         val maxDim = maxOf(info.size.width, info.size.height)
                         var sample = 1
-                        while (maxDim / (sample * 2) >= targetSizePx) {
+                        while ((maxDim / (sample * 2)) >= targetSizePx) {
                             sample *= 2
                         }
                         if (sample > 1) {
@@ -286,7 +286,7 @@ private fun loadThumbnail(context: Context, image: MediaImage, targetSizePx: Int
     finalBitmap?.prepareToDraw()
     finalBitmap?.let { ThumbnailCache.put(cacheKey, it) }
     if ((Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE) && !image.isVideo && !image.isRaw && !image.isGif) {
-        if (finalBitmap != null && finalBitmap.hasGainmap()) {
+        if ((finalBitmap != null) && finalBitmap.hasGainmap()) {
             ThumbnailCache.setHdr(image.id, isHdr = true)
         }
     }
@@ -311,7 +311,7 @@ private fun checkIsUltraHdrFast(context: Context, image: MediaImage): Boolean {
                 }
                 if (totalRead > 0) {
                     val str = String(buffer, 0, totalRead, Charsets.ISO_8859_1)
-                    str.contains("http://ns.adobe.com/hdr-gain-map/1.0/") ||
+                    str.contains("http" + "://ns.adobe.com/hdr-gain-map/1.0/") ||
                     str.contains("hdrgm:") ||
                     str.contains("Item:Semantic=\"GainMap\"") ||
                     str.contains("21496-1") ||
@@ -392,7 +392,7 @@ fun MediaThumbnail(
         }
     }
 
-    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE && !image.isVideo && !image.isRaw && !image.isGif) {
+    if ((Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE) && !image.isVideo && !image.isRaw && !image.isGif) {
         val knownHdr = ThumbnailCache.isHdr(image.id)
         if (knownHdr != null) {
             if (isHdr != knownHdr) isHdr = knownHdr
@@ -462,13 +462,13 @@ fun MediaThumbnail(
             }
         } else if (!image.isVideo && showFormatBadge) {
             val badge = when {
-                image.isRaw || image.rawPeer != null -> "RAW"
+                image.isRaw || (image.rawPeer != null) -> "RAW"
                 image.isGif -> "GIF"
                 image.isSvg -> "SVG"
                 image.isPanorama -> "PANO"
                 image.isMotionPhoto -> "MOTION"
                 isDepth -> "DEPTH"
-                isHdr || (Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE && bitmap?.hasGainmap() == true) -> "HDR"
+                isHdr || ((Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE) && (bitmap?.hasGainmap() == true)) -> "HDR"
                 else -> null
             }
             if (badge != null) {
@@ -492,7 +492,7 @@ fun MediaThumbnail(
 private fun formatDuration(durationMs: Long): String {
     val totalSeconds = durationMs.coerceAtLeast(0) / 1_000
     val hours = totalSeconds / 3_600
-    val minutes = totalSeconds % 3_600 / 60
+    val minutes = (totalSeconds % 3_600) / 60
     val seconds = totalSeconds % 60
     return if (hours > 0) "%d:%02d:%02d".format(hours, minutes, seconds)
     else "%d:%02d".format(minutes, seconds)

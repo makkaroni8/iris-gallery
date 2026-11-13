@@ -160,19 +160,19 @@ class TrashRepository(private val context: Context) {
         }
         val contentDeleted = runCatching {
             context.contentResolver.delete(mediaStoreUri, null, null) > 0
-        }.getOrDefault(false)
+        }.getOrDefault(defaultValue = false)
         deleted = deleted || contentDeleted
 
         if (item.id > 0) {
             val table = if (item.isVideo) MediaStore.Video.Media.getContentUri(mediaVolume) else MediaStore.Images.Media.getContentUri(mediaVolume)
             val idDeleted = runCatching {
                 context.contentResolver.delete(table, "${MediaStore.MediaColumns._ID}=?", arrayOf(item.id.toString())) > 0
-            }.getOrDefault(false)
+            }.getOrDefault(defaultValue = false)
             deleted = deleted || idDeleted
             runCatching {
                 context.contentResolver.delete(MediaStore.Files.getContentUri(mediaVolume), "${MediaStore.MediaColumns._ID}=?", arrayOf(item.id.toString()))
             }
-            if (mediaVolume == "external" && Build.VERSION.SDK_INT >= 29) {
+            if ((mediaVolume == "external") && (Build.VERSION.SDK_INT >= 29)) {
                 runCatching {
                     context.contentResolver.delete(MediaStore.Files.getContentUri("external_primary"), "${MediaStore.MediaColumns._ID}=?", arrayOf(item.id.toString()))
                 }
@@ -182,7 +182,7 @@ class TrashRepository(private val context: Context) {
         if (item.uri != mediaStoreUri) {
             val genericDeleted = runCatching {
                 context.contentResolver.delete(item.uri, null, null) > 0
-            }.getOrDefault(false)
+            }.getOrDefault(defaultValue = false)
             deleted = deleted || genericDeleted
         }
 
@@ -190,12 +190,12 @@ class TrashRepository(private val context: Context) {
             val table = if (item.isVideo) MediaStore.Video.Media.getContentUri(mediaVolume) else MediaStore.Images.Media.getContentUri(mediaVolume)
             val pathDeleted = runCatching {
                 context.contentResolver.delete(table, "${MediaStore.MediaColumns.DATA}=?", arrayOf(item.path)) > 0
-            }.getOrDefault(false)
+            }.getOrDefault(defaultValue = false)
             deleted = deleted || pathDeleted
             runCatching {
                 context.contentResolver.delete(MediaStore.Files.getContentUri(mediaVolume), "${MediaStore.MediaColumns.DATA}=?", arrayOf(item.path))
             }
-            if (mediaVolume == "external" && Build.VERSION.SDK_INT >= 29) {
+            if ((mediaVolume == "external") && (Build.VERSION.SDK_INT >= 29)) {
                 runCatching {
                     context.contentResolver.delete(MediaStore.Files.getContentUri("external_primary"), "${MediaStore.MediaColumns.DATA}=?", arrayOf(item.path))
                 }
@@ -214,18 +214,18 @@ class TrashRepository(private val context: Context) {
         for (item in mediaList) {
             val uniqueId = generateUniqueId(currentItems)
             val cleanName = sanitizeFileName(item.name.ifBlank { "media_$uniqueId" })
-            val trashFileName = "${uniqueId}_${cleanName}"
+            val trashFileName = "${uniqueId}_$cleanName"
             val targetFile = File(trashDir, trashFileName)
 
             val srcFile = if (item.path.isNotBlank()) File(item.path) else null
             var copied = false
 
-            if (srcFile != null && srcFile.exists()) {
+            if ((srcFile != null) && srcFile.exists()) {
                 copied = runCatching {
                     srcFile.copyTo(targetFile, overwrite = true)
                     // A truncated copy is worse than no copy: the original is only
                     // deleted after this check passes.
-                    targetFile.exists() && targetFile.length() > 0 && targetFile.length() == srcFile.length()
+                    targetFile.exists() && (targetFile.length() > 0) && (targetFile.length() == srcFile.length())
                 }.getOrDefault(defaultValue = false)
             }
 
@@ -238,9 +238,9 @@ class TrashRepository(private val context: Context) {
                         }
                     }
                     val copiedBytes = targetFile.length()
-                    val expectedBytes = if (srcFile != null && srcFile.length() > 0) srcFile.length() else item.sizeBytes
-                    targetFile.exists() && copiedBytes > 0 && (expectedBytes <= 0 || copiedBytes == expectedBytes)
-                }.getOrDefault(false)
+                    val expectedBytes = if ((srcFile != null) && (srcFile.length() > 0)) srcFile.length() else item.sizeBytes
+                    targetFile.exists() && (copiedBytes > 0) && ((expectedBytes <= 0) || (copiedBytes == expectedBytes))
+                }.getOrDefault(defaultValue = false)
             }
 
             if (!copied) {
@@ -251,7 +251,7 @@ class TrashRepository(private val context: Context) {
             if (copied && targetFile.exists()) {
                 val effectiveMod = when {
                     item.dateModified > 0L -> item.dateModified
-                    srcFile != null && srcFile.lastModified() > 0L -> srcFile.lastModified()
+                    (srcFile != null) && (srcFile.lastModified() > 0L) -> srcFile.lastModified()
                     item.dateTaken > 0L -> item.dateTaken
                     else -> 0L
                 }
@@ -387,12 +387,12 @@ class TrashRepository(private val context: Context) {
 
     suspend fun deletePermanently(mediaList: List<MediaImage>) = indexLocked {
         val currentItems = readIndex().toMutableList()
-        val idsToRemove = mediaList.map { abs(it.id) }.toSet()
-        val pathsToRemove = mediaList.map { it.path }.toSet()
-        val fileNamesToRemove = mediaList.map { File(it.path).name }.toSet()
+        val idsToRemove = mediaList.asSequence().map { abs(it.id) }.toSet()
+        val pathsToRemove = mediaList.asSequence().map { it.path }.toSet()
+        val fileNamesToRemove = mediaList.asSequence().map { File(it.path).name }.toSet()
 
         currentItems.removeAll { item ->
-            if (item.id in idsToRemove || item.originalPath in pathsToRemove || item.trashFileName in fileNamesToRemove) {
+            if ((item.id in idsToRemove) || (item.originalPath in pathsToRemove) || (item.trashFileName in fileNamesToRemove)) {
                 val trashFile = File(trashDir, item.trashFileName)
                 runCatching { trashFile.delete() }
                 true
@@ -427,7 +427,7 @@ class TrashRepository(private val context: Context) {
                     file
                 } else {
                     val fallbackDir = Environment.getExternalStoragePublicDirectory(
-                        if (item.isVideo) Environment.DIRECTORY_MOVIES else Environment.DIRECTORY_PICTURES
+                        if (item.isVideo) Environment.DIRECTORY_MOVIES else Environment.DIRECTORY_PICTURES,
                     ).resolve("Iris").apply { mkdirs() }
                     File(fallbackDir, item.originalName)
                 }
@@ -448,7 +448,7 @@ class TrashRepository(private val context: Context) {
                     put(MediaStore.MediaColumns.DISPLAY_NAME, item.originalName)
                     put(
                         MediaStore.MediaColumns.MIME_TYPE,
-                        item.mimeType.ifBlank { if (item.isVideo) "video/mp4" else "image/jpeg" }
+                        item.mimeType.ifBlank { if (item.isVideo) "video/mp4" else "image/jpeg" },
                     )
                     put(MediaStore.MediaColumns.DATE_ADDED, effectiveAddedSec)
                     put(MediaStore.MediaColumns.DATE_MODIFIED, effectiveModSec)
@@ -480,7 +480,7 @@ class TrashRepository(private val context: Context) {
                 // The MediaStore copy gives the file a fresh mtime. Push it back to
                 // the original one so a later scan cannot move the item to "today".
                 val pendingPath = mediaStorePath(newUri)
-                if (effectiveModMs > 0L && pendingPath.isNotBlank()) {
+                if ((effectiveModMs > 0L) && pendingPath.isNotBlank()) {
                     runCatching { File(pendingPath).setLastModified(effectiveModMs) }
                 }
                 values.clear()
@@ -533,8 +533,8 @@ class TrashRepository(private val context: Context) {
 
     private fun generateUniqueId(existing: List<TrashItem>): Long {
         var id = System.currentTimeMillis()
-        val ids = existing.map { it.id }.toSet()
-        while (id in ids || id <= 0) {
+        val ids = existing.asSequence().map { it.id }.toSet()
+        while ((id in ids) || (id <= 0)) {
             id++
         }
         return id
@@ -577,7 +577,7 @@ class TrashRepository(private val context: Context) {
                         description = obj.optString("description"),
                         dateModified = obj.optLong("dateModified"),
                         dateAdded = obj.optLong("dateAdded"),
-                    )
+                    ),
                 )
             }
             list
@@ -597,12 +597,12 @@ class TrashRepository(private val context: Context) {
         val usedIds = mutableSetOf<Long>()
         val videoExtensions = setOf("mp4", "mkv", "webm", "avi", "mov", "m4v", "3gp", "ts")
         for (file in files) {
-            if (!file.isFile || file.length() <= 0L) continue
+            if (!file.isFile || (file.length() <= 0L)) continue
             val separator = file.name.indexOf('_')
             val parsedId = if (separator > 0) file.name.substring(0, separator).toLongOrNull() else null
-            val uniqueId = parsedId?.takeIf { it > 0 && usedIds.add(it) }
+            val uniqueId = parsedId?.takeIf { (it > 0) && usedIds.add(it) }
                 ?: generateUniqueId(recovered).also { usedIds.add(it) }
-            val originalName = if (separator > 0 && separator + 1 < file.name.length) file.name.substring(separator + 1) else file.name
+            val originalName = if ((separator > 0) && ((separator + 1) < file.name.length)) file.name.substring(separator + 1) else file.name
             val isVideo = originalName.substringAfterLast('.', "").lowercase() in videoExtensions
             val lastModified = file.lastModified()
             recovered.add(
@@ -626,7 +626,7 @@ class TrashRepository(private val context: Context) {
                     description = "",
                     dateModified = lastModified,
                     dateAdded = 0L,
-                )
+                ),
             )
         }
         writeIndex(recovered)

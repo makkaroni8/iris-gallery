@@ -1,3 +1,4 @@
+@file:Suppress("Destructure")
 @file:OptIn(androidx.compose.foundation.ExperimentalFoundationApi::class)
 
 package com.iris.gallery.ui
@@ -13,6 +14,7 @@ import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.FastOutSlowInEasing
 import androidx.compose.animation.core.LinearOutSlowInEasing
 import androidx.compose.animation.core.tween
+import androidx.compose.foundation.background
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.runtime.CompositionLocalProvider
@@ -372,7 +374,7 @@ internal fun GalleryScaffold(
     var isEditingAlbumOrder by remember { mutableStateOf(false) }
 
     LaunchedEffect(destination, librarySection) {
-        if (destination != 3 || librarySection != "locked") {
+        if ((destination != 3) || (librarySection != "locked")) {
             onLockVault()
         }
     }
@@ -384,9 +386,9 @@ internal fun GalleryScaffold(
                 handledIntentGeneration = initialIntentGeneration
                 val resolved = withContext(Dispatchers.IO) { resolveMediaUri(context, initialViewUri) }
                 val matched = images.firstOrNull {
-                    it.uri == initialViewUri ||
-                    (resolved.path.isNotBlank() && it.path == resolved.path) ||
-                    it.uri.lastPathSegment == initialViewUri.lastPathSegment
+                    (it.uri == initialViewUri) ||
+                    (resolved.path.isNotBlank() && (it.path == resolved.path)) ||
+                    (it.uri.lastPathSegment == initialViewUri.lastPathSegment)
                 }
                 if (matched != null) {
                     if (initialEditMode) {
@@ -482,7 +484,7 @@ internal fun GalleryScaffold(
     var isFileSearching by remember { mutableStateOf(false) }
 
     LaunchedEffect(destination, librarySection, selectedAlbumId) {
-        val canSearch = destination == 0 || destination == 2 || (destination == 1 && selectedAlbumId != null)
+        val canSearch = (destination == 0) || (destination == 2) || ((destination == 1) && (selectedAlbumId != null))
         if (!canSearch && isFileSearching) {
             isFileSearching = false
             fileSearchQuery = ""
@@ -500,12 +502,12 @@ internal fun GalleryScaffold(
             item.title.contains(q, ignoreCase = true) ||
             item.bucketName.contains(q, ignoreCase = true) ||
             item.path.contains(q, ignoreCase = true) ||
-            ((qLower == "video" || qLower == "videos" || qLower == ".mp4" || qLower == ".mkv" || qLower == ".mov" || qLower == ".webm" || qLower == ".3gp") && item.isVideo) ||
-            ((qLower == "photo" || qLower == "photos" || qLower == "image" || qLower == "images" || qLower == ".jpg" || qLower == ".jpeg" || qLower == ".png" || qLower == ".webp" || qLower == ".heic") && !item.isVideo) ||
-            ((qLower == "gif" || qLower == "gifs" || qLower == ".gif") && item.isGif) ||
-            ((qLower == "raw" || qLower == ".dng" || qLower == ".cr2" || qLower == ".nef" || qLower == ".arw") && item.isRaw) ||
-            ((qLower == "motion" || qLower == "live") && item.isMotionPhoto) ||
-            ((qLower == "pano" || qLower == "panorama") && item.isPanorama)
+            (((qLower == "video") || (qLower == "videos") || (qLower == ".mp4") || (qLower == ".mkv") || (qLower == ".mov") || (qLower == ".webm") || (qLower == ".3gp")) && item.isVideo) ||
+            (((qLower == "photo") || (qLower == "photos") || (qLower == "image") || (qLower == "images") || (qLower == ".jpg") || (qLower == ".jpeg") || (qLower == ".png") || (qLower == ".webp") || (qLower == ".heic")) && !item.isVideo) ||
+            (((qLower == "gif") || (qLower == "gifs") || (qLower == ".gif")) && item.isGif) ||
+            (((qLower == "raw") || (qLower == ".dng") || (qLower == ".cr2") || (qLower == ".nef") || (qLower == ".arw")) && item.isRaw) ||
+            (((qLower == "motion") || (qLower == "live")) && item.isMotionPhoto) ||
+            (((qLower == "pano") || (qLower == "panorama")) && item.isPanorama)
         }
     }
 
@@ -551,7 +553,7 @@ internal fun GalleryScaffold(
         2 -> displayedFavoritePhotos
         else -> displayedItems
     }
-    val isLockedActive = destination == 3 && librarySection == "locked"
+    val isLockedActive = (destination == 3) && (librarySection == "locked")
     DisposableEffect(isLockedActive) {
         val window = (context as? Activity)?.window
         if (isLockedActive) {
@@ -580,8 +582,10 @@ internal fun GalleryScaffold(
                 Toast.makeText(context, context.applicationContext.getString(R.string.toast_share_failed), Toast.LENGTH_SHORT).show()
                 return@launch
             }
-            val mimeType = selected.map { it.mimeType.ifBlank { if (it.isVideo) "video/*" else "image/*" } }
+            val mimeType = selected.asSequence()
+                .map { it.mimeType.ifBlank { if (it.isVideo) "video/*" else "image/*" } }
                 .distinct()
+                .toList()
                 .let { mimeTypes ->
                     when {
                         mimeTypes.size == 1 -> mimeTypes.first()
@@ -607,7 +611,7 @@ internal fun GalleryScaffold(
         }
     }
     val availableAlbums = remember(images, albumCovers) {
-        images.groupBy { it.bucketId }.map { (id, media) ->
+        images.groupBy { it.bucketId }.asSequence().map { (id, media) ->
             val samplePath = media.firstOrNull { it.path.isNotBlank() }?.path.orEmpty()
             val isSd = samplePath.isNotBlank() && !samplePath.startsWith("/storage/emulated/0") && !samplePath.startsWith("/data/")
             MediaAlbum(
@@ -618,7 +622,7 @@ internal fun GalleryScaffold(
                 isSdCard = isSd,
                 storageLabel = if (isSd) "SD Card" else ""
             )
-        }.sortedWith { a, b -> NaturalOrderComparator.compare(a.name, b.name) }
+        }.sortedWith { a, b -> NaturalOrderComparator.compare(a.name, b.name) }.toList()
     }
     var albumPickerAction by remember { mutableStateOf<AlbumAction?>(null) }
     var pendingAlbumMedia by remember { mutableStateOf<List<MediaImage>?>(null) }
@@ -655,6 +659,11 @@ internal fun GalleryScaffold(
         ThemeMode.SYSTEM -> isSystemInDarkTheme()
     }
     val isAmoled = isDarkTheme && settings.amoledBlack
+    val isMapDark = when (settings.mapThemeMode) {
+        ThemeMode.LIGHT -> false
+        ThemeMode.DARK -> true
+        ThemeMode.SYSTEM -> isDarkTheme
+    }
 
     val handleTabSelected: (Int) -> Unit = { index ->
         tabScope.launch {
@@ -679,14 +688,19 @@ internal fun GalleryScaffold(
         }
     }
 
-    val showFloatingBar = isLandscape && selectedIds.isEmpty() && selectedId == null && editorImage == null && activeOverlayScreen == null && externalMedia == null
+    val showFloatingBar = isLandscape && selectedIds.isEmpty() && (selectedId == null) && (editorImage == null) && (activeOverlayScreen == null) && (externalMedia == null)
 
     Box(Modifier.fillMaxSize()) {
         Scaffold(
         topBar = {
-          if (!(destination == 3 && librarySection == "folder_view")) {
-            val canSearchOnScreen = destination == 0 || destination == 2 || (destination == 1 && selectedAlbum != null)
-            Column(modifier = Modifier.fillMaxWidth()) {
+          if (!((destination == 3) && (librarySection == "folder_view"))) {
+            val canSearchOnScreen = (destination == 0) || (destination == 2) || ((destination == 1) && (selectedAlbum != null))
+            val isMapSection = (destination == 3) && (librarySection == "map")
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .background(if (isMapSection) MaterialTheme.colorScheme.surface else Color.Transparent)
+            ) {
             TopAppBar(
                 title = {
                     if (isFileSearching && canSearchOnScreen) {
@@ -751,6 +765,7 @@ internal fun GalleryScaffold(
                                     "formats" -> stringResource(R.string.library_formats_title)
                                     "editor" -> stringResource(R.string.library_editor_title)
                                     "folder_view" -> stringResource(R.string.section_folder_view)
+                                    "map" -> stringResource(R.string.library_map_title)
                                     null -> libraryTabLabel
                                     else -> librarySection!!.replaceFirstChar { it.uppercase() }
                                 }
@@ -777,7 +792,7 @@ internal fun GalleryScaffold(
                         }
                     } else if (selectedIds.isNotEmpty()) {
                         IconButton(onClick = ::clearSelection) { Icon(Icons.Outlined.Close, stringResource(R.string.action_clear_selection)) }
-                    } else if (destination == 1 && selectedAlbum != null) {
+                    } else if ((destination == 1) && (selectedAlbum != null)) {
                         IconButton(onClick = {
                             selectedAlbumId = null
                             if (isFileSearching) {
@@ -786,9 +801,9 @@ internal fun GalleryScaffold(
                                 onSearchQueryChange("")
                             }
                         }) { Icon(Icons.AutoMirrored.Outlined.ArrowBack, albumsTabLabel) }
-                    } else if (destination == 3 && librarySection == "locked" && selectedLockedAlbum != null) {
+                    } else if ((destination == 3) && (librarySection == "locked") && (selectedLockedAlbum != null)) {
                         IconButton(onClick = { selectedLockedAlbum = null }) { Icon(Icons.AutoMirrored.Outlined.ArrowBack, stringResource(R.string.section_locked)) }
-                    } else if (destination == 3 && librarySection != null) {
+                    } else if ((destination == 3) && (librarySection != null)) {
                         IconButton(onClick = {
                             librarySection = null
                             selectedLockedAlbum = null
@@ -802,12 +817,12 @@ internal fun GalleryScaffold(
                 },
                 actions = {
                     if (selectedIds.isNotEmpty()) {
-                        if (destination == 3 && librarySection == "trash") {
+                        if ((destination == 3) && (librarySection == "trash")) {
                             IconButton(onClick = { val selected = activeMedia.filter { it.id in selectedIds }; clearSelection(); handleRestore(selected) }) {
                                 Icon(Icons.Outlined.RestoreFromTrash, stringResource(R.string.action_restore))
                             }
                         }
-                        if (destination == 3 && librarySection == "locked") {
+                        if ((destination == 3) && (librarySection == "locked")) {
                             IconButton(onClick = { val selected = activeMedia.filter { it.id in selectedIds }; clearSelection(); onUnlockMedia(selected) }) {
                                 Icon(Icons.Outlined.LockOpen, stringResource(R.string.action_remove_from_locked))
                             }
@@ -816,9 +831,9 @@ internal fun GalleryScaffold(
                         IconButton(onClick = {
                             val selected = activeMedia.filter { it.id in selectedIds }
                             if (selected.isNotEmpty()) {
-                                if (destination == 3 && (librarySection == "trash" || librarySection == "locked")) {
+                                if ((destination == 3) && ((librarySection == "trash") || (librarySection == "locked"))) {
                                     pendingDeleteItems = selected
-                                } else if (settings.deleteMode == DeleteMode.ALWAYS_ASK || settings.confirmDelete) {
+                                } else if ((settings.deleteMode == DeleteMode.ALWAYS_ASK) || settings.confirmDelete) {
                                     pendingDeleteItems = selected
                                 } else if (settings.deleteMode == DeleteMode.PERMANENT) {
                                     clearSelection()
@@ -836,12 +851,12 @@ internal fun GalleryScaffold(
                             DropdownMenu(selectionMenuExpanded, onDismissRequest = { selectionMenuExpanded = false }) {
                                 DropdownMenuItem(text = { Text(stringResource(R.string.action_select_all)) }, leadingIcon = { Icon(Icons.Outlined.SelectAll, null) },
                                     onClick = { selectionMenuExpanded = false; selectedIds = activeMedia.mapTo(mutableSetOf()) { it.id } })
-                                if (destination == 1 && selectedAlbum != null && selectedIds.size == 1) {
+                                if ((destination == 1) && (selectedAlbum != null) && (selectedIds.size == 1)) {
                                     DropdownMenuItem(text = { Text(stringResource(R.string.action_set_album_cover)) }, leadingIcon = { Icon(Icons.Outlined.Wallpaper, null) },
                                         onClick = { selectionMenuExpanded = false; onSetAlbumCover(
                                             selectedAlbum.id, selectedIds.first()); clearSelection() })
                                 }
-                                if (!(destination == 3 && (librarySection == "trash" || librarySection == "locked"))) {
+                                if (!((destination == 3) && ((librarySection == "trash") || (librarySection == "locked")))) {
                                     DropdownMenuItem(
                                         text = { Text(stringResource(R.string.action_move_to_album)) },
                                         leadingIcon = { Icon(Icons.AutoMirrored.Outlined.DriveFileMove, null) },
@@ -874,7 +889,7 @@ internal fun GalleryScaffold(
                                         }
                                     )
                                 }
-                                if (destination == 3 && librarySection == "locked") {
+                                if ((destination == 3) && (librarySection == "locked")) {
                                     DropdownMenuItem(text = { Text(stringResource(R.string.action_remove_from_locked)) }, leadingIcon = { Icon(Icons.Outlined.LockOpen, null) },
                                         onClick = {
                                             selectionMenuExpanded = false
@@ -882,7 +897,7 @@ internal fun GalleryScaffold(
                                             clearSelection()
                                             onUnlockMedia(selected)
                                         })
-                                } else if (!(destination == 3 && librarySection == "trash")) {
+                                } else if (!((destination == 3) && (librarySection == "trash"))) {
                                     DropdownMenuItem(text = { Text(stringResource(R.string.action_move_to_locked)) }, leadingIcon = { Icon(Icons.Outlined.Lock, null) },
                                         onClick = {
                                             selectionMenuExpanded = false
@@ -918,13 +933,13 @@ internal fun GalleryScaffold(
                             }
                         }
                     } else if (!isFileSearching || !canSearchOnScreen) {
-                        val canSearch = destination == 0 || destination == 2 || (destination == 1 && selectedAlbum != null)
+                        val canSearch = (destination == 0) || (destination == 2) || ((destination == 1) && (selectedAlbum != null))
                         if (canSearch) {
                             IconButton(onClick = { isFileSearching = true }) {
                                 Icon(Icons.Outlined.Search, stringResource(R.string.action_search))
                             }
                         }
-                        if (destination == 3 && librarySection == "trash" && trashed.isNotEmpty()) {
+                        if ((destination == 3) && (librarySection == "trash") && trashed.isNotEmpty()) {
                             TextButton(onClick = { confirmEmptyTrash = true }) {
                                 Icon(Icons.Outlined.DeleteForever, null, modifier = Modifier.size(18.dp), tint = MaterialTheme.colorScheme.error)
                                 Spacer(Modifier.width(4.dp))
@@ -991,7 +1006,7 @@ internal fun GalleryScaffold(
                                 }
                             }
                         }
-                        if (destination == 1 && selectedAlbum != null) {
+                        if ((destination == 1) && (selectedAlbum != null)) {
                             val albumOverride = albumMediaSortOverrides[selectedAlbum.id]
                             val effectiveSort = albumOverride ?: albumMediaSort
                             var albumSortMenuExpanded by remember { mutableStateOf(false) }
@@ -1109,8 +1124,8 @@ internal fun GalleryScaffold(
                                 }
                             }
                         }
-                        val inSubpage = (destination == 1 && selectedAlbum != null) || (destination == 3 && librarySection != null)
-                        if (destination == 1 && selectedAlbum == null && albumSort == com.iris.gallery.data.AlbumSort.CUSTOM) {
+                        val inSubpage = ((destination == 1) && (selectedAlbum != null)) || ((destination == 3) && (librarySection != null))
+                        if ((destination == 1) && (selectedAlbum == null) && (albumSort == com.iris.gallery.data.AlbumSort.CUSTOM)) {
                             IconButton(onClick = { isEditingAlbumOrder = !isEditingAlbumOrder }) {
                                 Icon(
                                     if (isEditingAlbumOrder) Icons.Filled.Check else Icons.Outlined.Edit,
@@ -1130,9 +1145,11 @@ internal fun GalleryScaffold(
                         }
                     }
                 },
-                colors = TopAppBarDefaults.topAppBarColors(containerColor = Color.Transparent),
+                colors = TopAppBarDefaults.topAppBarColors(
+                    containerColor = if (isMapSection) MaterialTheme.colorScheme.surface else Color.Transparent,
+                ),
             )
-            if (isFileSearching && canSearchOnScreen && indexingStatus.isIndexing && indexingStatus.totalCount > 0) {
+            if (isFileSearching && canSearchOnScreen && indexingStatus.isIndexing && (indexingStatus.totalCount > 0)) {
                 Surface(
                     color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.85f),
                     shape = RoundedCornerShape(12.dp),
@@ -1240,11 +1257,11 @@ internal fun GalleryScaffold(
       )
       when {
         loading && images.isEmpty() -> Box(Modifier.fillMaxSize().padding(padding), contentAlignment = Alignment.Center) { CircularProgressIndicator() }
-        error != null && images.isEmpty() -> Box(Modifier.fillMaxSize().padding(padding), contentAlignment = Alignment.Center) { Text(error) }
+        (error != null) && images.isEmpty() -> Box(Modifier.fillMaxSize().padding(padding), contentAlignment = Alignment.Center) { Text(error) }
         else -> HorizontalPager(
           state = tabPagerState,
           beyondViewportPageCount = (visibleTabs.size - 1).coerceIn(0, 3),
-          userScrollEnabled = selectedIds.isEmpty() && selectedAlbum == null && (destination != 3 || librarySection == null),
+          userScrollEnabled = selectedIds.isEmpty() && (selectedAlbum == null) && ((destination != 3) || (librarySection == null)),
           modifier = Modifier.fillMaxSize(),
         ) { page ->
           val activeTab = visibleTabs.getOrElse(page) { GalleryTab.MEDIA }
@@ -1355,7 +1372,7 @@ internal fun GalleryScaffold(
                     covers = albumCovers,
                     sort = albumSort,
                     customOrder = albumOrder,
-                    isEditingOrder = isEditingAlbumOrder && destination == 1 && selectedAlbumId == null && albumSort == com.iris.gallery.data.AlbumSort.CUSTOM,
+                    isEditingOrder = isEditingAlbumOrder && (destination == 1) && (selectedAlbumId == null) && (albumSort == com.iris.gallery.data.AlbumSort.CUSTOM),
                     onTogglePinned = onTogglePinnedAlbum,
                     onSortChanged = onSetAlbumSort,
                     onOrderChanged = onSetAlbumOrder,
@@ -1401,6 +1418,7 @@ internal fun GalleryScaffold(
                         } else {
                             val lockedAlbumList = remember(lockedMedia) {
                                 lockedMedia.groupBy { it.bucketName.ifBlank { "Locked" } }
+                                    .asSequence()
                                     .map { (name, items) ->
                                         MediaAlbum(
                                             id = items.firstOrNull()?.bucketId ?: name.hashCode().toLong(),
@@ -1410,6 +1428,7 @@ internal fun GalleryScaffold(
                                             isSdCard = false
                                         )
                                     }.sortedWith(compareByDescending<MediaAlbum> { it.images.size }.thenBy { it.name.lowercase() })
+                                    .toList()
                             }
                             if (lockedMedia.isEmpty()) {
                                 EmptyState(stringResource(R.string.empty_locked), padding)
@@ -1564,7 +1583,7 @@ internal fun GalleryScaffold(
                             val today = LocalDate.now()
                             val memories = remember(images, today) { images.filter {
                                 val date = Instant.ofEpochMilli(it.dateTaken).atZone(ZoneId.systemDefault()).toLocalDate()
-                                date.year < today.year && date.month == today.month && date.dayOfMonth == today.dayOfMonth
+                                (date.year < today.year) && (date.month == today.month) && (date.dayOfMonth == today.dayOfMonth)
                             } }
                             Column(Modifier.fillMaxSize().padding(padding)) {
                                 androidx.compose.animation.AnimatedVisibility(
@@ -1655,7 +1674,7 @@ internal fun GalleryScaffold(
                             val allPanos = remember(images) { images.filter { it.isPanorama } }
                             val allMotion = remember(images) { images.filter { it.isMotionPhoto } }
                             val allSpecial = remember(allVideos, allRaw, allGifs, allPanos, allMotion) {
-                                (allVideos + allRaw + allGifs + allPanos + allMotion).distinctBy { it.id }.sortedByDescending { it.dateTaken }
+                                (allVideos + allRaw + allGifs + allPanos + allMotion).asSequence().distinctBy { it.id }.sortedByDescending { it.dateTaken }.toList()
                             }
                             val currentFiltered = when (formatFilter) {
                                 MediaFormatFilter.ALL -> allSpecial
@@ -1776,6 +1795,24 @@ internal fun GalleryScaffold(
                             },
                             onBack = { librarySection = null }
                         )
+                        "map" -> {
+                            val mapViewModel: PhotoMapViewModel = androidx.lifecycle.viewmodel.compose.viewModel()
+                            androidx.compose.runtime.LaunchedEffect(images) {
+                                mapViewModel.scanMediaForLocations(context, images)
+                            }
+                            OfflinePhotoMapScreen(
+                                padding = padding,
+                                viewModel = mapViewModel,
+                                isDark = isMapDark,
+                                onPhotoClick = { photoId ->
+                                    val clickedMedia = images.firstOrNull { it.id == photoId }
+                                    if (clickedMedia != null) {
+                                        viewerImages = images
+                                        selectedId = photoId
+                                    }
+                                },
+                            )
+                        }
                         else -> LibraryScreen(padding, trashed.size, lockedMedia.size) {
                             when (it) {
                                 "rescan" -> onRescanMedia()
@@ -1925,9 +1962,9 @@ internal fun GalleryScaffold(
     }
 
     pendingDeleteItems?.let { items ->
-        val isInTrash = destination == 3 && librarySection == "trash"
-        val isLockedSection = destination == 3 && librarySection == "locked"
-        val isPermanentMode = isInTrash || isLockedSection || settings.deleteMode == DeleteMode.PERMANENT
+        val isInTrash = (destination == 3) && (librarySection == "trash")
+        val isLockedSection = (destination == 3) && (librarySection == "locked")
+        val isPermanentMode = isInTrash || isLockedSection || (settings.deleteMode == DeleteMode.PERMANENT)
         var deletePermanently by remember { mutableStateOf(isPermanentMode) }
         AlertDialog(
             onDismissRequest = { pendingDeleteItems = null },
@@ -1950,7 +1987,7 @@ internal fun GalleryScaffold(
                         else if (isPermanentMode || deletePermanently) stringResource(R.string.delete_permanent_desc)
                         else stringResource(R.string.delete_trash_desc)
                     )
-                    if (!isInTrash && !isLockedSection && settings.deleteMode != DeleteMode.PERMANENT) {
+                    if (!isInTrash && !isLockedSection && (settings.deleteMode != DeleteMode.PERMANENT)) {
                         Row(
                             modifier = Modifier
                                 .fillMaxWidth()
@@ -2031,8 +2068,8 @@ internal fun GalleryScaffold(
         )
     }
 
-    if (albumPickerAction != null && pendingAlbumMedia != null) {
-        val currentAlbumIdForMove = if (destination == 1 && selectedAlbum != null) selectedAlbum.id else null
+    if ((albumPickerAction != null) && (pendingAlbumMedia != null)) {
+        val currentAlbumIdForMove = if ((destination == 1) && (selectedAlbum != null)) selectedAlbum.id else null
         AlbumPickerSheet(
             action = albumPickerAction!!,
             selectedCount = pendingAlbumMedia!!.size,
@@ -2098,7 +2135,7 @@ internal fun GalleryScaffold(
     }
 
     BackHandler(enabled = !isFileSearching && selectedIds.isNotEmpty()) { clearSelection() }
-    BackHandler(enabled = selectedIds.isEmpty() && destination == 1 && selectedAlbum != null && !isFileSearching) {
+    BackHandler(enabled = selectedIds.isEmpty() && (destination == 1) && (selectedAlbum != null) && !isFileSearching) {
         selectedAlbumId = null
         if (isFileSearching) {
             isFileSearching = false
@@ -2106,10 +2143,10 @@ internal fun GalleryScaffold(
             onSearchQueryChange("")
         }
     }
-    BackHandler(enabled = selectedIds.isEmpty() && destination == 3 && librarySection == "locked" && selectedLockedAlbum != null && !isFileSearching) {
+    BackHandler(enabled = selectedIds.isEmpty() && (destination == 3) && (librarySection == "locked") && (selectedLockedAlbum != null) && !isFileSearching) {
         selectedLockedAlbum = null
     }
-    BackHandler(enabled = selectedIds.isEmpty() && destination == 3 && librarySection != null && (librarySection != "locked" || selectedLockedAlbum == null) && !isFileSearching) {
+    BackHandler(enabled = selectedIds.isEmpty() && (destination == 3) && (librarySection != null) && ((librarySection != "locked") || (selectedLockedAlbum == null)) && !isFileSearching) {
         librarySection = null
         selectedLockedAlbum = null
         if (isFileSearching) {
@@ -2165,8 +2202,8 @@ internal fun GalleryScaffold(
             availableAlbums = availableAlbums,
             onToggleFavorite = { },
             onClose = { externalMedia = null },
-            onRename = { media, newName ->
-                onRenameMedia(media, newName) { updated ->
+            onRename = { targetMedia, newName ->
+                onRenameMedia(targetMedia, newName) { updated ->
                     if (updated != null) {
                         externalMedia = updated
                         Toast.makeText(context, context.applicationContext.getString(R.string.toast_rename_success, updated.name), Toast.LENGTH_SHORT).show()
@@ -2180,8 +2217,8 @@ internal fun GalleryScaffold(
                 runCatching { context.contentResolver.delete(item.uri, null, null) }
             },
             onRestore = { },
-            onEditMetadata = { media, request ->
-                onEditMetadata(media, request) { updated ->
+            onEditMetadata = { targetMedia, request ->
+                onEditMetadata(targetMedia, request) { updated ->
                     if (updated != null) {
                         externalMedia = updated
                     }
@@ -2220,9 +2257,9 @@ internal fun GalleryScaffold(
     selectedId?.let { id ->
         val activeImages = viewerImages ?: images
         val index = activeImages.indexOfFirst { it.id == id }
-        val isViewingLocked = destination == 3 && librarySection == "locked"
-        val isViewingTrash = destination == 3 && librarySection == "trash"
-        if (index >= 0 && activeImages.isNotEmpty()) PhotoViewer(
+        val isViewingLocked = (destination == 3) && (librarySection == "locked")
+        val isViewingTrash = (destination == 3) && (librarySection == "trash")
+        if ((index >= 0) && activeImages.isNotEmpty()) PhotoViewer(
             images = activeImages,
             initialPage = index,
             favorites = favorites,
@@ -2261,47 +2298,47 @@ internal fun GalleryScaffold(
             onToggleFavorite = onToggleFavorite,
             onClose = { selectedId = null; viewerImages = null },
             onPageChanged = { selectedId = it },
-            onRename = { media, newName ->
-                onRenameMedia(media, newName) { updated ->
+            onRename = { targetMedia, newName ->
+                onRenameMedia(targetMedia, newName) { updated ->
                     if (updated != null) {
-                        viewerImages = viewerImages?.map { if (it.id == media.id) updated else it }
+                        viewerImages = viewerImages?.map { if (it.id == targetMedia.id) updated else it }
                         Toast.makeText(context, context.applicationContext.getString(R.string.toast_rename_success, updated.name), Toast.LENGTH_SHORT).show()
                     } else {
                         Toast.makeText(context, R.string.toast_rename_failed, Toast.LENGTH_SHORT).show()
                     }
                 }
             },
-            onDelete = { media, deletePermanently ->
+            onDelete = { targetMedia, deletePermanently ->
                 val onConfirmedAction = {
                     val activeList = viewerImages ?: images
-                    val currentIndex = activeList.indexOfFirst { it.id == media.id }
-                    val nextImage = if (activeList.size > 1 && currentIndex >= 0) {
-                        if (currentIndex < activeList.size - 1) activeList[currentIndex + 1]
+                    val currentIndex = activeList.indexOfFirst { it.id == targetMedia.id }
+                    val nextImage = if ((activeList.size > 1) && (currentIndex >= 0)) {
+                        if (currentIndex < (activeList.size - 1)) activeList[currentIndex + 1]
                         else activeList[currentIndex - 1]
                     } else null
 
                     selectedId = nextImage?.id
-                    viewerImages = viewerImages?.filterNot { it.id == media.id }
+                    viewerImages = viewerImages?.filterNot { it.id == targetMedia.id }
                 }
 
                 if (isViewingTrash || deletePermanently) {
-                    handleDeletePermanently(listOf(media), onConfirmedAction)
+                    handleDeletePermanently(listOf(targetMedia), onConfirmedAction)
                 } else if (isViewingLocked) {
-                    onDeleteFromLocked(listOf(media)) {
+                    onDeleteFromLocked(listOf(targetMedia)) {
                         onTrashFeedbackChange(TrashFeedback(TrashFeedbackType.PERMANENTLY_DELETED, 1))
                         onConfirmedAction()
                     }
                 } else {
-                    handleTrash(listOf(media), onConfirmedAction)
+                    handleTrash(listOf(targetMedia), onConfirmedAction)
                 }
             },
-            onRestore = { media ->
-                handleRestore(listOf(media))
+            onRestore = { targetMedia ->
+                handleRestore(listOf(targetMedia))
             },
-            onEditMetadata = { media, request ->
-                onEditMetadata(media, request) { updated ->
+            onEditMetadata = { targetMedia, request ->
+                onEditMetadata(targetMedia, request) { updated ->
                     if (updated != null) {
-                        viewerImages = viewerImages?.map { if (it.id == media.id) updated else it }
+                        viewerImages = viewerImages?.map { if (it.id == targetMedia.id) updated else it }
                     }
                 }
             },

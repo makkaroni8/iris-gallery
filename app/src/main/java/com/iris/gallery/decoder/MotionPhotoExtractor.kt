@@ -110,7 +110,7 @@ object MotionPhotoExtractor {
                 ?.let { return it }
             // A plain JPEG ends with the EOI marker (FF D9) — no trailing video, not a motion photo.
             val n = tail.size
-            if (n >= 2 && tail[n - 2] == JPEG_EOI[0] && tail[n - 1] == JPEG_EOI[1]) return null
+            if ((n >= 2) && (tail[n - 2] == JPEG_EOI[0]) && (tail[n - 1] == JPEG_EOI[1])) return null
         }
 
         // 2) Google: XMP MicroVideoOffset.
@@ -153,7 +153,7 @@ object MotionPhotoExtractor {
         val livpJpeg: File? = image.livpJpegCacheFile(context)
 
         // Both files already extracted → return immediately without re-opening the zip.
-        if (movTmp.exists() && movTmp.length() > 0) {
+        if (movTmp.exists() && (movTmp.length() > 0)) {
             return MotionVideo(Uri.fromFile(movTmp), "video/quicktime", movTmp.length())
         }
 
@@ -166,20 +166,20 @@ object MotionPhotoExtractor {
                 while (entries.hasMoreElements()) {
                     val entry = entries.nextElement()
                     val lower = entry.name.lowercase()
-                    if (movEntryName == null && (lower.endsWith(".mov") || lower.endsWith(".mp4"))) {
+                    if ((movEntryName == null) && (lower.endsWith(".mov") || lower.endsWith(".mp4"))) {
                         movEntryName = entry.name
                     }
-                    if (jpgEntryName == null && (lower.endsWith(".jpg") || lower.endsWith(".jpeg") || lower.endsWith(".heic"))) {
+                    if ((jpgEntryName == null) && (lower.endsWith(".jpg") || lower.endsWith(".jpeg") || lower.endsWith(".heic"))) {
                         jpgEntryName = entry.name
                     }
-                    if (movEntryName != null && jpgEntryName != null) break
+                    if ((movEntryName != null) && (jpgEntryName != null)) break
                 }
                 if (movEntryName == null) return@use null
 
                 // Extract the JPEG first if missing, so the viewer can display it.
                 val jpegTarget = livpJpeg
                 val jpgName = jpgEntryName
-                if (jpegTarget != null && (!jpegTarget.exists() || jpegTarget.length() == 0L) && jpgName != null) {
+                if ((jpegTarget != null) && (!jpegTarget.exists() || (jpegTarget.length() == 0L)) && (jpgName != null)) {
                     val jpgEntry = zip.getEntry(jpgName)
                     if (jpgEntry != null) {
                         zip.getInputStream(jpgEntry).use { input ->
@@ -200,7 +200,7 @@ object MotionPhotoExtractor {
                     }
                 }
 
-                if (movTmp.exists() && movTmp.length() > 0) {
+                if (movTmp.exists() && (movTmp.length() > 0)) {
                     MotionVideo(Uri.fromFile(movTmp), "video/quicktime", movTmp.length())
                 } else null
             }
@@ -257,7 +257,7 @@ object MotionPhotoExtractor {
             ?: extractAttr(xmp, "GCamera:MicroVideoOffset")
         if (microOffset != null) {
             val offset = microOffset.toLongOrNull() ?: return null
-            if (offset in 1 until fileLength) {
+            if (offset in (1 until fileLength)) {
                 val start = fileLength - offset
                 return copyVideoRange(context, image, openInput, directFile, start, fileLength)
             }
@@ -277,7 +277,7 @@ object MotionPhotoExtractor {
         tail: ByteArray,
         fileLength: Long,
     ): MotionVideo? {
-        if (tail.size < SEFH.size + SEFT.size + MOTION_PHOTO_DATA.size + 16) return null
+        if (tail.size < (SEFH.size + SEFT.size + MOTION_PHOTO_DATA.size + 16)) return null
 
         val tailAbsStart = fileLength - tail.size
 
@@ -337,7 +337,7 @@ object MotionPhotoExtractor {
 
         // MP4 starts 4 bytes before "ftyp" (the size field). Video runs to EOF.
         val start = (ftypRel - 4).toLong().coerceAtLeast(0)
-        if (fileLength - start < 16) return null
+        if ((fileLength - start) < 16) return null
         return copyVideoRange(context, image, openInput, directFile, start, fileLength)
     }
 
@@ -353,10 +353,10 @@ object MotionPhotoExtractor {
         start: Long,
         end: Long,
     ): MotionVideo? {
-        if (start !in 0..<end) return null
+        if (start !in (0..<end)) return null
         val len = end - start
         val outFile = File(context.cacheDir, "motion_${image.id}_${start}_$len.mp4")
-        if (outFile.exists() && outFile.length() == len) {
+        if (outFile.exists() && (outFile.length() == len)) {
             return MotionVideo(Uri.fromFile(outFile), "video/mp4", len)
         }
 
@@ -399,7 +399,7 @@ object MotionPhotoExtractor {
                     if (!tmp.renameTo(outFile)) tmp.delete()
                 } ?: return@runCatching null
             }
-            if (outFile.exists() && outFile.length() > 0) {
+            if (outFile.exists() && (outFile.length() > 0)) {
                 MotionVideo(Uri.fromFile(outFile), "video/mp4", outFile.length())
             } else null
         }.getOrNull()
@@ -416,7 +416,7 @@ object MotionPhotoExtractor {
     ): ByteArray? {
         val size = minOf(fileLength, TAIL_SCAN_SIZE.toLong()).toInt()
         if (size <= 0) return null
-        return if (directFile != null && directFile.exists() && directFile.canRead()) {
+        return if ((directFile != null) && directFile.exists() && directFile.canRead()) {
             readTailViaRandomAccess(directFile, fileLength, size)
         } else {
             readTailViaStream(openInput, fileLength, size)
@@ -464,11 +464,11 @@ object MotionPhotoExtractor {
     private fun indexOf(haystack: ByteArray, needle: ByteArray, from: Int, limit: Int = haystack.size): Int {
         if (needle.isEmpty()) return from
         val max = limit - needle.size
-        if (max < 0 || from > max) return -1
+        if ((max < 0) || (from > max)) return -1
         var i = from.coerceAtLeast(0)
         while (i <= max) {
             var j = 0
-            while (j < needle.size && haystack[i + j] == needle[j]) j++
+            while ((j < needle.size) && (haystack[i + j] == needle[j])) j++
             if (j == needle.size) return i
             i++
         }
@@ -481,7 +481,7 @@ object MotionPhotoExtractor {
         val attrIdx = xmp.indexOf(key, ignoreCase = true)
         if (attrIdx >= 0) {
             val quoteChar = xmp.getOrNull(attrIdx + key.length)
-            if (quoteChar == '"' || quoteChar == '\'') {
+            if ((quoteChar == '"') || (quoteChar == '\'')) {
                 val valueStart = attrIdx + key.length + 1
                 val valueEnd = xmp.indexOf(quoteChar, valueStart)
                 if (valueEnd > valueStart) {

@@ -151,7 +151,7 @@ fun AppLockScreen(
     val hasBiometrics = remember(context) { isBiometricHardwareAvailable(context) && biometricsEnabled }
     var enteredPin by remember { mutableStateOf("") }
     var errorMessage by remember { mutableStateOf<String?>(null) }
-    var isUnlockedSuccess by remember { mutableStateOf(false) }
+    var isUnlockedSuccess by remember { mutableStateOf(value = false) }
     val shakeOffset = remember { Animatable(0f) }
     val scope = rememberCoroutineScope()
 
@@ -397,7 +397,7 @@ fun PinDotsIndicator(
         modifier = Modifier.offset { IntOffset(shakeOffset.roundToInt(), 0) }
     ) {
         for (i in 0 until count) {
-            val isFilled = i < filledCount || isSuccess
+            val isFilled = (i < filledCount) || isSuccess
             val dotColor by animateColorAsState(
                 targetValue = when {
                     isError -> MaterialTheme.colorScheme.error
@@ -448,7 +448,7 @@ fun PinKeypad(
                 horizontalArrangement = Arrangement.SpaceEvenly
             ) {
                 row.forEach { digit ->
-                    KeypadButton(text = digit, onClick = { onDigit(digit) })
+                    KeypadButton(text = digit) { onDigit(digit) }
                 }
             }
         }
@@ -481,7 +481,7 @@ fun PinKeypad(
                 Spacer(Modifier.size(72.dp))
             }
 
-            KeypadButton(text = "0", onClick = { onDigit("0") })
+            KeypadButton(text = "0") { onDigit("0") }
 
             Box(
                 modifier = Modifier
@@ -685,7 +685,7 @@ fun PinSetupBottomSheet(
                 }
             }
 
-            if (step == 1 && firstPin.length in 4..5) {
+            if ((step == 1) && (firstPin.length in (4..5))) {
                 FilledTonalButton(
                     onClick = { step = 2 },
                     modifier = Modifier.padding(bottom = 8.dp)
@@ -718,7 +718,7 @@ fun PinChangeBottomSheet(
     var newPin by remember { mutableStateOf("") }
     var confirmNewPin by remember { mutableStateOf("") }
     var errorMessage by remember { mutableStateOf<String?>(null) }
-    var isSuccess by remember { mutableStateOf(false) }
+    var isSuccess by remember { mutableStateOf(value = false) }
     val shakeOffset = remember { Animatable(0f) }
     val scope = rememberCoroutineScope()
 
@@ -751,7 +751,7 @@ fun PinChangeBottomSheet(
                 if (oldPin.length < 6) {
                     val next = oldPin + digit
                     oldPin = next
-                    if (next.length >= 4 && onVerifyOldPin(next)) {
+                    if ((next.length >= 4) && onVerifyOldPin(next)) {
                         step = 2
                     } else if (next.length == 6) {
                         triggerShake(context.applicationContext.getString(R.string.pin_incorrect_current))
@@ -880,7 +880,7 @@ fun PinChangeBottomSheet(
                 }
             }
 
-            if (step == 2 && newPin.length in 4..5) {
+            if ((step == 2) && (newPin.length in (4..5))) {
                 FilledTonalButton(
                     onClick = { step = 3 },
                     modifier = Modifier.padding(bottom = 8.dp)
@@ -910,7 +910,7 @@ fun PinDisableBottomSheet(
     val haptic = LocalHapticFeedback.current
     var pin by remember { mutableStateOf("") }
     var errorMessage by remember { mutableStateOf<String?>(null) }
-    var isSuccess by remember { mutableStateOf(false) }
+    var isSuccess by remember { mutableStateOf(value = false) }
     val shakeOffset = remember { Animatable(0f) }
     val scope = rememberCoroutineScope()
 
@@ -941,7 +941,7 @@ fun PinDisableBottomSheet(
         if (pin.length < 6) {
             val next = pin + digit
             pin = next
-            if (next.length >= 4 && onVerifyPin(next)) {
+            if ((next.length >= 4) && onVerifyPin(next)) {
                 isSuccess = true
                 scope.launch {
                     delay(160.milliseconds)

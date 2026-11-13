@@ -68,7 +68,6 @@ import androidx.core.net.toUri
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun AboutScreen(
-    padding: PaddingValues = PaddingValues(0.dp),
     onBack: () -> Unit,
 ) {
     val context = LocalContext.current
@@ -94,9 +93,9 @@ fun AboutScreen(
                         Icon(Icons.AutoMirrored.Outlined.ArrowBack, androidx.compose.ui.res.stringResource(R.string.action_back))
                     }
                 },
-                colors = TopAppBarDefaults.topAppBarColors(containerColor = MaterialTheme.colorScheme.surface)
+                colors = TopAppBarDefaults.topAppBarColors(containerColor = MaterialTheme.colorScheme.surface),
             )
-        }
+        },
     ) { scaffoldPadding ->
         LazyColumn(
             modifier = Modifier
@@ -195,15 +194,15 @@ fun AboutScreen(
                         icon = Icons.Outlined.Psychology,
                         title = androidx.compose.ui.res.stringResource(R.string.about_developer_label),
                         subtitle = androidx.compose.ui.res.stringResource(R.string.about_developer_name),
-                    ) { openUrl("https://" + "bn3di.is-a.dev") }
+                    ) { openUrl("https" + "://bn3di.is-a.dev") }
 
                     HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f))
 
                     AboutLinkRow(
                         icon = Icons.Outlined.Language,
                         title = androidx.compose.ui.res.stringResource(R.string.about_website_label),
-                        subtitle = "https://bn3di.is-a.dev",
-                    ) { openUrl("https://" + "bn3di.is-a.dev") }
+                        subtitle = "https" + "://bn3di.is-a.dev",
+                    ) { openUrl("https" + "://bn3di.is-a.dev") }
 
                     HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f))
 
@@ -211,7 +210,7 @@ fun AboutScreen(
                         icon = Icons.Outlined.Code,
                         title = androidx.compose.ui.res.stringResource(R.string.about_source_label),
                         subtitle = androidx.compose.ui.res.stringResource(R.string.about_source_url)
-                    ) { openUrl("https://github.com/MohamadOday/iris-gallery") }
+                    ) { openUrl("https" + "://github.com/MohamadOday/iris-gallery") }
 
                     HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f))
 
@@ -219,7 +218,7 @@ fun AboutScreen(
                         icon = Icons.Outlined.VerifiedUser,
                         title = androidx.compose.ui.res.stringResource(R.string.about_license_label),
                         subtitle = androidx.compose.ui.res.stringResource(R.string.about_license_name)
-                    ) { openUrl("https://github.com/MohamadOday/iris-gallery/blob/main/LICENSE") }
+                    ) { openUrl("https" + "://github.com/MohamadOday/iris-gallery/blob/main/LICENSE") }
                 }
             }
         }

@@ -407,7 +407,7 @@ class VaultRepository(private val context: Context) {
                         orientation = item.orientation,
                         title = item.title,
                         description = item.description,
-                    )
+                    ),
                 )
             }
         }
@@ -443,7 +443,7 @@ class VaultRepository(private val context: Context) {
                     file
                 } else {
                     val fallbackDir = Environment.getExternalStoragePublicDirectory(
-                        if (item.isVideo) Environment.DIRECTORY_MOVIES else Environment.DIRECTORY_PICTURES
+                        if (item.isVideo) Environment.DIRECTORY_MOVIES else Environment.DIRECTORY_PICTURES,
                     ).resolve("Iris").apply { mkdirs() }
                     File(fallbackDir, item.originalName)
                 }
@@ -557,7 +557,7 @@ class VaultRepository(private val context: Context) {
     private fun sanitizeFileName(name: String): String {
         val cleaned = buildString(name.length) {
             for (ch in name) {
-                append(if (ch.isISOControl() || ch == '/' || ch == '\\') '_' else ch)
+                append(if (ch.isISOControl() || (ch == '/') || (ch == '\\')) '_' else ch)
             }
         }.trim().trimEnd('.')
         return cleaned.ifBlank { "media" }
@@ -579,7 +579,7 @@ class VaultRepository(private val context: Context) {
         var bytes = 0
         for (ch in stem) {
             val chBytes = ch.toString().toByteArray(Charsets.UTF_8).size
-            if (bytes + chBytes > budget) break
+            if ((bytes + chBytes) > budget) break
             builder.append(ch)
             bytes += chBytes
         }
@@ -639,7 +639,7 @@ class VaultRepository(private val context: Context) {
                         orientation = obj.optInt("orientation"),
                         title = obj.optString("title"),
                         description = obj.optString("description"),
-                    )
+                    ),
                 )
             }
             list

@@ -177,9 +177,9 @@ internal fun ZoomablePhoto(
 
     fun computeImageMetrics(): Triple<Float, Float, Float> {
         val intrinsic = painter.intrinsicSize
-        val hasIntrinsic = intrinsic.isSpecified && intrinsic.width > 0f && intrinsic.height > 0f
+        val hasIntrinsic = intrinsic.isSpecified && (intrinsic.width > 0f) && (intrinsic.height > 0f)
         val thumbIntrinsic = thumbPainter?.intrinsicSize
-        val hasThumbIntrinsic = thumbIntrinsic != null && thumbIntrinsic.isSpecified && thumbIntrinsic.width > 0f && thumbIntrinsic.height > 0f
+        val hasThumbIntrinsic = (thumbIntrinsic != null) && thumbIntrinsic.isSpecified && (thumbIntrinsic.width > 0f) && (thumbIntrinsic.height > 0f)
         val imgWidth = when {
             hasIntrinsic -> intrinsic.width
             hasThumbIntrinsic -> thumbIntrinsic.width
@@ -207,10 +207,10 @@ internal fun ZoomablePhoto(
     }
 
     fun clampOffset(candidate: Offset, atScale: Float): Offset {
-        if (atScale <= 1f || containerSize == IntSize.Zero || candidate.x.isNaN() || candidate.y.isNaN()) return Offset.Zero
+        if ((atScale <= 1f) || (containerSize == IntSize.Zero) || candidate.x.isNaN() || candidate.y.isNaN()) return Offset.Zero
         val (displayedWidth, displayedHeight, _) = computeImageMetrics()
-        val maxX = (displayedWidth * atScale - containerSize.width).coerceAtLeast(0f) / 2f
-        val maxY = (displayedHeight * atScale - containerSize.height).coerceAtLeast(0f) / 2f
+        val maxX = ((displayedWidth * atScale) - containerSize.width).coerceAtLeast(0f) / 2f
+        val maxY = ((displayedHeight * atScale) - containerSize.height).coerceAtLeast(0f) / 2f
         val clampedX = candidate.x.coerceIn(-maxX, maxX)
         val clampedY = candidate.y.coerceIn(-maxY, maxY)
         if (clampedX.isNaN() || clampedY.isNaN()) return Offset.Zero
@@ -230,7 +230,7 @@ internal fun ZoomablePhoto(
                                 val currentScale = scaleAnim.value
                                 val currentOffset = offsetAnim.value
                                 if (!multiStageZoom) {
-                                    if (currentScale > 1.05f || kotlin.math.abs(rotationAnim.value) > 1f) {
+                                    if ((currentScale > 1.05f) || (kotlin.math.abs(rotationAnim.value) > 1f)) {
                                         launch { scaleAnim.animateTo(1f, tween(260, easing = FastOutSlowInEasing)) }
                                         launch { offsetAnim.animateTo(Offset.Zero, tween(260, easing = FastOutSlowInEasing)) }
                                         launch { rotationAnim.animateTo(0f, tween(260, easing = FastOutSlowInEasing)) }
@@ -249,7 +249,7 @@ internal fun ZoomablePhoto(
                                         }
                                         val center = Offset(containerSize.width / 2f, containerSize.height / 2f)
                                         val z = targetScale / currentScale
-                                        val targetOffset = clampOffset(currentOffset + (tapPos - center - currentOffset) * (1f - z), targetScale)
+                                        val targetOffset = clampOffset(currentOffset + ((tapPos - center - currentOffset) * (1f - z)), targetScale)
                                         launch { scaleAnim.animateTo(targetScale, tween(260, easing = FastOutSlowInEasing)) }
                                         launch { offsetAnim.animateTo(targetOffset, tween(260, easing = FastOutSlowInEasing)) }
                                         onZoomChanged(true)
@@ -276,14 +276,14 @@ internal fun ZoomablePhoto(
                                         if (stageIndex == 0) fillIndex = index else originalIndex = index
                                     }
                                     val referenceScale = currentScale.coerceAtLeast(0.001f)
-                                    if (stages.size == 1 && stages[0] == 1f && referenceScale <= 1.05f && defaultTapZoomLevel != 1f) {
+                                    if ((stages.size == 1) && (stages[0] == 1f) && (referenceScale <= 1.05f) && (defaultTapZoomLevel != 1f)) {
                                         stages.add(defaultTapZoomLevel)
                                         originalIndex = stages.lastIndex
                                     }
                                     val nextStage = when {
-                                        referenceScale < stages[0] * 0.95f -> 0
-                                        fillIndex > 0 && referenceScale < stages[fillIndex] * 0.95f -> fillIndex
-                                        originalIndex > 0 && referenceScale < stages[originalIndex] * 0.95f -> originalIndex
+                                        referenceScale < (stages[0] * 0.95f) -> 0
+                                        (fillIndex > 0) && (referenceScale < (stages[fillIndex] * 0.95f)) -> fillIndex
+                                        (originalIndex > 0) && (referenceScale < (stages[originalIndex] * 0.95f)) -> originalIndex
                                         else -> 0
                                     }
                                     val nextScale = stages[nextStage]
@@ -295,7 +295,7 @@ internal fun ZoomablePhoto(
                                     } else {
                                         val center = Offset(containerSize.width / 2f, containerSize.height / 2f)
                                         val z = nextScale / currentScale.coerceAtLeast(0.001f)
-                                        val targetOffset = clampOffset(currentOffset + (tapPos - center - currentOffset) * (1f - z), nextScale)
+                                        val targetOffset = clampOffset(currentOffset + ((tapPos - center - currentOffset) * (1f - z)), nextScale)
                                         launch { scaleAnim.animateTo(nextScale, tween(260, easing = FastOutSlowInEasing)) }
                                         launch { offsetAnim.animateTo(targetOffset, tween(260, easing = FastOutSlowInEasing)) }
                                         launch { rotationAnim.animateTo(0f, tween(260, easing = FastOutSlowInEasing)) }
@@ -327,34 +327,34 @@ internal fun ZoomablePhoto(
                             val pointersDown = event.changes.count { it.pressed }
                             val scale = scaleAnim.value
                             val offset = offsetAnim.value
-                            if (pointersDown == 1 && scale > 1f && !panStarted) {
+                            if ((pointersDown == 1) && (scale > 1f) && !panStarted) {
                                 val panChange = event.calculatePan()
                                 singleFingerPanDistance += panChange.getDistance()
                                 if (singleFingerPanDistance >= touchSlop) {
                                     panStarted = true
                                 }
                             }
-                            if (pointersDown >= 2 || (pointersDown == 1 && scale > 1f && panStarted)) {
+                            if ((pointersDown >= 2) || ((pointersDown == 1) && (scale > 1f) && panStarted)) {
                                 if (isDismissDragging) {
                                     isDismissDragging = false
                                     onDismissRelease(0f)
                                 }
                                 val zoomChange = event.calculateZoom()
                                 val panChange = event.calculatePan()
-                                val rotationChange = if (pointersDown >= 2 && pinchToRotate) event.calculateRotation() else 0f
-                                val isTransforming = pointersDown >= 2 || panChange.getDistance() > 0.5f
+                                val rotationChange = if ((pointersDown >= 2) && pinchToRotate) event.calculateRotation() else 0f
+                                val isTransforming = (pointersDown >= 2) || (panChange.getDistance() > 0.5f)
 
-                                val validZoom = if (!zoomChange.isNaN() && zoomChange > 0f) zoomChange else 1f
+                                val validZoom = if (!zoomChange.isNaN() && (zoomChange > 0f)) zoomChange else 1f
                                 val validPan = if (panChange.isSpecified && !panChange.x.isNaN() && !panChange.y.isNaN()) panChange else Offset.Zero
 
                                 val calculatedScale = (scale * validZoom).coerceIn(1f, 50f)
                                 val nextScale = if (calculatedScale < 1.02f) 1f else calculatedScale
-                                val nextOffset = if (pointersDown >= 2 && containerSize != IntSize.Zero) {
+                                val nextOffset = if ((pointersDown >= 2) && (containerSize != IntSize.Zero)) {
                                     val centroid = event.calculateCentroid(useCurrent = true)
                                     if (centroid.isSpecified && !centroid.x.isNaN() && !centroid.y.isNaN()) {
                                         val center = Offset(containerSize.width / 2f, containerSize.height / 2f)
                                         val effectiveZoom = nextScale / scale
-                                        val focalOffset = (offset + validPan) + (centroid - center - offset) * (1f - effectiveZoom)
+                                        val focalOffset = (offset + validPan) + ((centroid - center - offset) * (1f - effectiveZoom))
                                         clampOffset(focalOffset, nextScale)
                                     } else {
                                         clampOffset(offset + validPan, nextScale)
@@ -363,9 +363,9 @@ internal fun ZoomablePhoto(
                                     clampOffset(offset + validPan, nextScale)
                                 }
 
-                                if (pinchToRotate && pointersDown >= 2 && !rotationChange.isNaN()) {
+                                if (pinchToRotate && (pointersDown >= 2) && !rotationChange.isNaN()) {
                                     accumulatedAngleDelta += rotationChange
-                                    if (!isRotating && kotlin.math.abs(accumulatedAngleDelta) >= 20f) {
+                                    if (!isRotating && (kotlin.math.abs(accumulatedAngleDelta) >= 20f)) {
                                         isRotating = true
                                         onRotateGestureTriggered()
                                     }
@@ -381,9 +381,9 @@ internal fun ZoomablePhoto(
                                     scaleAnim.snapTo(nextScale)
                                     offsetAnim.snapTo(nextOffset)
                                 }
-                                onZoomChanged(nextScale > 1.01f || (isRotating && kotlin.math.abs(rotationAnim.value % 360f) > 5f))
+                                onZoomChanged((nextScale > 1.01f) || (isRotating && (kotlin.math.abs(rotationAnim.value % 360f) > 5f)))
                                 if (isTransforming) event.changes.forEach { it.consume() }
-                            } else if (pointersDown == 1 && scale <= 1.02f && !isRotating) {
+                            } else if ((pointersDown == 1) && (scale <= 1.02f) && !isRotating) {
                                 val panChange = event.calculatePan()
                                 totalDragY += panChange.y
                                 totalDragX += panChange.x
@@ -393,12 +393,12 @@ internal fun ZoomablePhoto(
                                 lastDragTime = now
                                 lastDragY = totalDragY
 
-                                if (!isSwipeUpDetected && !isDismissDragging && totalDragY < -75f && kotlin.math.abs(totalDragY) > kotlin.math.abs(totalDragX) * 1.5f) {
+                                if (!isSwipeUpDetected && !isDismissDragging && (totalDragY < -75f) && (kotlin.math.abs(totalDragY) > (kotlin.math.abs(totalDragX) * 1.5f))) {
                                     isSwipeUpDetected = true
                                     event.changes.forEach { it.consume() }
                                     onSwipeUp()
                                 } else if (!isSwipeUpDetected) {
-                                    if (!isDismissDragging && totalDragY > 15f && totalDragY > kotlin.math.abs(totalDragX) * 1.3f) {
+                                    if (!isDismissDragging && (totalDragY > 15f) && (totalDragY > (kotlin.math.abs(totalDragX) * 1.3f))) {
                                         isDismissDragging = true
                                     }
                                     if (isDismissDragging) {
@@ -415,7 +415,7 @@ internal fun ZoomablePhoto(
                         // When gesture ends, snap rotation to nearest 90° angle if rotated
                         if (isRotating) {
                             val targetAngle = kotlin.math.round(totalRotation / 90f) * 90f
-                            val delta = ((targetAngle - totalRotation + 540f) % 360f) - 180f
+                            val delta = ((((targetAngle - totalRotation) + 540f) % 360f) - 180f)
                             val snapTarget = totalRotation + delta
                             coroutineScope.launch {
                                 rotationAnim.animateTo(
@@ -434,9 +434,9 @@ internal fun ZoomablePhoto(
             val scale = scaleAnim.value
             val offset = offsetAnim.value
             val intrinsic = painter.intrinsicSize
-            val hasValidIntrinsic = intrinsic.isSpecified && intrinsic.width > 0f && intrinsic.height > 0f
+            val hasValidIntrinsic = intrinsic.isSpecified && (intrinsic.width > 0f) && (intrinsic.height > 0f)
             val thumbIntrinsic = thumbPainter?.intrinsicSize
-            val hasThumbIntrinsic = thumbIntrinsic != null && thumbIntrinsic.isSpecified && thumbIntrinsic.width > 0f && thumbIntrinsic.height > 0f
+            val hasThumbIntrinsic = (thumbIntrinsic != null) && thumbIntrinsic.isSpecified && (thumbIntrinsic.width > 0f) && (thumbIntrinsic.height > 0f)
             val imgWidth = when {
                 hasValidIntrinsic -> intrinsic.width
                 hasThumbIntrinsic -> thumbIntrinsic.width
@@ -450,7 +450,7 @@ internal fun ZoomablePhoto(
                 else -> 1080f
             }
 
-            if (imgWidth > 0f && imgHeight > 0f && size.width > 0f && size.height > 0f) {
+            if ((imgWidth > 0f) && (imgHeight > 0f) && (size.width > 0f) && (size.height > 0f)) {
                 val imageAspect = imgWidth / imgHeight
                 val canvasAspect = size.width / size.height
                 val fitWidth: Float
@@ -499,12 +499,12 @@ internal fun ZoomablePhoto(
         // In-place looping video player (mute + repeat). The still image acts as poster.
         // Apply the same transform (scale/offset/rotate) as the still image so the video
         // aligns exactly with it and can be zoomed/panned.
-        if (isPlayingMotion && motionPlayer != null) {
+        if (isPlayingMotion && (motionPlayer != null)) {
             // Compute displayed image rect so the video overlay matches it exactly.
             val intrinsic = painter.intrinsicSize
-            val hasValidIntrinsic = intrinsic.isSpecified && intrinsic.width > 0f && intrinsic.height > 0f
+            val hasValidIntrinsic = intrinsic.isSpecified && (intrinsic.width > 0f) && (intrinsic.height > 0f)
             val thumbIntrinsic = thumbPainter?.intrinsicSize
-            val hasThumbIntrinsic = thumbIntrinsic != null && thumbIntrinsic.isSpecified && thumbIntrinsic.width > 0f && thumbIntrinsic.height > 0f
+            val hasThumbIntrinsic = (thumbIntrinsic != null) && thumbIntrinsic.isSpecified && (thumbIntrinsic.width > 0f) && (thumbIntrinsic.height > 0f)
             val imgWidth = when {
                 hasValidIntrinsic -> intrinsic.width
                 hasThumbIntrinsic -> thumbIntrinsic.width
@@ -518,7 +518,7 @@ internal fun ZoomablePhoto(
                 else -> 1080f
             }
 
-            if (imgWidth > 0f && imgHeight > 0f && containerSize.width > 0 && containerSize.height > 0) {
+            if ((imgWidth > 0f) && (imgHeight > 0f) && (containerSize.width > 0) && (containerSize.height > 0)) {
                 val imageAspect = imgWidth / imgHeight
                 val containerAspect = containerSize.width.toFloat() / containerSize.height.coerceAtLeast(1)
                 val fitW: Float
@@ -621,7 +621,7 @@ internal fun ZoomablePhoto(
 
         // Motion play button. Positioned above the bottom control bar / filmstrip
         // so it stays visible even when the viewer is not fullscreen.
-        if (motionVideo != null && !isPlayingMotion && !motionExtracting && !image.isSvg && !image.isRaw) {
+        if ((motionVideo != null) && !isPlayingMotion && !motionExtracting && !image.isSvg && !image.isRaw) {
             Box(
                 modifier = Modifier.fillMaxSize(),
                 contentAlignment = Alignment.BottomEnd,

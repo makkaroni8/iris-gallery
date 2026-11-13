@@ -21,6 +21,13 @@ class IrisApplication : Application(), SingletonImageLoader.Factory {
         super.onCreate()
         instance = this
         PhotoIndexingWorker.enqueue(this)
+
+        // Force MapLibre into 100% offline mode so ConnectivityReceiver never checks ACCESS_NETWORK_STATE
+        try {
+            org.maplibre.android.MapLibre.getInstance(this)
+            org.maplibre.android.MapLibre.setConnected(false)
+            org.maplibre.android.net.ConnectivityReceiver.instance(this).deactivate()
+        } catch (_: Exception) {}
     }
 
     override fun newImageLoader(context: PlatformContext): ImageLoader {

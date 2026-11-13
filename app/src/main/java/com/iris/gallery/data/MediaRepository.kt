@@ -127,9 +127,9 @@ class MediaRepository(private val context: Context) {
             android.media.MediaScannerConnection.scanFile(context, arrayOf(path), null, null)
         }
         runCatching { context.contentResolver.delete(uri, null, null) }
-        if (id > 0 && uri.authority == "media") {
+        if ((id > 0) && (uri.authority == "media")) {
             val ghostVolume = uri.pathSegments.firstOrNull().orEmpty()
-            val isPrimary = ghostVolume.isBlank() || ghostVolume == "external" || ghostVolume == "external_primary"
+            val isPrimary = ghostVolume.isBlank() || (ghostVolume == "external") || (ghostVolume == "external_primary")
             val filesVolume = if (isPrimary) "external" else ghostVolume
             runCatching {
                 context.contentResolver.delete(
@@ -138,7 +138,7 @@ class MediaRepository(private val context: Context) {
                     arrayOf(id.toString()),
                 )
             }
-            if (isPrimary && Build.VERSION.SDK_INT >= 29) {
+            if (isPrimary && (Build.VERSION.SDK_INT >= 29)) {
                 runCatching {
                     context.contentResolver.delete(
                         MediaStore.Files.getContentUri("external_primary"),
@@ -163,9 +163,9 @@ class MediaRepository(private val context: Context) {
                 if (dir != null) {
                     val path = dir.absolutePath
                     val rootPath = path.substringBefore("/Android/data")
-                    if (rootPath.isNotBlank() && rootPath != path) {
+                    if (rootPath.isNotBlank() && (rootPath != path)) {
                         val rootFile = File(rootPath)
-                        if (rootFile.exists() && rootFile !in storageRoots) {
+                        if (rootFile.exists() && (rootFile !in storageRoots)) {
                             storageRoots.add(rootFile)
                         }
                     }
@@ -177,7 +177,7 @@ class MediaRepository(private val context: Context) {
                 val sm = context.getSystemService(Context.STORAGE_SERVICE) as? android.os.storage.StorageManager
                 sm?.storageVolumes?.forEach { vol ->
                     val dir = vol.directory
-                    if (dir != null && dir.exists() && dir !in storageRoots) {
+                    if ((dir != null) && dir.exists() && (dir !in storageRoots)) {
                         storageRoots.add(dir)
                     }
                 }
@@ -189,16 +189,16 @@ class MediaRepository(private val context: Context) {
         for (root in storageRoots) {
             for (folder in standardFolders) {
                 val f = File(root, folder)
-                if (f.exists() && f.isDirectory && f !in candidateFolders) {
+                if (f.exists() && f.isDirectory && (f !in candidateFolders)) {
                     candidateFolders.add(f)
                 }
             }
             root.listFiles()?.forEach { sub ->
                 if (sub.isDirectory &&
-                    !sub.name.startsWith(".") &&
-                    !sub.name.equals("Android", ignoreCase = true) &&
-                    !sub.name.equals("lost.dir", ignoreCase = true) &&
-                    sub !in candidateFolders
+                    (!sub.name.startsWith(".")) &&
+                    (!sub.name.equals("Android", ignoreCase = true)) &&
+                    (!sub.name.equals("lost.dir", ignoreCase = true)) &&
+                    (sub !in candidateFolders)
                 ) {
                     candidateFolders.add(sub)
                 }
@@ -240,7 +240,7 @@ class MediaRepository(private val context: Context) {
                     val dataCol = cursor.getColumnIndex(MediaStore.MediaColumns.DATA)
                     val modCol = cursor.getColumnIndex(MediaStore.MediaColumns.DATE_MODIFIED)
                     val sizeCol = cursor.getColumnIndex(MediaStore.MediaColumns.SIZE)
-                    if (dataCol >= 0 && modCol >= 0 && sizeCol >= 0) {
+                    if ((dataCol >= 0) && (modCol >= 0) && (sizeCol >= 0)) {
                         while (cursor.moveToNext()) {
                             val path = cursor.getString(dataCol)
                             if (!path.isNullOrBlank()) {
@@ -262,12 +262,12 @@ class MediaRepository(private val context: Context) {
                 folder.walkTopDown()
                     .maxDepth(12)
                     .onEnter { dir ->
-                        !dir.name.startsWith(".") &&
-                        !dir.name.equals("Android", ignoreCase = true) &&
-                        !File(dir, ".nomedia").exists()
+                        (!dir.name.startsWith(".")) &&
+                        (!dir.name.equals("Android", ignoreCase = true)) &&
+                        (!File(dir, ".nomedia").exists())
                     }
                     .forEach { file ->
-                        if (file.isFile && !file.name.startsWith(".")) {
+                        if (file.isFile && (!file.name.startsWith("."))) {
                             val ext = file.extension.lowercase(java.util.Locale.ROOT)
                             if (ext in mediaExtensions) {
                                 val path = file.absolutePath
@@ -278,7 +278,7 @@ class MediaRepository(private val context: Context) {
                                     val (msModSec, msSize) = known
                                     val diskModSec = file.lastModified() / 1000L
                                     val diskSize = file.length()
-                                    if (abs(diskModSec - msModSec) > 1L || (diskSize > 0L && diskSize != msSize)) {
+                                    if ((abs(diskModSec - msModSec) > 1L) || ((diskSize > 0L) && (diskSize != msSize))) {
                                         pathsToScan.add(path)
                                     }
                                 }
@@ -392,15 +392,20 @@ class MediaRepository(private val context: Context) {
 
             for (collection in collectionsToQuery) {
                 val cursorResult = if (Build.VERSION.SDK_INT >= 30) {
-                    context.contentResolver.query(collection, projection, Bundle().apply {
-                        putString(android.content.ContentResolver.QUERY_ARG_SQL_SELECTION, mediaSelection)
-                        putStringArray(android.content.ContentResolver.QUERY_ARG_SQL_SELECTION_ARGS, selectionArgs)
-                        putString(android.content.ContentResolver.QUERY_ARG_SQL_SORT_ORDER, order)
-                        putInt(
-                            MediaStore.QUERY_ARG_MATCH_TRASHED,
-                            if (trashed) MediaStore.MATCH_ONLY else MediaStore.MATCH_EXCLUDE,
-                        )
-                    }, null)
+                    context.contentResolver.query(
+                        collection,
+                        projection,
+                        Bundle().apply {
+                            putString(android.content.ContentResolver.QUERY_ARG_SQL_SELECTION, mediaSelection)
+                            putStringArray(android.content.ContentResolver.QUERY_ARG_SQL_SELECTION_ARGS, selectionArgs)
+                            putString(android.content.ContentResolver.QUERY_ARG_SQL_SORT_ORDER, order)
+                            putInt(
+                                MediaStore.QUERY_ARG_MATCH_TRASHED,
+                                if (trashed) MediaStore.MATCH_ONLY else MediaStore.MATCH_EXCLUDE,
+                            )
+                        },
+                        null
+                    )
                 } else {
                     context.contentResolver.query(collection, projection, mediaSelection, selectionArgs, order)
                 }
@@ -437,18 +442,18 @@ class MediaRepository(private val context: Context) {
 
                         val filePath = when {
                             rawData.isNotBlank() -> rawData
-                            relPath.isNotBlank() && volName.isNotBlank() && volName != "external_primary" -> "/storage/$volName/$relPath$displayName"
+                            relPath.isNotBlank() && volName.isNotBlank() && (volName != "external_primary") -> "/storage/$volName/$relPath$displayName"
                             relPath.isNotBlank() -> "/storage/emulated/0/$relPath$displayName"
                             else -> ""
                         }
 
-                        val volumeForUri = if (volName.isNotBlank() && volName != "external_primary") volName else "external"
+                        val volumeForUri = if (volName.isNotBlank() && (volName != "external_primary")) volName else "external"
                         val baseMediaUri = if (isVid) {
                             ContentUris.withAppendedId(MediaStore.Video.Media.getContentUri(volumeForUri), mediaId)
                         } else {
                             ContentUris.withAppendedId(MediaStore.Images.Media.getContentUri(volumeForUri), mediaId)
                         }
-                        val mediaUri = if (trashed && Build.VERSION.SDK_INT >= 30) {
+                        val mediaUri = if (trashed && (Build.VERSION.SDK_INT >= 30)) {
                             baseMediaUri.buildUpon().appendQueryParameter("include_trashed", "1").build()
                         } else {
                             baseMediaUri
@@ -458,7 +463,7 @@ class MediaRepository(private val context: Context) {
                         val cursorDateModified = cursor.getLong(modified) * 1_000L
                         val cursorDateAdded = cursor.getLong(added) * 1_000L
                         val newestRowMs = maxOf(cursorDateModified, cursorDateAdded)
-                        val isFreshRow = newestRowMs > 0L && now - newestRowMs < 2 * 60 * 1000L
+                        val isFreshRow = (newestRowMs > 0L) && ((now - newestRowMs) < (2 * 60 * 1000L))
                         val itemWidth = cursor.getInt(width)
                         val itemHeight = cursor.getInt(height)
                         val itemDuration = cursor.getLong(duration)
@@ -470,17 +475,17 @@ class MediaRepository(private val context: Context) {
                         // skip the disk stat and the EXIF read entirely. This is what
                         // keeps a 13k-item refresh from turning into a multi-minute scan.
                         val existing = if (!trashed) inMemoryCache[mediaId] else null
-                        if (existing != null &&
-                            existing.name == displayName &&
-                            existing.path == filePath &&
-                            existing.dateModified == cursorDateModified &&
-                            existing.dateAdded == cursorDateAdded &&
-                            existing.sizeBytes == itemSize &&
-                            existing.orientation == itemOrientation &&
-                            existing.width == itemWidth &&
-                            existing.height == itemHeight &&
-                            existing.title == itemTitle &&
-                            existing.isVideo == isVid
+                        if ((existing != null) &&
+                            (existing.name == displayName) &&
+                            (existing.path == filePath) &&
+                            (existing.dateModified == cursorDateModified) &&
+                            (existing.dateAdded == cursorDateAdded) &&
+                            (existing.sizeBytes == itemSize) &&
+                            (existing.orientation == itemOrientation) &&
+                            (existing.width == itemWidth) &&
+                            (existing.height == itemHeight) &&
+                            (existing.title == itemTitle) &&
+                            (existing.isVideo == isVid)
                         ) {
                             add(existing)
                             continue
@@ -490,21 +495,21 @@ class MediaRepository(private val context: Context) {
                         // EXIF read. MediaStore already has the values, and this keeps
                         // a cold 13k-item refresh from taking minutes.
                         val trustCursor = !trashed &&
-                            !isFreshRow &&
+                            (!isFreshRow) &&
                             filePath.isNotBlank() &&
-                            itemSize > 0L &&
-                            cursorDateModified > 0L &&
-                            now - cursorDateModified > 2L * 24L * 60L * 60L * 1000L
+                            (itemSize > 0L) &&
+                            (cursorDateModified > 0L) &&
+                            ((now - cursorDateModified) > (2L * 24L * 60L * 60L * 1000L))
 
                         var diskModifiedMs = 0L
                         var diskSizeBytes = -1L
-                        if (!trashed && filePath.isNotBlank() && !trustCursor) {
+                        if (!trashed && filePath.isNotBlank() && (!trustCursor)) {
                             val file = File(filePath)
                             var exists = file.exists()
                             if (exists) {
                                 diskModifiedMs = file.lastModified()
                                 diskSizeBytes = file.length()
-                            } else if (volName.isNotBlank() && volName != "external_primary") {
+                            } else if (volName.isNotBlank() && (volName != "external_primary")) {
                                 exists = runCatching {
                                     context.contentResolver.openAssetFileDescriptor(mediaUri, "r")?.use { true } ?: false
                                 }.getOrDefault(defaultValue = false)
@@ -530,36 +535,36 @@ class MediaRepository(private val context: Context) {
                         if (diskModifiedMs > 0L) {
                             val diskModSec = diskModifiedMs / 1000L
                             val cursorModSec = cursor.getLong(modified)
-                            if (abs(diskModSec - cursorModSec) > 1L || (diskSizeBytes >= 0L && diskSizeBytes != itemSize)) {
+                            if ((abs(diskModSec - cursorModSec) > 1L) || ((diskSizeBytes >= 0L) && (diskSizeBytes != itemSize))) {
                                 effectiveModified = diskModifiedMs
                                 if (diskSizeBytes >= 0L) effectiveSize = diskSizeBytes
                             }
                         }
 
-                        if (!trashed && existing != null &&
-                            existing.name == displayName &&
-                            existing.path == filePath &&
-                            existing.dateModified == effectiveModified &&
-                            existing.dateAdded == cursorDateAdded &&
-                            existing.sizeBytes == itemSize &&
-                            existing.orientation == itemOrientation &&
-                            existing.width == itemWidth &&
-                            existing.height == itemHeight &&
-                            existing.title == itemTitle &&
-                            existing.isVideo == isVid
+                        if (!trashed && (existing != null) &&
+                            (existing.name == displayName) &&
+                            (existing.path == filePath) &&
+                            (existing.dateModified == effectiveModified) &&
+                            (existing.dateAdded == cursorDateAdded) &&
+                            (existing.sizeBytes == itemSize) &&
+                            (existing.orientation == itemOrientation) &&
+                            (existing.width == itemWidth) &&
+                            (existing.height == itemHeight) &&
+                            (existing.title == itemTitle) &&
+                            (existing.isVideo == isVid)
                         ) {
                             add(existing)
                             continue
                         }
 
                         var takenTime = cursorDateTaken
-                        if (!isVid && !trustCursor) {
+                        if ((!isVid) && (!trustCursor)) {
                             val exifTaken = extractExifDateTaken(context, mediaUri, filePath)
-                            if (exifTaken != null && exifTaken > 0L) takenTime = exifTaken
+                            if ((exifTaken != null) && (exifTaken > 0L)) takenTime = exifTaken
                         }
 
-                        if (takenTime <= 0L && effectiveModified > 0L) takenTime = effectiveModified
-                        if (takenTime <= 0L && cursorDateAdded > 0L) takenTime = cursorDateAdded
+                        if ((takenTime <= 0L) && (effectiveModified > 0L)) takenTime = effectiveModified
+                        if ((takenTime <= 0L) && (cursorDateAdded > 0L)) takenTime = cursorDateAdded
 
                         val itemBucketId = if (trashed) -2L else cursor.getLong(bucketId)
                         val itemBucketName = if (trashed) "Trash" else cursor.getString(bucketName).orEmpty().ifBlank { "Other" }
@@ -655,8 +660,8 @@ class MediaRepository(private val context: Context) {
 
                 val id = number(MediaStore.MediaColumns._ID)
                 if (id <= 0L) return@use null
-                if (Build.VERSION.SDK_INT >= 29 && integer(MediaStore.MediaColumns.IS_PENDING) != 0) return@use null
-                if (Build.VERSION.SDK_INT >= 30 && integer(MediaStore.MediaColumns.IS_TRASHED) != 0) return@use null
+                if ((Build.VERSION.SDK_INT >= 29) && (integer(MediaStore.MediaColumns.IS_PENDING) != 0)) return@use null
+                if ((Build.VERSION.SDK_INT >= 30) && (integer(MediaStore.MediaColumns.IS_TRASHED) != 0)) return@use null
                 val displayName = text(MediaStore.MediaColumns.DISPLAY_NAME)
                     .ifBlank { text(MediaStore.MediaColumns.TITLE) }
                 val rawData = text(MediaStore.MediaColumns.DATA)
@@ -664,19 +669,19 @@ class MediaRepository(private val context: Context) {
                 val volumeName = text(MediaStore.MediaColumns.VOLUME_NAME)
                 val filePath = when {
                     rawData.isNotBlank() -> rawData
-                    relativePath.isNotBlank() && volumeName.isNotBlank() && volumeName != "external_primary" ->
+                    relativePath.isNotBlank() && volumeName.isNotBlank() && (volumeName != "external_primary") ->
                         "/storage/$volumeName/$relativePath$displayName"
                     relativePath.isNotBlank() -> "/storage/emulated/0/$relativePath$displayName"
                     else -> ""
                 }
                 val mimeType = text(MediaStore.MediaColumns.MIME_TYPE)
                 val mediaType = integer(MediaStore.Files.FileColumns.MEDIA_TYPE)
-                val isVideo = mediaType == MediaStore.Files.FileColumns.MEDIA_TYPE_VIDEO ||
+                val isVideo = (mediaType == MediaStore.Files.FileColumns.MEDIA_TYPE_VIDEO) ||
                     mimeType.startsWith("video/", ignoreCase = true)
                 val dateModified = number(MediaStore.MediaColumns.DATE_MODIFIED) * 1_000L
                 val dateAdded = number(MediaStore.MediaColumns.DATE_ADDED) * 1_000L
                 var dateTaken = number(MediaStore.Images.Media.DATE_TAKEN)
-                if (!isVideo && dateTaken <= 0L && filePath.isNotBlank()) {
+                if ((!isVideo) && (dateTaken <= 0L) && filePath.isNotBlank()) {
                     extractExifDateTaken(context, uri, filePath)?.let { if (it > 0L) dateTaken = it }
                 }
                 if (dateTaken <= 0L) dateTaken = dateModified
@@ -848,9 +853,9 @@ class MediaRepository(private val context: Context) {
                         val relPath = if (relCol >= 0) cursor.getString(relCol) else null
                         val resolvedPath = when {
                             !rawData.isNullOrBlank() -> rawData
-                            !relPath.isNullOrBlank() && !resolvedName.isNullOrBlank() -> {
+                            (!relPath.isNullOrBlank()) && (!resolvedName.isNullOrBlank()) -> {
                                 val volName = canonicalUri.pathSegments.firstOrNull().orEmpty()
-                                val root = if (volName.isBlank() || volName == "external" || volName == "external_primary") {
+                                val root = if (volName.isBlank() || (volName == "external") || (volName == "external_primary")) {
                                     "/storage/emulated/0/"
                                 } else {
                                     "/storage/$volName/"
@@ -881,10 +886,10 @@ class MediaRepository(private val context: Context) {
         }
 
         // Direct filesystem rename fallback (for Android <= 28 or full storage access)
-        if (srcFile != null && srcFile.exists() && srcFile.parentFile != null) {
+        if ((srcFile != null) && srcFile.exists() && (srcFile.parentFile != null)) {
             val parent = srcFile.parentFile!!
             var destFile = File(parent, finalName)
-            if (destFile.exists() && destFile.absolutePath != srcFile.absolutePath) {
+            if (destFile.exists() && (destFile.absolutePath != srcFile.absolutePath)) {
                 val base = finalName.substringBeforeLast('.')
                 val ext = if (finalName.contains('.')) ".${finalName.substringAfterLast('.')}" else ""
                 var index = 1
@@ -894,7 +899,7 @@ class MediaRepository(private val context: Context) {
                 }
             }
             val lastModified = srcFile.lastModified()
-            val renamed = runCatching { srcFile.renameTo(destFile) }.getOrDefault(false)
+            val renamed = runCatching { srcFile.renameTo(destFile) }.getOrDefault(defaultValue = false)
             if (renamed) {
                 if (lastModified > 0) destFile.setLastModified(lastModified)
                 renamedPath = destFile.absolutePath
@@ -902,7 +907,7 @@ class MediaRepository(private val context: Context) {
                 verifiedPathsCache.remove(item.path)
                 verifiedPathsCache[renamedPath] = System.currentTimeMillis()
 
-                if (item.id > 0 && canonicalUri.authority == "media") {
+                if ((item.id > 0) && (canonicalUri.authority == "media")) {
                     val values = android.content.ContentValues().apply {
                         put(MediaStore.MediaColumns.DISPLAY_NAME, resolvedFinalName)
                         if (Build.VERSION.SDK_INT <= 28) {

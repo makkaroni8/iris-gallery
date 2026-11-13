@@ -50,7 +50,10 @@ import androidx.compose.material.icons.outlined.FolderOpen
 import androidx.compose.material.icons.outlined.GridView
 import androidx.compose.material.icons.outlined.Info
 import androidx.compose.material.icons.outlined.Language
+import androidx.compose.material.icons.outlined.Layers
 import androidx.compose.material.icons.outlined.LocationOff
+import androidx.compose.material.icons.outlined.Map
+import androidx.compose.material.icons.outlined.FileOpen
 import androidx.compose.material.icons.outlined.Notifications
 import androidx.compose.material.icons.outlined.Palette
 import androidx.compose.material.icons.outlined.PlayCircle
@@ -61,6 +64,8 @@ import androidx.compose.material.icons.outlined.Share
 import androidx.compose.material.icons.outlined.ViewDay
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.FilledTonalButton
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -68,6 +73,9 @@ import androidx.compose.material3.FilterChip
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
+import com.iris.gallery.data.OfflineMapRepository
+import kotlinx.coroutines.launch
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.RadioButton
@@ -83,6 +91,7 @@ import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
@@ -131,6 +140,10 @@ import com.iris.gallery.data.search.IndexingStatus
 import androidx.compose.material3.LinearProgressIndicator
 import kotlin.math.roundToInt
 import androidx.core.net.toUri
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
+import com.iris.gallery.data.MediaRepository
+import com.iris.gallery.data.MediaImage
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -160,6 +173,43 @@ fun SettingsScreen(
     var showTimePickerDialog by remember { mutableStateOf(value = false) }
     var showExcludedFoldersDialog by remember { mutableStateOf(value = false) }
     var showSecureSharingDialog by remember { mutableStateOf(value = false) }
+
+    val coroutineScope = rememberCoroutineScope()
+    val mapRepository = remember { OfflineMapRepository(context) }
+    var isUsingCustomMap by remember { mutableStateOf(mapRepository.isUsingCustomMap()) }
+    var isImportingMap by remember { mutableStateOf(value = false) }
+    var mapImportProgress by remember { mutableStateOf<Float?>(null) }
+    var mapErrorMessage by remember { mutableStateOf<String?>(null) }
+    var showMapReindexDialog by remember { mutableStateOf(value = false) }
+    var isReindexingMap by remember { mutableStateOf(value = false) }
+    var mapReindexStatus by remember { mutableStateOf("") }
+    var mapReindexCurrent by remember { mutableIntStateOf(0) }
+    var mapReindexTotal by remember { mutableIntStateOf(0) }
+
+    val mapCustomActiveMsg = stringResource(R.string.settings_map_custom_active)
+    val mapFilePickerLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.OpenDocument(),
+    ) { uri ->
+        if (uri != null) {
+            coroutineScope.launch {
+                isImportingMap = true
+                mapImportProgress = 0f
+                val result = mapRepository.importCustomPmTiles(uri) { progress ->
+                    mapImportProgress = progress
+                }
+                result.onSuccess {
+                    isImportingMap = false
+                    mapImportProgress = null
+                    isUsingCustomMap = mapRepository.isUsingCustomMap()
+                    Toast.makeText(context, mapCustomActiveMsg, Toast.LENGTH_SHORT).show()
+                }.onFailure { error ->
+                    isImportingMap = false
+                    mapImportProgress = null
+                    mapErrorMessage = error.localizedMessage ?: "Import fehlgeschlagen"
+                }
+            }
+        }
+    }
 
     fun clearCache() {
         runCatching {
@@ -1787,6 +1837,264 @@ fun SettingsScreen(
             }
         }
 
+        // Section: Offline Map
+        item {
+            SettingsSectionHeader(Icons.Outlined.Map, stringResource(R.string.settings_section_map))
+        }
+
+        item {
+            Card(
+                shape = RoundedCornerShape(16.dp),
+                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)),
+                modifier = Modifier.fillMaxWidth(),
+            ) {
+                Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(12.dp),
+                    ) {
+                        Box(
+                            modifier = Modifier
+                                .size(40.dp)
+                                .clip(CircleShape)
+                                .background(
+                                    if (isUsingCustomMap) MaterialTheme.colorScheme.primaryContainer
+                                    else MaterialTheme.colorScheme.secondaryContainer,
+                                ),
+                            contentAlignment = Alignment.Center,
+                        ) {
+                            Icon(
+                                imageVector = if (isUsingCustomMap) Icons.Outlined.Layers else Icons.Outlined.Map,
+                                contentDescription = null,
+                                tint = if (isUsingCustomMap) MaterialTheme.colorScheme.onPrimaryContainer else MaterialTheme.colorScheme.onSecondaryContainer,
+                                modifier = Modifier.size(22.dp),
+                            )
+                        }
+
+                        Column(Modifier.weight(1f)) {
+                            Text(
+                                text = if (isUsingCustomMap) stringResource(R.string.settings_map_custom_active)
+                                else stringResource(R.string.settings_map_base_active),
+                                style = MaterialTheme.typography.titleMedium,
+                                fontWeight = FontWeight.SemiBold,
+                            )
+                            Text(
+                                text = stringResource(R.string.settings_map_desc),
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            )
+                        }
+                    }
+
+                    Text(
+                        text = stringResource(R.string.settings_map_note),
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+
+                    AnimatedVisibility(visible = isImportingMap) {
+                        Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.SpaceBetween,
+                            ) {
+                                Text(
+                                    text = stringResource(R.string.settings_map_importing),
+                                    style = MaterialTheme.typography.bodySmall,
+                                )
+                                Text(
+                                    text = mapImportProgress?.let { "${(it * 100).toInt()}%" } ?: "",
+                                    style = MaterialTheme.typography.bodySmall,
+                                    fontWeight = FontWeight.Bold,
+                                    color = MaterialTheme.colorScheme.primary,
+                                )
+                            }
+                            LinearProgressIndicator(
+                                progress = { mapImportProgress ?: 0f },
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .height(6.dp)
+                                    .clip(RoundedCornerShape(3.dp)),
+                            )
+                        }
+                    }
+
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    ) {
+                        FilledTonalButton(
+                            onClick = { mapFilePickerLauncher.launch(arrayOf("*/*")) },
+                            enabled = !isImportingMap,
+                            modifier = Modifier.weight(1f),
+                            shape = RoundedCornerShape(12.dp),
+                        ) {
+                            Icon(Icons.Outlined.FileOpen, contentDescription = null, modifier = Modifier.size(18.dp))
+                            Spacer(Modifier.width(6.dp))
+                            Text(stringResource(R.string.settings_map_import_btn))
+                        }
+
+                        if (isUsingCustomMap) {
+                            OutlinedButton(
+                                onClick = {
+                                    coroutineScope.launch {
+                                        mapRepository.deleteCustomMap()
+                                        isUsingCustomMap = mapRepository.isUsingCustomMap()
+                                        Toast.makeText(context, "Auf Basiskarte zurückgesetzt", Toast.LENGTH_SHORT).show()
+                                    }
+                                },
+                                enabled = !isImportingMap,
+                                shape = RoundedCornerShape(12.dp),
+                                colors = ButtonDefaults.outlinedButtonColors(contentColor = MaterialTheme.colorScheme.error),
+                            ) {
+                                Icon(Icons.Outlined.RestartAlt, contentDescription = null, modifier = Modifier.size(18.dp))
+                                Spacer(Modifier.width(4.dp))
+                                Text(stringResource(R.string.settings_map_reset_btn))
+                            }
+                        }
+                    }
+
+                    HorizontalDivider(
+                        modifier = Modifier.padding(vertical = 4.dp),
+                        color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f),
+                    )
+
+                    // Map Appearance / Theme Mode override
+                    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(12.dp),
+                        ) {
+                            Icon(
+                                imageVector = Icons.Outlined.Palette,
+                                contentDescription = null,
+                                tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                                modifier = Modifier.size(20.dp),
+                            )
+                            Column(Modifier.weight(1f)) {
+                                Text(
+                                    text = stringResource(R.string.settings_map_theme_title),
+                                    style = MaterialTheme.typography.titleSmall,
+                                    fontWeight = FontWeight.Medium,
+                                )
+                                Text(
+                                    text = stringResource(R.string.settings_map_theme_desc),
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                )
+                            }
+                        }
+
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.spacedBy(8.dp),
+                        ) {
+                            ThemeMode.entries.forEach { mode ->
+                                FilterChip(
+                                    modifier = Modifier.weight(1f),
+                                    selected = settings.mapThemeMode == mode,
+                                    onClick = { preferences.setMapThemeMode(mode) },
+                                    label = {
+                                        Text(
+                                            when (mode) {
+                                                ThemeMode.SYSTEM -> stringResource(R.string.settings_map_theme_auto)
+                                                ThemeMode.LIGHT -> stringResource(R.string.settings_map_theme_light)
+                                                ThemeMode.DARK -> stringResource(R.string.settings_map_theme_dark)
+                                            },
+                                            modifier = Modifier.fillMaxWidth(),
+                                            textAlign = TextAlign.Center,
+                                            style = MaterialTheme.typography.labelSmall,
+                                        )
+                                    },
+                                )
+                            }
+                        }
+                    }
+
+                    HorizontalDivider(
+                        modifier = Modifier.padding(vertical = 4.dp),
+                        color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f),
+                    )
+
+                    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(12.dp),
+                        ) {
+                            Icon(
+                                imageVector = Icons.Outlined.Refresh,
+                                contentDescription = null,
+                                tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                                modifier = Modifier.size(20.dp),
+                            )
+                            Column(Modifier.weight(1f)) {
+                                Text(
+                                    text = stringResource(R.string.settings_map_reindex_title),
+                                    style = MaterialTheme.typography.titleSmall,
+                                    fontWeight = FontWeight.Medium,
+                                )
+                                Text(
+                                    text = stringResource(R.string.settings_map_reindex_desc),
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                )
+                            }
+                        }
+
+                        // Reindex Progress Bar
+                        AnimatedVisibility(visible = isReindexingMap) {
+                            Column(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(vertical = 4.dp),
+                                verticalArrangement = Arrangement.spacedBy(4.dp),
+                            ) {
+                                Row(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    horizontalArrangement = Arrangement.SpaceBetween,
+                                ) {
+                                    Text(
+                                        text = mapReindexStatus,
+                                        style = MaterialTheme.typography.bodySmall,
+                                        color = MaterialTheme.colorScheme.primary,
+                                    )
+                                    Text(
+                                        text = if (mapReindexTotal > 0) "$mapReindexCurrent / $mapReindexTotal" else "",
+                                        style = MaterialTheme.typography.bodySmall,
+                                        fontWeight = FontWeight.Bold,
+                                        color = MaterialTheme.colorScheme.primary,
+                                    )
+                                }
+                                LinearProgressIndicator(
+                                    progress = {
+                                        if (mapReindexTotal > 0) mapReindexCurrent.toFloat() / mapReindexTotal else 0f
+                                    },
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .height(6.dp)
+                                        .clip(RoundedCornerShape(3.dp)),
+                                )
+                            }
+                        }
+
+                        OutlinedButton(
+                            onClick = { showMapReindexDialog = true },
+                            enabled = !isReindexingMap && !isImportingMap,
+                            modifier = Modifier.fillMaxWidth(),
+                            shape = RoundedCornerShape(12.dp),
+                        ) {
+                            Icon(Icons.Outlined.RestartAlt, contentDescription = null, modifier = Modifier.size(18.dp))
+                            Spacer(Modifier.width(8.dp))
+                            Text(stringResource(R.string.settings_map_reindex_title))
+                        }
+                    }
+                }
+            }
+        }
+
         // Section 6: Cache & Reset
         item {
             SettingsSectionHeader(Icons.Outlined.CleaningServices, stringResource(R.string.settings_section_storage))
@@ -1931,6 +2239,85 @@ fun SettingsScreen(
             },
             dismissButton = {
                 TextButton(onClick = { showReindexDialog = false }) { Text(stringResource(R.string.action_cancel)) }
+            },
+        )
+    }
+
+    if (showMapReindexDialog) {
+        val mapReindexSuccessPattern = stringResource(R.string.settings_map_reindex_success)
+        AlertDialog(
+            onDismissRequest = { showMapReindexDialog = false },
+            title = { Text(stringResource(R.string.settings_map_reindex_dialog_title)) },
+            text = { Text(stringResource(R.string.settings_map_reindex_dialog_msg)) },
+            confirmButton = {
+                Button(
+                    onClick = {
+                        showMapReindexDialog = false
+                        coroutineScope.launch(Dispatchers.IO) {
+                            isReindexingMap = true
+                            try {
+                                PhotoMapViewModel.clearGpsCache(context)
+                                PhotoMarkerCache.clearAll(context)
+
+                                val mediaRepo = MediaRepository(context)
+                                val allImages = mediaRepo.loadImages()
+
+                                mapReindexStatus = "Standorte werden gesucht…"
+                                mapReindexTotal = allImages.size
+                                mapReindexCurrent = 0
+
+                                val geotaggedList = mutableListOf<MediaImage>()
+                                allImages.forEachIndexed { index, img ->
+                                    val coords = PhotoMapViewModel.extractGps(context, img.uri, img.path)
+                                    if (coords != null) {
+                                        PhotoMapViewModel.updateGpsEntry(img.id, coords.first, coords.second, img.dateModified)
+                                        geotaggedList.add(img)
+                                    } else {
+                                        PhotoMapViewModel.updateGpsEntry(img.id, Double.NaN, Double.NaN, img.dateModified)
+                                    }
+                                    if (((index % 5) == 0) || (index == allImages.lastIndex)) {
+                                        mapReindexCurrent = index + 1
+                                    }
+                                }
+                                PhotoMapViewModel.persistGpsCache(context)
+
+                                mapReindexStatus = "Vorschauen werden generiert…"
+                                mapReindexTotal = geotaggedList.size
+                                mapReindexCurrent = 0
+
+                                geotaggedList.forEachIndexed { index, img ->
+                                    val raw = loadPhotoThumbnailBitmap(context, img.uri.toString(), 200)
+                                    if (raw != null) {
+                                        val marker = createCircularMarkerBitmap(raw, sizePx = 136, borderWidthPx = 7f)
+                                        PhotoMarkerCache.save(context, img.id, marker)
+                                    }
+                                    mapReindexCurrent = index + 1
+                                }
+
+                                withContext(Dispatchers.Main) {
+                                    Toast.makeText(
+                                        context,
+                                        mapReindexSuccessPattern.format(geotaggedList.size),
+                                        Toast.LENGTH_SHORT,
+                                    ).show()
+                                }
+                            } catch (e: Exception) {
+                                withContext(Dispatchers.Main) {
+                                    Toast.makeText(context, "Fehler beim Neuaufbau: ${e.message}", Toast.LENGTH_LONG).show()
+                                }
+                            } finally {
+                                isReindexingMap = false
+                            }
+                        }
+                    },
+                ) {
+                    Text(stringResource(R.string.settings_map_reindex_title))
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { showMapReindexDialog = false }) {
+                    Text(stringResource(R.string.action_cancel))
+                }
             },
         )
     }
@@ -2129,6 +2516,19 @@ fun SettingsScreen(
             onRemoveExcludedFolder = onRemoveExcludedFolder,
             onAddExcludedFolder = onAddExcludedFolder,
         ) { showExcludedFoldersDialog = false }
+    }
+
+    if (mapErrorMessage != null) {
+        AlertDialog(
+            onDismissRequest = { mapErrorMessage = null },
+            title = { Text(stringResource(R.string.settings_section_map)) },
+            text = { Text(mapErrorMessage.orEmpty()) },
+            confirmButton = {
+                TextButton(onClick = { mapErrorMessage = null }) {
+                    Text(stringResource(android.R.string.ok))
+                }
+            },
+        )
     }
 }
 

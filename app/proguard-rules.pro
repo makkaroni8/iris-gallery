@@ -1,6 +1,16 @@
 # Project-specific shrinking rules belong here.
 
 # ----------------------------------------------------------------------
+# Lifecycle / ViewModel reflection constructors
+# ----------------------------------------------------------------------
+-keepclassmembers class * extends androidx.lifecycle.AndroidViewModel {
+    public <init>(android.app.Application);
+}
+-keepclassmembers class * extends androidx.lifecycle.ViewModel {
+    public <init>();
+}
+
+# ----------------------------------------------------------------------
 # WorkManager: Keep all Workers and their reflection constructors
 # ----------------------------------------------------------------------
 -keep class com.iris.gallery.data.search.PhotoIndexingWorker { *; }

@@ -99,18 +99,18 @@ fun MediaImage.findRawOrOriginalPeer(candidates: List<MediaImage> = emptyList())
     val targetStem = rawGroupingStem()
     val wantRaw = !isRaw
     val fromCandidates = candidates.firstOrNull { other ->
-        other.id != id && !other.isVideo && other.isRaw == wantRaw &&
-            (other.bucketId == bucketId || other.name.contains(".RAW-", ignoreCase = true)) &&
-            other.rawGroupingStem() == targetStem
+        (other.id != id) && (!other.isVideo) && (other.isRaw == wantRaw) &&
+            ((other.bucketId == bucketId) || other.name.contains(".RAW-", ignoreCase = true)) &&
+            (other.rawGroupingStem() == targetStem)
     }
     fromCandidates?.let { return it }
 
     if (path.isNotBlank()) {
         val file = File(path)
         val parent = file.parentFile
-        if (parent != null && parent.exists() && parent.canRead()) {
+        if ((parent != null) && parent.exists() && parent.canRead()) {
             val sibling = parent.listFiles()?.firstOrNull { f ->
-                if (!f.isFile || f.absolutePath == file.absolutePath) return@firstOrNull false
+                if ((!f.isFile) || (f.absolutePath == file.absolutePath)) return@firstOrNull false
                 val lower = f.name.lowercase()
                 val fIsRaw = lower.endsWith(".dng") || lower.endsWith(".raw") ||
                     lower.endsWith(".cr2") || lower.endsWith(".cr3") ||
@@ -219,8 +219,8 @@ val MediaImage.isPanorama: Boolean
         val isPanoName = name.startsWith("PANO", ignoreCase = true) ||
                 name.contains("PANORAMA", ignoreCase = true) ||
                 name.contains("_PANO_", ignoreCase = true)
-        val isPanoRatio = width > height && width >= 1600 &&
-                (width.toFloat() / height.coerceAtLeast(1)) >= 2.6f
+        val isPanoRatio = (width > height) && (width >= 1600) &&
+                ((width.toFloat() / height.coerceAtLeast(1)) >= 2.6f)
         return isPanoName || isPanoRatio
     }
 
@@ -266,8 +266,8 @@ data class ExifMetadata(
 ) {
     val cameraDisplayName: String?
         get() = when {
-            cameraMake != null && cameraModel != null && cameraModel.startsWith(cameraMake, ignoreCase = true) -> cameraModel
-            cameraMake != null && cameraModel != null -> "$cameraMake $cameraModel"
+            (cameraMake != null) && (cameraModel != null) && cameraModel.startsWith(cameraMake, ignoreCase = true) -> cameraModel
+            (cameraMake != null) && (cameraModel != null) -> "$cameraMake $cameraModel"
             cameraModel != null -> cameraModel
             cameraMake != null -> cameraMake
             else -> null
@@ -330,7 +330,7 @@ fun cleanUserComment(raw: String?): String? {
     if (oemSensorPattern.matches(text)) {
         if (text.contains("0x", ignoreCase = true) ||
             text.contains("#") ||
-            text.all { it.isDigit() || it in "-_:#;xX()[] " }
+            text.all { it.isDigit() || (it in "-_:#;xX()[] ") }
         ) {
             return null
         }
@@ -338,7 +338,7 @@ fun cleanUserComment(raw: String?): String? {
 
     val lower = text.lowercase()
     val oemJunk = setOf("auto", "normal", "default", "none", "null", "undefined", "exif_jpeg_420", "qualcomm", "samsung", "camera_0", "hdr_auto", "sef", "hdr", "standard")
-    if (lower in oemJunk || lower.startsWith("samsung:hdr") || lower.startsWith("hdr:") || lower.startsWith("scene:")) {
+    if ((lower in oemJunk) || lower.startsWith("samsung:hdr") || lower.startsWith("hdr:") || lower.startsWith("scene:")) {
         return null
     }
 
@@ -369,8 +369,8 @@ fun cleanUserComment(raw: String?): String? {
         }
     }
 
-    val printable = text.count { !it.isISOControl() || it in "\n\r\t" }
-    if (printable.toFloat() / text.length < 0.6f) {
+    val printable = text.count { (!it.isISOControl()) || (it in "\n\r\t") }
+    if ((printable.toFloat() / text.length) < 0.6f) {
         return null
     }
 
@@ -378,12 +378,12 @@ fun cleanUserComment(raw: String?): String? {
 }
 
 fun decodeBytesSmartly(bytes: ByteArray, offset: Int = 0, length: Int = bytes.size - offset): String {
-    if (length <= 0 || offset < 0 || offset + length > bytes.size) return ""
-    val slice = if (offset == 0 && length == bytes.size) bytes else bytes.copyOfRange(offset, offset + length)
+    if ((length <= 0) || (offset < 0) || ((offset + length) > bytes.size)) return ""
+    val slice = if ((offset == 0) && (length == bytes.size)) bytes else bytes.copyOfRange(offset, offset + length)
     if (slice.isEmpty()) return ""
 
     var end = slice.size
-    while (end > 0 && slice[end - 1] == 0.toByte()) {
+    while ((end > 0) && (slice[end - 1] == 0.toByte())) {
         end--
     }
     if (end == 0) return ""
@@ -396,29 +396,29 @@ fun decodeBytesSmartly(bytes: ByteArray, offset: Int = 0, length: Int = bytes.si
             .onUnmappableCharacter(java.nio.charset.CodingErrorAction.REPORT)
         val charBuffer = decoder.decode(java.nio.ByteBuffer.wrap(trimmed))
         val str = charBuffer.toString()
-        val hasControl = str.any { it < ' ' && it != '\n' && it != '\r' && it != '\t' }
-        if (str.isNotBlank() && !hasControl) return str
+        val hasControl = str.any { (it < ' ') && (it != '\n') && (it != '\r') && (it != '\t') }
+        if (str.isNotBlank() && (!hasControl)) return str
     } catch (_: Exception) {}
 
     // 2. Try Windows-1256 (standard Arabic Windows codepage)
     try {
         val arabicCharset = java.nio.charset.Charset.forName("windows-1256")
         val str = String(trimmed, arabicCharset)
-        if (str.any { it in '\u0600'..'\u06FF' } && !str.any { it < ' ' && it != '\n' && it != '\r' && it != '\t' }) return str
+        if (str.any { it in ('\u0600'..'\u06FF') } && !str.any { (it < ' ') && (it != '\n') && (it != '\r') && (it != '\t') }) return str
     } catch (_: Exception) {}
 
     // 3. Try ISO-8859-6 (Arabic ISO)
     try {
         val isoArabic = java.nio.charset.Charset.forName("ISO-8859-6")
         val str = String(trimmed, isoArabic)
-        if (str.any { it in '\u0600'..'\u06FF' } && !str.any { it < ' ' && it != '\n' && it != '\r' && it != '\t' }) return str
+        if (str.any { it in ('\u0600'..'\u06FF') } && !str.any { (it < ' ') && (it != '\n') && (it != '\r') && (it != '\t') }) return str
     } catch (_: Exception) {}
 
     // 4. Try UTF-16 with Arabic if even length
-    if (trimmed.size >= 2 && trimmed.size % 2 == 0) {
-        val evenArabic = (trimmed.indices step 2).count { trimmed[it] in 0x06..0x08 }
-        val oddArabic = (1 until trimmed.size step 2).count { trimmed[it] in 0x06..0x08 }
-        if (evenArabic > 0 && evenArabic >= oddArabic) {
+    if ((trimmed.size >= 2) && ((trimmed.size % 2) == 0)) {
+        val evenArabic = (trimmed.indices step 2).count { trimmed[it] in (0x06..0x08) }
+        val oddArabic = (1 until trimmed.size step 2).count { trimmed[it] in (0x06..0x08) }
+        if ((evenArabic > 0) && (evenArabic >= oddArabic)) {
             return String(trimmed, java.nio.charset.StandardCharsets.UTF_16BE).trim('\u0000')
         }
         if (oddArabic > 0) {
@@ -431,25 +431,25 @@ fun decodeBytesSmartly(bytes: ByteArray, offset: Int = 0, length: Int = bytes.si
 }
 
 fun decodeUnicodePayload(bytes: ByteArray, offset: Int, length: Int): String {
-    if (length <= 0 || offset < 0 || offset + length > bytes.size) return ""
+    if ((length <= 0) || (offset < 0) || ((offset + length) > bytes.size)) return ""
     val payload = bytes.copyOfRange(offset, offset + length)
 
     // 1. Check BOM
     if (payload.size >= 2) {
-        if (payload[0] == 0xFE.toByte() && payload[1] == 0xFF.toByte()) {
+        if ((payload[0] == 0xFE.toByte()) && (payload[1] == 0xFF.toByte())) {
             return String(payload, 2, payload.size - 2, java.nio.charset.StandardCharsets.UTF_16BE).trim('\u0000')
         }
-        if (payload[0] == 0xFF.toByte() && payload[1] == 0xFE.toByte()) {
+        if ((payload[0] == 0xFF.toByte()) && (payload[1] == 0xFE.toByte())) {
             return String(payload, 2, payload.size - 2, java.nio.charset.StandardCharsets.UTF_16LE).trim('\u0000')
         }
     }
 
     // 2. Check if even or odd bytes indicate UTF-16 (Arabic or Latin)
-    if (payload.size >= 2 && payload.size % 2 == 0) {
+    if ((payload.size >= 2) && ((payload.size % 2) == 0)) {
         // Arabic block in Unicode is U+0600.U+06FF (high byte is 0x06, or extended 0x07, 0x08)
-        val evenArabic = (payload.indices step 2).count { payload[it] in 0x06..0x08 }
-        val oddArabic = (1 until payload.size step 2).count { payload[it] in 0x06..0x08 }
-        if (evenArabic > 0 && evenArabic >= oddArabic) {
+        val evenArabic = (payload.indices step 2).count { payload[it] in (0x06..0x08) }
+        val oddArabic = (1 until payload.size step 2).count { payload[it] in (0x06..0x08) }
+        if ((evenArabic > 0) && (evenArabic >= oddArabic)) {
             return String(payload, java.nio.charset.StandardCharsets.UTF_16BE).trim('\u0000')
         }
         if (oddArabic > 0) {
@@ -460,10 +460,10 @@ fun decodeUnicodePayload(bytes: ByteArray, offset: Int, length: Int): String {
         val evenZeros = (payload.indices step 2).count { payload[it] == 0.toByte() }
         val oddZeros = (1 until payload.size step 2).count { payload[it] == 0.toByte() }
         val pairs = payload.size / 2
-        if (evenZeros > pairs * 0.3f && evenZeros > oddZeros) {
+        if ((evenZeros > (pairs * 0.3f)) && (evenZeros > oddZeros)) {
             return String(payload, java.nio.charset.StandardCharsets.UTF_16BE).trim('\u0000')
         }
-        if (oddZeros > pairs * 0.3f && oddZeros > evenZeros) {
+        if ((oddZeros > (pairs * 0.3f)) && (oddZeros > evenZeros)) {
             return String(payload, java.nio.charset.StandardCharsets.UTF_16LE).trim('\u0000')
         }
     }
@@ -474,7 +474,7 @@ fun decodeUnicodePayload(bytes: ByteArray, offset: Int, length: Int): String {
 
 fun decodeExifTagSmartly(exif: androidx.exifinterface.media.ExifInterface, tag: String): String? {
     val rawBytes = runCatching { exif.getAttributeBytes(tag) }.getOrNull()
-    return if (rawBytes != null && rawBytes.isNotEmpty()) {
+    return if ((rawBytes != null) && rawBytes.isNotEmpty()) {
         decodeBytesSmartly(rawBytes).ifBlank { null }
     } else {
         exif.getAttribute(tag)?.ifBlank { null }
@@ -485,7 +485,7 @@ fun decodeExifUserComment(exif: androidx.exifinterface.media.ExifInterface): Str
     val bytes = runCatching {
         exif.getAttributeBytes(androidx.exifinterface.media.ExifInterface.TAG_USER_COMMENT)
     }.getOrNull()
-    if (bytes != null && bytes.isNotEmpty()) {
+    if ((bytes != null) && bytes.isNotEmpty()) {
         val decoded = runCatching {
             if (bytes.size >= 8) {
                 val header = String(bytes, 0, 8, java.nio.charset.StandardCharsets.US_ASCII)
@@ -514,7 +514,7 @@ fun cleanImageDescription(raw: String?): String? {
     val text = cleanExifString(raw) ?: return null
     val lower = text.lowercase()
     val oemJunk = setOf("exif_jpeg_420", "default", "none", "null", "undefined", "srgb", "qualcomm")
-    if (lower in oemJunk || lower.startsWith("dcim\\") || lower.startsWith("dcim/")) {
+    if ((lower in oemJunk) || lower.startsWith("dcim\\") || lower.startsWith("dcim/")) {
         return null
     }
     return text
@@ -525,7 +525,7 @@ fun extractJpegComments(stream: java.io.InputStream): List<String> {
     try {
         val b1 = stream.read()
         val b2 = stream.read()
-        if (b1 != 0xFF || b2 != 0xD8) return emptyList()
+        if ((b1 != 0xFF) || (b2 != 0xD8)) return emptyList()
 
         while (true) {
             val prefix = stream.read()
@@ -534,11 +534,11 @@ fun extractJpegComments(stream: java.io.InputStream): List<String> {
             while (marker == 0xFF) {
                 marker = stream.read()
             }
-            if (marker == -1 || marker == 0xD9 || marker == 0xDA) break
+            if ((marker == -1) || (marker == 0xD9) || (marker == 0xDA)) break
 
             val lenHigh = stream.read()
             val lenLow = stream.read()
-            if (lenHigh == -1 || lenLow == -1) break
+            if ((lenHigh == -1) || (lenLow == -1)) break
             val length = (lenHigh shl 8) or lenLow
             val payloadLen = length - 2
             if (payloadLen <= 0) continue
@@ -571,13 +571,13 @@ fun extractJpegComments(stream: java.io.InputStream): List<String> {
 fun loadExifMetadata(context: Context, uri: Uri, path: String? = null): ExifMetadata {
     return try {
         val directFile = if (!path.isNullOrBlank()) File(path) else null
-        val useDirectFile = directFile != null && directFile.exists() && directFile.canRead()
+        val useDirectFile = (directFile != null) && directFile.exists() && directFile.canRead()
 
         val jpegComments = runCatching {
             if (useDirectFile) {
                 java.io.FileInputStream(directFile).use { extractJpegComments(it) }
             } else {
-                val targetUri = if (Build.VERSION.SDK_INT >= 29 && uri.scheme == android.content.ContentResolver.SCHEME_CONTENT) {
+                val targetUri = if ((Build.VERSION.SDK_INT >= 29) && (uri.scheme == android.content.ContentResolver.SCHEME_CONTENT)) {
                     runCatching { MediaStore.setRequireOriginal(uri) }.getOrDefault(uri)
                 } else uri
                 context.contentResolver.openInputStream(targetUri)?.use { extractJpegComments(it) }
@@ -587,7 +587,7 @@ fun loadExifMetadata(context: Context, uri: Uri, path: String? = null): ExifMeta
         val exif = if (useDirectFile) {
             androidx.exifinterface.media.ExifInterface(directFile)
         } else {
-            val targetUri = if (Build.VERSION.SDK_INT >= 29 && uri.scheme == android.content.ContentResolver.SCHEME_CONTENT) {
+            val targetUri = if ((Build.VERSION.SDK_INT >= 29) && (uri.scheme == android.content.ContentResolver.SCHEME_CONTENT)) {
                 runCatching { MediaStore.setRequireOriginal(uri) }.getOrDefault(uri)
             } else uri
             context.contentResolver.openInputStream(targetUri)?.use { stream ->
@@ -597,7 +597,7 @@ fun loadExifMetadata(context: Context, uri: Uri, path: String? = null): ExifMeta
 
         val make = cleanExifString(exif.getAttribute(androidx.exifinterface.media.ExifInterface.TAG_MAKE))
         val rawModel = cleanExifString(exif.getAttribute(androidx.exifinterface.media.ExifInterface.TAG_MODEL))
-            val model = if (make != null && rawModel != null && rawModel.startsWith(make, ignoreCase = true)) {
+            val model = if ((make != null) && (rawModel != null) && rawModel.startsWith(make, ignoreCase = true)) {
                 rawModel.substring(make.length).trim().ifBlank { rawModel }
             } else rawModel
             val lensModel = cleanExifString(exif.getAttribute(androidx.exifinterface.media.ExifInterface.TAG_LENS_MODEL))
@@ -651,7 +651,7 @@ fun loadExifMetadata(context: Context, uri: Uri, path: String? = null): ExifMeta
             val lng = latLong?.getOrNull(1)
             val altitude = exif.getAltitude(Double.NaN).takeUnless { it.isNaN() }
 
-            val cleanModel = if (!make.isNullOrBlank() && !model.isNullOrBlank() && model.startsWith(make, ignoreCase = true)) {
+            val cleanModel = if ((!make.isNullOrBlank()) && (!model.isNullOrBlank()) && model.startsWith(make, ignoreCase = true)) {
                 val stripped = model.substring(make.length).trim()
                 stripped.ifBlank { model }
             } else {
@@ -659,15 +659,15 @@ fun loadExifMetadata(context: Context, uri: Uri, path: String? = null): ExifMeta
             }
 
             val xmp = cleanExifString(exif.getAttribute(androidx.exifinterface.media.ExifInterface.TAG_XMP))
-            val isDepthPhoto = !xmp.isNullOrBlank() &&
+            val isDepthPhoto = (!xmp.isNullOrBlank()) &&
                 (xmp.contains("GDepth:") || xmp.contains("GCamera:SpecialTypeID=\"PORTRAIT_TYPE\""))
-            var isUltraHdr = !xmp.isNullOrBlank() && (
+            var isUltraHdr = (!xmp.isNullOrBlank()) && (
                 xmp.contains("ns.adobe.com/hdr-gain-map/1.0/") ||
                 xmp.contains("hdrgm:") ||
                 xmp.contains("Item:Semantic=\"GainMap\"") ||
                 (xmp.contains("Container:Directory") && xmp.contains("GainMap"))
             )
-            if (!isUltraHdr && Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE) {
+            if ((!isUltraHdr) && (Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE)) {
                 runCatching {
                     val sampleOpts = android.graphics.BitmapFactory.Options().apply { inSampleSize = 8 }
                     val testBmp = if (useDirectFile) {
@@ -745,7 +745,7 @@ fun parseExifDateTime(exif: androidx.exifinterface.media.ExifInterface): Long? {
     val subsecMs = subsec?.take(3)?.padEnd(3, '0')?.toLongOrNull() ?: 0L
 
     val clean = dateStr.trim()
-    val pattern = if (clean.length >= 10 && clean[4] == '-' && clean[7] == '-') {
+    val pattern = if ((clean.length >= 10) && (clean[4] == '-') && (clean[7] == '-')) {
         "yyyy-MM-dd HH:mm:ss"
     } else {
         "yyyy:MM:dd HH:mm:ss"
@@ -755,7 +755,7 @@ fun parseExifDateTime(exif: androidx.exifinterface.media.ExifInterface): Long? {
             timeZone = tz
         }
         val parsed = parser.parse(clean)?.time
-        if (parsed != null && parsed > 0L) {
+        if ((parsed != null) && (parsed > 0L)) {
             parsed + subsecMs
         } else null
     }.getOrNull()
@@ -769,7 +769,7 @@ fun extractExifDateTaken(context: Context, uri: Uri, filePath: String): Long? {
                 val exif = androidx.exifinterface.media.ExifInterface(file)
                 parseExifDateTime(exif)
             }.getOrNull()
-            if (res != null && res > 0L) return res
+            if ((res != null) && (res > 0L)) return res
         }
     }
     return runCatching {
@@ -915,10 +915,10 @@ private fun applyExifEditFields(
         exif.setAttribute(androidx.exifinterface.media.ExifInterface.TAG_DATETIME_DIGITIZED, dateStr)
     }
 
-    if (request.fNumber != null && request.fNumber > 0) {
+    if ((request.fNumber != null) && (request.fNumber > 0)) {
         exif.setAttribute(androidx.exifinterface.media.ExifInterface.TAG_F_NUMBER, request.fNumber.toString())
     }
-    if (request.exposureTime != null && request.exposureTime > 0) {
+    if ((request.exposureTime != null) && (request.exposureTime > 0)) {
         val expStr = if (request.exposureTime < 1.0) {
             "1/${kotlin.math.round(1.0 / request.exposureTime).toLong()}"
         } else {
@@ -926,7 +926,7 @@ private fun applyExifEditFields(
         }
         exif.setAttribute(androidx.exifinterface.media.ExifInterface.TAG_EXPOSURE_TIME, expStr)
     }
-    if (request.iso != null && request.iso > 0) {
+    if ((request.iso != null) && (request.iso > 0)) {
         exif.setAttribute(androidx.exifinterface.media.ExifInterface.TAG_PHOTOGRAPHIC_SENSITIVITY, request.iso.toString())
         exif.setAttribute("ISOSpeedRatings", request.iso.toString())
     }
@@ -947,11 +947,11 @@ private fun applyExifEditFields(
         exif.setAttribute(androidx.exifinterface.media.ExifInterface.TAG_GPS_DATESTAMP, null)
         exif.setAttribute(androidx.exifinterface.media.ExifInterface.TAG_GPS_TIMESTAMP, null)
         exif.setAttribute(androidx.exifinterface.media.ExifInterface.TAG_GPS_PROCESSING_METHOD, null)
-    } else if (request.latitude != null && request.longitude != null) {
+    } else if ((request.latitude != null) && (request.longitude != null)) {
         exif.setLatLong(request.latitude, request.longitude)
     }
 
-    val exifOrientation = when ((request.orientation % 360 + 360) % 360) {
+    val exifOrientation = when ((((request.orientation % 360) + 360) % 360)) {
         90 -> androidx.exifinterface.media.ExifInterface.ORIENTATION_ROTATE_90
         180 -> androidx.exifinterface.media.ExifInterface.ORIENTATION_ROTATE_180
         270 -> androidx.exifinterface.media.ExifInterface.ORIENTATION_ROTATE_270
@@ -1028,11 +1028,11 @@ private fun queryDataColumn(context: Context, uri: Uri): String? {
                 val dataIdx = cursor.getColumnIndex(MediaStore.MediaColumns.DATA)
                 if (dataIdx != -1) {
                     val data = cursor.getString(dataIdx)
-                    if (!data.isNullOrBlank() && File(data).exists()) return data
+                    if ((!data.isNullOrBlank()) && File(data).exists()) return data
                 }
                 val relIdx = cursor.getColumnIndex(MediaStore.MediaColumns.RELATIVE_PATH)
                 val nameIdx = cursor.getColumnIndex(MediaStore.MediaColumns.DISPLAY_NAME)
-                if (relIdx != -1 && nameIdx != -1) {
+                if ((relIdx != -1) && (nameIdx != -1)) {
                     val relPath = cursor.getString(relIdx).orEmpty()
                     val dispName = cursor.getString(nameIdx).orEmpty()
                     if (relPath.isNotBlank() || dispName.isNotBlank()) {
@@ -1225,8 +1225,8 @@ fun resolveMediaUri(context: Context, uri: Uri): MediaImage {
                 height = opts.outHeight
             }
         }
-        if (width <= 0 || height <= 0) {
-            val isSvgFile = resolvedMime == "image/svg+xml" || name.endsWith(".svg", ignoreCase = true) || physicalPath?.endsWith(".svg", ignoreCase = true) == true
+        if ((width <= 0) || (height <= 0)) {
+            val isSvgFile = (resolvedMime == "image/svg+xml") || name.endsWith(".svg", ignoreCase = true) || (physicalPath?.endsWith(".svg", ignoreCase = true) == true)
             if (isSvgFile) {
                 runCatching {
                     cr.openInputStream(uri)?.use { stream ->
@@ -1234,20 +1234,20 @@ fun resolveMediaUri(context: Context, uri: Uri): MediaImage {
                         parser.setInput(stream, "UTF-8")
                         var eventType = parser.eventType
                         while (eventType != org.xmlpull.v1.XmlPullParser.END_DOCUMENT) {
-                            if (eventType == org.xmlpull.v1.XmlPullParser.START_TAG && parser.name.equals("svg", ignoreCase = true)) {
+                            if ((eventType == org.xmlpull.v1.XmlPullParser.START_TAG) && parser.name.equals("svg", ignoreCase = true)) {
                                 val wAttr = parser.getAttributeValue(null, "width")
                                 val hAttr = parser.getAttributeValue(null, "height")
                                 val vbAttr = parser.getAttributeValue(null, "viewBox")
-                                var w = wAttr?.filter { it.isDigit() || it == '.' }?.toFloatOrNull()?.toInt() ?: 0
-                                var h = hAttr?.filter { it.isDigit() || it == '.' }?.toFloatOrNull()?.toInt() ?: 0
-                                if ((w <= 0 || h <= 0) && !vbAttr.isNullOrBlank()) {
+                                var w = wAttr?.filter { it.isDigit() || (it == '.') }?.toFloatOrNull()?.toInt() ?: 0
+                                var h = hAttr?.filter { it.isDigit() || (it == '.') }?.toFloatOrNull()?.toInt() ?: 0
+                                if (((w <= 0) || (h <= 0)) && (!vbAttr.isNullOrBlank())) {
                                     val parts = vbAttr.trim().split(Regex("""[\s,]+"""))
                                     if (parts.size == 4) {
                                         w = parts[2].toFloatOrNull()?.toInt() ?: 0
                                         h = parts[3].toFloatOrNull()?.toInt() ?: 0
                                     }
                                 }
-                                if (w > 0 && h > 0) {
+                                if ((w > 0) && (h > 0)) {
                                     width = w
                                     height = h
                                 }
@@ -1264,7 +1264,7 @@ fun resolveMediaUri(context: Context, uri: Uri): MediaImage {
                 val exif = androidx.exifinterface.media.ExifInterface(stream)
                 orientation = exif.rotationDegrees
                 val parsed = parseExifDateTime(exif)
-                if (parsed != null && parsed > 0L) {
+                if ((parsed != null) && (parsed > 0L)) {
                     dateTaken = parsed
                 }
             }

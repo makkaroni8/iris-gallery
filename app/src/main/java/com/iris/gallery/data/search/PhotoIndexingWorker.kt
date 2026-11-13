@@ -244,7 +244,7 @@ class PhotoIndexingWorker(
                                 id = id,
                                 uri = uri,
                                 dateModified = dateModified,
-                            )
+                            ),
                         )
                     }
                 }

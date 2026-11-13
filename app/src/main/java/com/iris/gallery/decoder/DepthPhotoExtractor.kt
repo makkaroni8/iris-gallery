@@ -84,7 +84,7 @@ object DepthPhotoExtractor {
 
     // XMP identifiers inside an APP1 payload.
     private val XMP_STD = "<x:xmpmeta".toByteArray(Charsets.US_ASCII)
-    private val XMP_EXT_MARKER = ("http://" + "ns.adobe.com/xmp/extension/\u0000").toByteArray(Charsets.US_ASCII)
+    private val XMP_EXT_MARKER = ("http" + "://ns.adobe.com/xmp/extension/\u0000").toByteArray(Charsets.US_ASCII)
 
     private val cache = LruCache<Long, DepthPhoto>(8)
 
@@ -157,23 +157,23 @@ object DepthPhotoExtractor {
 
         for (seg in app1Segments) {
             when {
-                seg.startsWith(XMP_STD, 0) || indexOf(seg, XMP_STD, 0) in 0..64 -> {
+                seg.startsWith(XMP_STD, 0) || (indexOf(seg, XMP_STD, 0) in (0..64)) -> {
                     if (standardXmp == null) {
                         val start = indexOf(seg, XMP_STD, 0)
                         val end = indexOf(seg, "</x:xmpmeta>".toByteArray(), start)
                         standardXmp = if (end > start) {
-                            String(seg, start, end - start + "</x:xmpmeta>".length, Charsets.UTF_8)
+                            String(seg, start, (end - start) + "</x:xmpmeta>".length, Charsets.UTF_8)
                         } else {
                             String(seg, start, seg.size - start, Charsets.UTF_8)
                         }
                     }
                 }
-                seg.size >= 75 && seg.startsWith(XMP_EXT_MARKER) -> {
+                (seg.size >= 75) && seg.startsWith(XMP_EXT_MARKER) -> {
                     // Extended XMP header: 35-byte marker + 32-byte GUID + 4-byte total + 4-byte offset + data
                     val total = readUInt32BE(seg, 67)
                     val offset = readUInt32BE(seg, 71)
                     if (extTotalSize == 0) extTotalSize = total
-                    if (offset >= 0 && offset + (seg.size - 75) <= total) {
+                    if ((offset >= 0) && ((offset + (seg.size - 75)) <= total)) {
                         extChunks[offset] = seg.copyOfRange(75, seg.size)
                     }
                 }
@@ -218,8 +218,8 @@ object DepthPhotoExtractor {
                     parseJpegApp1Segments(raf) { payload -> segments.add(payload) }
                 }
             } else {
-                val targetUri = if (Build.VERSION.SDK_INT >= 29 &&
-                    image.uri.scheme == android.content.ContentResolver.SCHEME_CONTENT
+                val targetUri = if ((Build.VERSION.SDK_INT >= 29) &&
+                    (image.uri.scheme == android.content.ContentResolver.SCHEME_CONTENT)
                 ) {
                     runCatching { MediaStore.setRequireOriginal(image.uri) }.getOrDefault(image.uri)
                 } else image.uri
@@ -242,21 +242,21 @@ object DepthPhotoExtractor {
         raf.seek(0)
         val b1 = raf.read()
         val b2 = raf.read()
-        if (b1 != 0xFF || b2 != SOI) return
+        if ((b1 != 0xFF) || (b2 != SOI)) return
 
         var pos = 2L
-        while (pos < fileLen - 4) {
+        while (pos < (fileLen - 4)) {
             raf.seek(pos)
             val prefix = raf.read()
             if (prefix != 0xFF) { pos++; continue }
             var marker = raf.read()
             while (marker == 0xFF) marker = raf.read()
-            if (marker == -1 || marker == EOI || marker == SOS) break
-            if (marker in 0xD0..0xD7) { pos++; continue }
+            if ((marker == -1) || (marker == EOI) || (marker == SOS)) break
+            if (marker in (0xD0..0xD7)) { pos++; continue }
 
             val lenHi = raf.read()
             val lenLo = raf.read()
-            if (lenHi == -1 || lenLo == -1) break
+            if ((lenHi == -1) || (lenLo == -1)) break
             val segLen = (lenHi shl 8) or lenLo
             val payloadLen = segLen - 2
             if (payloadLen <= 0) { pos += 2 + segLen; continue }
@@ -282,19 +282,19 @@ object DepthPhotoExtractor {
     private fun parseJpegApp1SegmentsStream(stream: InputStream, onSegment: (ByteArray) -> Unit) {
         val b1 = stream.read()
         val b2 = stream.read()
-        if (b1 != 0xFF || b2 != SOI) return
+        if ((b1 != 0xFF) || (b2 != SOI)) return
 
         while (true) {
             val prefix = stream.read()
             if (prefix != 0xFF) break
             var marker = stream.read()
             while (marker == 0xFF) marker = stream.read()
-            if (marker == -1 || marker == EOI || marker == SOS) break
-            if (marker in 0xD0..0xD7) continue
+            if ((marker == -1) || (marker == EOI) || (marker == SOS)) break
+            if (marker in (0xD0..0xD7)) continue
 
             val lenHi = stream.read()
             val lenLo = stream.read()
-            if (lenHi == -1 || lenLo == -1) break
+            if ((lenHi == -1) || (lenLo == -1)) break
             val segLen = (lenHi shl 8) or lenLo
             val payloadLen = segLen - 2
             if (payloadLen <= 0) continue
@@ -352,7 +352,7 @@ object DepthPhotoExtractor {
         val attrIdx = xmp.indexOf(key, ignoreCase = true)
         if (attrIdx >= 0) {
             val quoteChar = xmp.getOrNull(attrIdx + key.length)
-            if (quoteChar == '"' || quoteChar == '\'') {
+            if ((quoteChar == '"') || (quoteChar == '\'')) {
                 val valueStart = attrIdx + key.length + 1
                 val valueEnd = xmp.indexOf(quoteChar, valueStart)
                 if (valueEnd > valueStart) {
@@ -377,11 +377,11 @@ object DepthPhotoExtractor {
     private fun indexOf(haystack: ByteArray, needle: ByteArray, from: Int): Int {
         if (needle.isEmpty()) return from
         val max = haystack.size - needle.size
-        if (max < 0 || from > max) return -1
+        if ((max < 0) || (from > max)) return -1
         var i = from.coerceAtLeast(0)
         while (i <= max) {
             var j = 0
-            while (j < needle.size && haystack[i + j] == needle[j]) j++
+            while ((j < needle.size) && (haystack[i + j] == needle[j])) j++
             if (j == needle.size) return i
             i++
         }
@@ -389,7 +389,7 @@ object DepthPhotoExtractor {
     }
 
     private fun ByteArray.startsWith(prefix: ByteArray, offset: Int = 0): Boolean {
-        if (offset + prefix.size > this.size) return false
+        if ((offset + prefix.size) > this.size) return false
         for (i in prefix.indices) {
             if (this[offset + i] != prefix[i]) return false
         }

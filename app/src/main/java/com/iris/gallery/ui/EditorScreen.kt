@@ -383,7 +383,7 @@ fun EditorScreen(image: MediaImage, onClose: () -> Unit, onSaved: (saved: Boolea
                         }
                         Spacer(Modifier.width(4.dp))
                         Button(
-                            enabled = !saving && transformedPreview != null,
+                            enabled = !saving && (transformedPreview != null),
                             onClick = { showSaveAsDialog = true },
                             contentPadding = PaddingValues(horizontal = 12.dp, vertical = 0.dp),
                             modifier = Modifier.height(36.dp)
@@ -485,7 +485,7 @@ fun EditorScreen(image: MediaImage, onClose: () -> Unit, onSaved: (saved: Boolea
                             view.currentShapeType = shapeType
                             view.shapeFilled = shapeFilled
                             view.effectStrength = strength.toInt()
-                            view.erasing = if (activeTool == EditorTool.DRAW || activeTool == EditorTool.SHAPE) drawErasing else erasing
+                            view.erasing = if ((activeTool == EditorTool.DRAW) || (activeTool == EditorTool.SHAPE)) drawErasing else erasing
                             view.colorFilter = androidFilter
                         },
                         modifier = Modifier.fillMaxSize()
@@ -563,7 +563,7 @@ fun EditorScreen(image: MediaImage, onClose: () -> Unit, onSaved: (saved: Boolea
                                     flipV = flipVertical,
                                     straightenAngle = straightenAngle,
                                     cropPreset = cropPreset,
-                                    onRotateLeft = { rotation = (rotation - 90 + 360) % 360 },
+                                    onRotateLeft = { rotation = (((rotation - 90) + 360) % 360) },
                                     onRotateRight = { rotation = (rotation + 90) % 360 },
                                     onToggleFlipH = { flipHorizontal = !flipHorizontal },
                                     onToggleFlipV = { flipVertical = !flipVertical },
@@ -746,7 +746,7 @@ fun EditorScreen(image: MediaImage, onClose: () -> Unit, onSaved: (saved: Boolea
                                     MediaStore.createWriteRequest(context.contentResolver, listOf(canonicalMediaUri(context, image)))
                                 }.getOrNull()?.intentSender
                                 // API 29 hands the consent intent back on the exception itself.
-                                Build.VERSION.SDK_INT >= 29 && e is RecoverableSecurityException -> e.userAction.actionIntent.intentSender
+                                (Build.VERSION.SDK_INT >= 29) && (e is RecoverableSecurityException) -> e.userAction.actionIntent.intentSender
                                 else -> null
                             }
 
@@ -1074,10 +1074,10 @@ private fun TransformControls(
         val presets = listOf(
             stringResource(R.string.editor_crop_manual) to null,
             "1:1" to 1f,
-            "4:3" to 4f / 3f,
-            "3:4" to 3f / 4f,
-            "16:9" to 16f / 9f,
-            "9:16" to 9f / 16f
+            "4:3" to (4f / 3f),
+            "3:4" to (3f / 4f),
+            "16:9" to (16f / 9f),
+            "9:16" to (9f / 16f)
         )
         presets.forEach { (name, ratio) ->
             FilterChip(
@@ -1389,7 +1389,7 @@ private fun ResizeDialog(
                                     width = clean
                                     if (locked && (baseWidth > 0)) {
                                         clean.toIntOrNull()?.let {
-                                            height = (it * baseHeight.toFloat() / baseWidth).toInt().toString()
+                                            height = ((it * baseHeight.toFloat()) / baseWidth).toInt().toString()
                                         }
                                     }
                                 },
@@ -1406,7 +1406,7 @@ private fun ResizeDialog(
                                     height = clean
                                     if (locked && (baseHeight > 0)) {
                                         clean.toIntOrNull()?.let {
-                                            width = (it * baseWidth.toFloat() / baseHeight).toInt().toString()
+                                            width = ((it * baseWidth.toFloat()) / baseHeight).toInt().toString()
                                         }
                                     }
                                 },
@@ -1512,7 +1512,7 @@ private fun ResizeDialog(
                 onClick = {
                     val targetBytes: Long? = if (selectedMode == 2) {
                         val num = targetSizeInput.toDoubleOrNull()
-                        if (num != null && num > 0) {
+                        if ((num != null) && (num > 0)) {
                             if (isMb) (num * 1_000_000).toLong() else (num * 1_000).toLong()
                         } else null
                     } else null
@@ -1790,7 +1790,7 @@ private fun ShapeControls(
                     .size(32.dp)
                     .background(Color(c), CircleShape)
                     .then(
-                        if (color == c && !erasing) {
+                        if ((color == c) && !erasing) {
                             Modifier.border(2.5.dp, MaterialTheme.colorScheme.onSurface, CircleShape)
                         } else {
                             Modifier.border(1.dp, Color.Gray.copy(alpha = 0.4f), CircleShape)
@@ -1802,8 +1802,8 @@ private fun ShapeControls(
                     },
                 contentAlignment = Alignment.Center
             ) {
-                if (color == c && !erasing) {
-                    val checkColor = if (c == android.graphics.Color.WHITE || c == "#FFEB3B".toColorInt()) Color.Black else Color.White
+                if ((color == c) && !erasing) {
+                    val checkColor = if ((c == android.graphics.Color.WHITE) || (c == "#FFEB3B".toColorInt())) Color.Black else Color.White
                     Icon(
                         Icons.Filled.Check,
                         contentDescription = null,
@@ -1947,7 +1947,7 @@ private fun TextControls(
         value = textSizeRatio,
         onValueChange = {
             textSizeRatio = it
-            if (selectedOverlay != null && textInput.isNotBlank()) {
+            if ((selectedOverlay != null) && textInput.isNotBlank()) {
                 onAddOrUpdateText(textInput, textColor, computedBgColor, it)
             }
         },
@@ -1976,14 +1976,14 @@ private fun TextControls(
                     )
                     .clickable {
                         textColor = c
-                        if (selectedOverlay != null && textInput.isNotBlank()) {
+                        if ((selectedOverlay != null) && textInput.isNotBlank()) {
                             onAddOrUpdateText(textInput, c, computedBgColor, textSizeRatio)
                         }
                     },
                 contentAlignment = Alignment.Center
             ) {
                 if (textColor == c) {
-                    val checkColor = if (c == android.graphics.Color.WHITE || c == "#FFEB3B".toColorInt()) Color.Black else Color.White
+                    val checkColor = if ((c == android.graphics.Color.WHITE) || (c == "#FFEB3B".toColorInt())) Color.Black else Color.White
                     Icon(Icons.Filled.Check, null, tint = checkColor, modifier = Modifier.size(14.dp))
                 }
             }
@@ -1999,7 +1999,7 @@ private fun TextControls(
             selected = bgStyle == 2,
             onClick = {
                 bgStyle = 2
-                if (selectedOverlay != null && textInput.isNotBlank()) {
+                if ((selectedOverlay != null) && textInput.isNotBlank()) {
                     onAddOrUpdateText(textInput, textColor, android.graphics.Color.argb(160, 0, 0, 0), textSizeRatio)
                 }
             },
@@ -2009,7 +2009,7 @@ private fun TextControls(
             selected = bgStyle == 1,
             onClick = {
                 bgStyle = 1
-                if (selectedOverlay != null && textInput.isNotBlank()) {
+                if ((selectedOverlay != null) && textInput.isNotBlank()) {
                     onAddOrUpdateText(textInput, textColor, android.graphics.Color.WHITE, textSizeRatio)
                 }
             },
@@ -2019,7 +2019,7 @@ private fun TextControls(
             selected = bgStyle == 0,
             onClick = {
                 bgStyle = 0
-                if (selectedOverlay != null && textInput.isNotBlank()) {
+                if ((selectedOverlay != null) && textInput.isNotBlank()) {
                     onAddOrUpdateText(textInput, textColor, 0, textSizeRatio)
                 }
             },
@@ -2045,9 +2045,9 @@ private fun decodePreviewLegacy(context: Context, image: MediaImage, isFile: Boo
             BitmapFactory.decodeStream(it, null, bounds)
         } ?: return null
     }
-    if (bounds.outWidth <= 0 || bounds.outHeight <= 0) return null
+    if ((bounds.outWidth <= 0) || (bounds.outHeight <= 0)) return null
     var sample = 1
-    while (maxOf(bounds.outWidth, bounds.outHeight) / (sample * 2) >= 1600) sample *= 2
+    while ((maxOf(bounds.outWidth, bounds.outHeight) / (sample * 2)) >= 1600) sample *= 2
     val options = BitmapFactory.Options().apply { inSampleSize = sample }
     return if (isFile) {
         BitmapFactory.decodeFile(image.path, options)
@@ -2059,7 +2059,7 @@ private fun decodePreviewLegacy(context: Context, image: MediaImage, isFile: Boo
 }
 
 private suspend fun loadPreview(context: Context, image: MediaImage): Bitmap? = withContext(Dispatchers.IO) {
-    val isFile = image.uri.scheme == "file" || image.path.startsWith(context.filesDir.absolutePath)
+    val isFile = (image.uri.scheme == "file") || image.path.startsWith(context.filesDir.absolutePath)
     val standardBitmap = runCatching {
         if (Build.VERSION.SDK_INT >= 28) {
             val source = if (isFile) ImageDecoder.createSource(File(image.path))
@@ -2081,7 +2081,7 @@ private suspend fun loadPreview(context: Context, image: MediaImage): Bitmap? = 
         } else {
             context.contentResolver.openInputStream(image.uri)?.use { it.readBytes() }
         }
-        if (bytes != null && bytes.isNotEmpty()) {
+        if ((bytes != null) && bytes.isNotEmpty()) {
             val buffer = ByteBuffer.allocateDirect(bytes.size).apply {
                 put(bytes)
                 flip()
@@ -2094,7 +2094,7 @@ private suspend fun loadPreview(context: Context, image: MediaImage): Bitmap? = 
                     val targetH = (info.height * scale).toInt().coerceAtLeast(1)
                     val fullBitmap = createBitmap(info.width, info.height)
                     if (AvifDecoder.decode(buffer, bytes.size, fullBitmap)) {
-                        if (targetW != info.width || targetH != info.height) {
+                        if ((targetW != info.width) || (targetH != info.height)) {
                             val scaled = fullBitmap.scale(targetW, targetH)
                             fullBitmap.recycle()
                             scaled
@@ -2175,7 +2175,7 @@ private fun readExifTags(context: Context, sourceImage: MediaImage): Map<String,
                 map[tag] = it
             }
         }
-        val effectiveTitle = sourceImage.title.takeIf { it.isNotBlank() && it != sourceImage.name && it != sourceImage.name.substringBeforeLast('.') }
+        val effectiveTitle = sourceImage.title.takeIf { it.isNotBlank() && (it != sourceImage.name) && (it != sourceImage.name.substringBeforeLast('.')) }
         effectiveTitle?.let {
             map["DocumentName"] = it
             map["XPTitle"] = it
@@ -2193,7 +2193,7 @@ private fun applyExifTags(dstExif: ExifInterface, tags: Map<String, String>) {
 }
 
 private fun applyExifToFile(file: File, tags: Map<String, String>) {
-    if (tags.isEmpty() || !file.exists()) return
+    if (tags.isEmpty() || (!file.exists())) return
     runCatching {
         val exif = ExifInterface(file)
         applyExifTags(exif, tags)
@@ -2232,7 +2232,7 @@ private suspend fun renderEditedBitmapToBytes(
     targetMaxBytes: Long? = null,
     format: ExportFormat = ExportFormat.JPEG
 ): ByteArray = withContext(Dispatchers.IO) {
-    val isFile = image.uri.scheme == "file" || image.path.startsWith(context.filesDir.absolutePath)
+    val isFile = (image.uri.scheme == "file") || image.path.startsWith(context.filesDir.absolutePath)
     val rawSource: Bitmap = runCatching {
         if (Build.VERSION.SDK_INT >= 28) {
             val source = if (isFile) ImageDecoder.createSource(File(image.path))
@@ -2250,7 +2250,7 @@ private suspend fun renderEditedBitmapToBytes(
         } else {
             context.contentResolver.openInputStream(image.uri)?.use { it.readBytes() }
         }
-        if (bytes != null && bytes.isNotEmpty()) {
+        if ((bytes != null) && bytes.isNotEmpty()) {
             val buffer = ByteBuffer.allocateDirect(bytes.size).apply {
                 put(bytes)
                 flip()
@@ -2292,7 +2292,7 @@ private suspend fun renderEditedBitmapToBytes(
         val rad = Math.toRadians(kotlin.math.abs(straightenAngle).toDouble())
         val r = source.width.toFloat() / source.height.toFloat().coerceAtLeast(1f)
         val maxR = maxOf(r, 1f / r)
-        val scale = (cos(rad) + sin(rad) * maxR).toFloat()
+        val scale = (cos(rad) + (sin(rad) * maxR)).toFloat()
         val strMatrix = Matrix().apply {
             postRotate(straightenAngle, source.width / 2f, source.height / 2f)
             postScale(scale, scale, source.width / 2f, source.height / 2f)
@@ -2334,12 +2334,12 @@ private suspend fun renderEditedBitmapToBytes(
     )
     val width = requestedWidth?.coerceIn(1, 16384) ?: adjusted.width
     val height = requestedHeight?.coerceIn(1, 16384) ?: adjusted.height
-    val resized = if (width != adjusted.width || height != adjusted.height) adjusted.scale(width, height) else adjusted
+    val resized = if ((width != adjusted.width) || (height != adjusted.height)) adjusted.scale(width, height) else adjusted
     renderBrushes(resized, strokes, crop)
     renderTextOverlays(resized, textOverlays, crop)
 
     val bos = java.io.ByteArrayOutputStream()
-    if (targetMaxBytes != null && targetMaxBytes > 0) {
+    if ((targetMaxBytes != null) && (targetMaxBytes > 0)) {
         var quality = format.defaultQuality
         var fits = false
         if (format != ExportFormat.PNG) {
@@ -2422,7 +2422,7 @@ private suspend fun saveEditedCopy(
 
     val nowMs = System.currentTimeMillis()
     val nowSec = nowMs / 1000L
-    val effectiveTitle = image.title.takeIf { it.isNotBlank() && it != image.name && it != image.name.substringBeforeLast('.') }
+    val effectiveTitle = image.title.takeIf { it.isNotBlank() && (it != image.name) && (it != image.name.substringBeforeLast('.')) }
     val values = ContentValues().apply {
         put(MediaStore.Images.Media.DISPLAY_NAME, image.name.substringBeforeLast('.') + "_iris." + format.extension)
         put(MediaStore.Images.Media.MIME_TYPE, format.mimeType)
@@ -2475,7 +2475,7 @@ private suspend fun performOverwriteWrite(
     format: ExportFormat,
     tags: Map<String, String>
 ): Boolean = withContext(Dispatchers.IO) {
-    val isFile = image.uri.scheme == "file" || image.path.startsWith(context.filesDir.absolutePath)
+    val isFile = (image.uri.scheme == "file") || image.path.startsWith(context.filesDir.absolutePath)
     if (isFile) {
         val targetFile = File(image.path)
         val parent = targetFile.absoluteFile.parentFile ?: return@withContext false
@@ -2555,14 +2555,14 @@ private fun renderBrushes(target: Bitmap, strokes: List<BrushStroke>, crop: Rect
     if (strokes.isEmpty()) return
     val canvas = Canvas(target)
     strokes.forEach { stroke ->
-        if (stroke.shape != ShapeType.NONE && stroke.points.size >= 2) {
+        if ((stroke.shape != ShapeType.NONE) && (stroke.points.size >= 2)) {
             val (p1x, p1y) = stroke.points.first()
             val (p2x, p2y) = stroke.points.last()
-            val x1 = (p1x - crop.left) / crop.width() * target.width
-            val y1 = (p1y - crop.top) / crop.height() * target.height
-            val x2 = (p2x - crop.left) / crop.width() * target.width
-            val y2 = (p2y - crop.top) / crop.height() * target.height
-            val strokeWidth = stroke.radius / crop.width() * target.width
+            val x1 = ((p1x - crop.left) / crop.width()) * target.width
+            val y1 = ((p1y - crop.top) / crop.height()) * target.height
+            val x2 = ((p2x - crop.left) / crop.width()) * target.width
+            val y2 = ((p2y - crop.top) / crop.height()) * target.height
+            val strokeWidth = (stroke.radius / crop.width()) * target.width
             renderShape(canvas, stroke, x1, y1, x2, y2, strokeWidth)
             return@forEach
         }
@@ -2571,14 +2571,14 @@ private fun renderBrushes(target: Bitmap, strokes: List<BrushStroke>, crop: Rect
                 style = Paint.Style.STROKE
                 strokeCap = Paint.Cap.ROUND
                 strokeJoin = Paint.Join.ROUND
-                strokeWidth = stroke.radius / crop.width() * target.width
+                strokeWidth = (stroke.radius / crop.width()) * target.width
                 color = stroke.color
             }
             val path = Path()
             var visible = false
             stroke.points.forEach { (px, py) ->
-                val x = (px - crop.left) / crop.width() * target.width
-                val y = (py - crop.top) / crop.height() * target.height
+                val x = ((px - crop.left) / crop.width()) * target.width
+                val y = ((py - crop.top) / crop.height()) * target.height
                 if (!visible) {
                     path.moveTo(x, y)
                     path.lineTo(x + .1f, y + .1f)
@@ -2597,14 +2597,14 @@ private fun renderBrushes(target: Bitmap, strokes: List<BrushStroke>, crop: Rect
             style = Paint.Style.STROKE
             strokeCap = Paint.Cap.ROUND
             strokeJoin = Paint.Join.ROUND
-            strokeWidth = stroke.radius / crop.width() * target.width
+            strokeWidth = (stroke.radius / crop.width()) * target.width
             this.shader = shader
         }
         val path = Path()
         var visible = false
         stroke.points.forEach { (px, py) ->
-            val x = (px - crop.left) / crop.width() * target.width
-            val y = (py - crop.top) / crop.height() * target.height
+            val x = ((px - crop.left) / crop.width()) * target.width
+            val y = ((py - crop.top) / crop.height()) * target.height
             if (!visible) {
                 path.moveTo(x, y)
                 path.lineTo(x + .1f, y + .1f)
@@ -2622,8 +2622,8 @@ private fun renderTextOverlays(target: Bitmap, overlays: List<TextOverlay>, crop
     if (overlays.isEmpty()) return
     val canvas = Canvas(target)
     overlays.forEach { (_, text, ox, oy, color, bgColor, textSizeRatio, rotationDeg) ->
-        val x = (ox - crop.left) / crop.width() * target.width
-        val y = (oy - crop.top) / crop.height() * target.height
+        val x = ((ox - crop.left) / crop.width()) * target.width
+        val y = ((oy - crop.top) / crop.height()) * target.height
         val pxSize = (textSizeRatio / crop.width()) * target.width
         val textPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
             this.color = color
@@ -2636,10 +2636,10 @@ private fun renderTextOverlays(target: Bitmap, overlays: List<TextOverlay>, crop
         val paddingX = pxSize * 0.4f
         val paddingY = pxSize * 0.25f
         val bgRect = RectF(
-            x - bounds.width() / 2f - paddingX,
-            y - bounds.height() / 2f - paddingY,
-            x + bounds.width() / 2f + paddingX,
-            y + bounds.height() / 2f + paddingY
+            (x - (bounds.width() / 2f)) - paddingX,
+            (y - (bounds.height() / 2f)) - paddingY,
+            x + (bounds.width() / 2f) + paddingX,
+            y + (bounds.height() / 2f) + paddingY
         )
         canvas.withRotation(rotationDeg, x, y) {
             if (bgColor != 0) {
@@ -2649,7 +2649,7 @@ private fun renderTextOverlays(target: Bitmap, overlays: List<TextOverlay>, crop
                 }
                 drawRoundRect(bgRect, pxSize * 0.25f, pxSize * 0.25f, bgPaint)
             }
-            val textY = y + bounds.height() / 2f - bounds.bottom
+            val textY = (y + (bounds.height() / 2f)) - bounds.bottom
             drawText(text, x, textY, textPaint)
         }
     }

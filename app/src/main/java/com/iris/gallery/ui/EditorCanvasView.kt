@@ -426,8 +426,8 @@ class EditorCanvasView(context: Context) : View(context) {
         val bounds = Rect()
         textPaint.getTextBounds(overlay.text, 0, overlay.text.length, bounds)
         val pxSize = textPaint.textSize
-        val halfW = bounds.width() / 2f + pxSize * 0.4f
-        val halfH = bounds.height() / 2f + pxSize * 0.25f
+        val halfW = (bounds.width() / 2f) + (pxSize * 0.4f)
+        val halfH = (bounds.height() / 2f) + (pxSize * 0.25f)
         val density = resources.displayMetrics.density
         val handleR = 7f * density
         val rotHandleR = 9f * density
@@ -544,9 +544,9 @@ class EditorCanvasView(context: Context) : View(context) {
         val gridPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply { color = Color.argb(90, 255, 255, 255); strokeWidth = 1.5f }
         val thirdW = cropRect.width() / 3f; val thirdH = cropRect.height() / 3f
         canvas.drawLine(cropRect.left + thirdW, cropRect.top, cropRect.left + thirdW, cropRect.bottom, gridPaint)
-        canvas.drawLine(cropRect.left + thirdW * 2, cropRect.top, cropRect.left + thirdW * 2, cropRect.bottom, gridPaint)
+        canvas.drawLine(cropRect.left + (thirdW * 2), cropRect.top, cropRect.left + (thirdW * 2), cropRect.bottom, gridPaint)
         canvas.drawLine(cropRect.left, cropRect.top + thirdH, cropRect.right, cropRect.top + thirdH, gridPaint)
-        canvas.drawLine(cropRect.left, cropRect.top + thirdH * 2, cropRect.right, cropRect.top + thirdH * 2, gridPaint)
+        canvas.drawLine(cropRect.left, cropRect.top + (thirdH * 2), cropRect.right, cropRect.top + (thirdH * 2), gridPaint)
 
         val handlePaint = Paint(Paint.ANTI_ALIAS_FLAG).apply { color = Color.WHITE; style = Paint.Style.FILL }
         val handleSize = 14f
@@ -566,8 +566,10 @@ class EditorCanvasView(context: Context) : View(context) {
     }
 
     override fun onTouchEvent(event: MotionEvent): Boolean {
-        if (tool != EditorTool.CROP && tool != EditorTool.PIXELATE && tool != EditorTool.BLUR &&
-            tool != EditorTool.DRAW && tool != EditorTool.SHAPE && tool != EditorTool.TEXT) return super.onTouchEvent(event)
+        if (
+            (tool != EditorTool.CROP) && (tool != EditorTool.PIXELATE) && (tool != EditorTool.BLUR) &&
+            (tool != EditorTool.DRAW) && (tool != EditorTool.SHAPE) && (tool != EditorTool.TEXT)
+        ) return super.onTouchEvent(event)
 
         gestureDetector.onTouchEvent(event)
         scaleDetector.onTouchEvent(event)
@@ -586,7 +588,7 @@ class EditorCanvasView(context: Context) : View(context) {
             textGesture = TextGesture.NONE
             val midX = (event.getX(0) + event.getX(1)) / 2f
             val midY = (event.getY(0) + event.getY(1)) / 2f
-            if (isTwoFingerGesture && lastMidX != null && lastMidY != null) {
+            if (isTwoFingerGesture && (lastMidX != null) && (lastMidY != null)) {
                 userPanX += (midX - lastMidX!!)
                 userPanY += (midY - lastMidY!!)
                 clampPan()
@@ -598,7 +600,7 @@ class EditorCanvasView(context: Context) : View(context) {
             return true
         }
 
-        if (event.actionMasked == MotionEvent.ACTION_UP || event.actionMasked == MotionEvent.ACTION_CANCEL) {
+        if ((event.actionMasked == MotionEvent.ACTION_UP) || (event.actionMasked == MotionEvent.ACTION_CANCEL)) {
             lastMidX = null
             lastMidY = null
             isTwoFingerGesture = false
@@ -615,10 +617,10 @@ class EditorCanvasView(context: Context) : View(context) {
         val cy = height / 2f
         val unpannedX = event.x - userPanX
         val unpannedY = event.y - userPanY
-        val canvasX = cx + (unpannedX - cx) / userZoom
-        val canvasY = cy + (unpannedY - cy) / userZoom
+        val canvasX = cx + ((unpannedX - cx) / userZoom)
+        val canvasY = cy + ((unpannedY - cy) / userZoom)
 
-        if (event.action == MotionEvent.ACTION_DOWN && tool != EditorTool.TEXT) {
+        if ((event.action == MotionEvent.ACTION_DOWN) && (tool != EditorTool.TEXT)) {
             val touchSlop = if (tool == EditorTool.CROP) 48f * resources.displayMetrics.density else 0f
             val extendedDest = RectF(destination).apply { inset(-touchSlop, -touchSlop) }
             if (!extendedDest.contains(canvasX, canvasY)) return true
@@ -725,8 +727,8 @@ class EditorCanvasView(context: Context) : View(context) {
     }
 
     private fun handleTextTouch(event: MotionEvent, point: BrushPoint) {
-        val viewX = destination.left + (point.x - visibleLeft()) / visibleWidth() * destination.width()
-        val viewY = destination.top + (point.y - visibleTop()) / visibleHeight() * destination.height()
+        val viewX = destination.left + (((point.x - visibleLeft()) / visibleWidth()) * destination.width())
+        val viewY = destination.top + (((point.y - visibleTop()) / visibleHeight()) * destination.height())
         val density = resources.displayMetrics.density
 
         when (event.action) {
@@ -752,8 +754,8 @@ class EditorCanvasView(context: Context) : View(context) {
                         resizeStartSize = selected.textSizeRatio
                         resizeStartDist = hypot(viewX - selCx, viewY - selCy).coerceAtLeast(4f * density)
                         consumed = true
-                    } else if ((kotlin.math.abs(locX) <= halfW + (12f * density)) &&
-                        (kotlin.math.abs(locY) <= halfH + (12f * density))) {
+                    } else if ((kotlin.math.abs(locX) <= (halfW + (12f * density))) &&
+                        (kotlin.math.abs(locY) <= (halfH + (12f * density)))) {
                         textGesture = TextGesture.DRAG
                         isDraggingText = true
                         draggedTextOverlay = selected
@@ -834,7 +836,7 @@ class EditorCanvasView(context: Context) : View(context) {
                     hypot(cornersPx[it].first - canvasX, cornersPx[it].second - canvasY)
                 } ?: -1
 
-                cropHandle = if (nearestCornerIdx >= 0 && hypot(cornersPx[nearestCornerIdx].first - canvasX, cornersPx[nearestCornerIdx].second - canvasY) <= cornerSlopPx) {
+                cropHandle = if ((nearestCornerIdx >= 0) && (hypot(cornersPx[nearestCornerIdx].first - canvasX, cornersPx[nearestCornerIdx].second - canvasY) <= cornerSlopPx)) {
                     nearestCornerIdx
                 } else if (cropRect.contains(canvasX, canvasY)) {
                     4
@@ -850,8 +852,8 @@ class EditorCanvasView(context: Context) : View(context) {
                     val dy = point.y - lastCropPoint.y
                     session.crop.offset(dx, dy)
                     keepCropInBounds()
-                } else if (lockedAspect != null && source != null) {
-                    val normalizedAspect = lockedAspect!! * source.height / source.width
+                } else if ((lockedAspect != null) && (source != null)) {
+                    val normalizedAspect = (lockedAspect!! * source.height) / source.width
                     when (cropHandle) {
                         0 -> {
                             val rawW = session.crop.right - point.x
@@ -952,14 +954,14 @@ class EditorCanvasView(context: Context) : View(context) {
         val cy = height / 2f
         val unpannedX = x - userPanX
         val unpannedY = y - userPanY
-        var canvasX = cx + (unpannedX - cx) / userZoom
-        var canvasY = cy + (unpannedY - cy) / userZoom
+        var canvasX = cx + ((unpannedX - cx) / userZoom)
+        var canvasY = cy + ((unpannedY - cy) / userZoom)
 
         if (straightenAngle != 0f) {
             val rad = Math.toRadians(kotlin.math.abs(straightenAngle).toDouble())
             val r = destination.width() / destination.height().coerceAtLeast(1f)
             val maxR = maxOf(r, 1f / r)
-            val scale = (cos(rad) + sin(rad) * maxR).toFloat()
+            val scale = (cos(rad) + (sin(rad) * maxR)).toFloat()
             val destCx = destination.centerX()
             val destCy = destination.centerY()
             val angleRad = Math.toRadians(straightenAngle.toDouble())
@@ -967,22 +969,22 @@ class EditorCanvasView(context: Context) : View(context) {
             val sinA = sin(angleRad).toFloat()
             val relX = canvasX - destCx
             val relY = canvasY - destCy
-            val unrotX = (relX * cosA + relY * sinA) / scale
-            val unrotY = (-relX * sinA + relY * cosA) / scale
+            val unrotX = ((relX * cosA) + (relY * sinA)) / scale
+            val unrotY = ((-relX * sinA) + (relY * cosA)) / scale
             canvasX = destCx + unrotX
             canvasY = destCy + unrotY
         }
 
         return BrushPoint(
-            visibleLeft() + (if (clampToVisible) ((canvasX - destination.left) / destination.width()).coerceIn(0f, 1f)
-                else (canvasX - destination.left) / destination.width()) * visibleWidth(),
-            visibleTop() + (if (clampToVisible) ((canvasY - destination.top) / destination.height()).coerceIn(0f, 1f)
-                else (canvasY - destination.top) / destination.height()) * visibleHeight(),
+            visibleLeft() + ((if (clampToVisible) ((canvasX - destination.left) / destination.width()).coerceIn(0f, 1f)
+                else (canvasX - destination.left) / destination.width()) * visibleWidth()),
+            visibleTop() + ((if (clampToVisible) ((canvasY - destination.top) / destination.height()).coerceIn(0f, 1f)
+                else (canvasY - destination.top) / destination.height()) * visibleHeight()),
         )
     }
     private fun fitRect(source: Bitmap, out: RectF, cropped: Boolean) {
-        val sourceWidth = source.width * if (cropped) session.crop.width() else 1f
-        val sourceHeight = source.height * if (cropped) session.crop.height() else 1f
+        val sourceWidth = source.width * (if (cropped) session.crop.width() else 1f)
+        val sourceHeight = source.height * (if (cropped) session.crop.height() else 1f)
         val scale = minOf(width / sourceWidth, height / sourceHeight)
         val w = sourceWidth * scale; val h = sourceHeight * scale
         out.left = (width - w) / 2
@@ -1089,30 +1091,44 @@ internal fun createBlurredBitmap(source: Bitmap, strength: Int): Bitmap {
 }
 
 private fun boxBlur(pixels: IntArray, width: Int, height: Int, radius: Int) {
-    val source = pixels.copyOf(); val diameter = radius * 2 + 1
+    val source = pixels.copyOf(); val diameter = (radius * 2) + 1
     for (y in 0 until height) {
-        var a=0; var r=0; var g=0; var b=0
-        for (dx in -radius..radius) { val c=source[y*width+dx.coerceIn(0,width-1)]
-            a+=c ushr 24; r+=c shr 16 and 255; g+=c shr 8 and 255; b+=c and 255 }
+        var a = 0; var r = 0; var g = 0; var b = 0
+        for (dx in -radius..radius) {
+            val c = source[(y * width) + dx.coerceIn(0, width - 1)]
+            a += (c ushr 24)
+            r += ((c shr 16) and 255)
+            g += ((c shr 8) and 255)
+            b += (c and 255)
+        }
         for (x in 0 until width) {
-            pixels[y*width+x]=(a/diameter shl 24) or (r/diameter shl 16) or (g/diameter shl 8) or b/diameter
-            val remove=source[y*width+(x-radius).coerceIn(0,width-1)]
-            val add=source[y*width+(x+radius+1).coerceIn(0,width-1)]
-            a+=(add ushr 24)-(remove ushr 24); r+=(add shr 16 and 255)-(remove shr 16 and 255)
-            g+=(add shr 8 and 255)-(remove shr 8 and 255); b+=(add and 255)-(remove and 255)
+            pixels[(y * width) + x] = ((a / diameter) shl 24) or ((r / diameter) shl 16) or ((g / diameter) shl 8) or (b / diameter)
+            val remove = source[(y * width) + (x - radius).coerceIn(0, width - 1)]
+            val add = source[(y * width) + (x + radius + 1).coerceIn(0, width - 1)]
+            a += ((add ushr 24) - (remove ushr 24))
+            r += (((add shr 16) and 255) - ((remove shr 16) and 255))
+            g += (((add shr 8) and 255) - ((remove shr 8) and 255))
+            b += ((add and 255) - (remove and 255))
         }
     }
     val horizontal = pixels.copyOf()
     for (x in 0 until width) {
-        var a=0; var r=0; var g=0; var b=0
-        for (dy in -radius..radius) { val c=horizontal[dy.coerceIn(0,height-1)*width+x]
-            a+=c ushr 24; r+=c shr 16 and 255; g+=c shr 8 and 255; b+=c and 255 }
+        var a = 0; var r = 0; var g = 0; var b = 0
+        for (dy in -radius..radius) {
+            val c = horizontal[(dy.coerceIn(0, height - 1) * width) + x]
+            a += (c ushr 24)
+            r += ((c shr 16) and 255)
+            g += ((c shr 8) and 255)
+            b += (c and 255)
+        }
         for (y in 0 until height) {
-            pixels[y*width+x]=(a/diameter shl 24) or (r/diameter shl 16) or (g/diameter shl 8) or b/diameter
-            val remove=horizontal[(y-radius).coerceIn(0,height-1)*width+x]
-            val add=horizontal[(y+radius+1).coerceIn(0,height-1)*width+x]
-            a+=(add ushr 24)-(remove ushr 24); r+=(add shr 16 and 255)-(remove shr 16 and 255)
-            g+=(add shr 8 and 255)-(remove shr 8 and 255); b+=(add and 255)-(remove and 255)
+            pixels[(y * width) + x] = ((a / diameter) shl 24) or ((r / diameter) shl 16) or ((g / diameter) shl 8) or (b / diameter)
+            val remove = horizontal[((y - radius).coerceIn(0, height - 1) * width) + x]
+            val add = horizontal[((y + radius + 1).coerceIn(0, height - 1) * width) + x]
+            a += ((add ushr 24) - (remove ushr 24))
+            r += (((add shr 16) and 255) - ((remove shr 16) and 255))
+            g += (((add shr 8) and 255) - ((remove shr 8) and 255))
+            b += ((add and 255) - (remove and 255))
         }
     }
 }
@@ -1197,10 +1213,10 @@ internal fun drawArrow(
     }
     canvas.drawLine(x1, y1, shaftEndX, shaftEndY, linePaint)
 
-    val wing1X = x2 - headSize * cos(angle - arrowAngle).toFloat()
-    val wing1Y = y2 - headSize * sin(angle - arrowAngle).toFloat()
-    val wing2X = x2 - headSize * cos(angle + arrowAngle).toFloat()
-    val wing2Y = y2 - headSize * sin(angle + arrowAngle).toFloat()
+    val wing1X = x2 - (headSize * cos(angle - arrowAngle).toFloat())
+    val wing1Y = y2 - (headSize * sin(angle - arrowAngle).toFloat())
+    val wing2X = x2 - (headSize * cos(angle + arrowAngle).toFloat())
+    val wing2Y = y2 - (headSize * sin(angle + arrowAngle).toFloat())
 
     val path = Path().apply {
         moveTo(x2, y2)
@@ -1229,7 +1245,7 @@ internal fun isPointNearStrokeOrShape(point: BrushPoint, stroke: BrushStroke, th
     val top = minOf(p1y, p2y) - threshold
     val bottom = maxOf(p1y, p2y) + threshold
 
-    return !((point.x !in left..right) || (point.y !in top..bottom)) && when (stroke.shape) {
+    return (point.x in (left..right)) && (point.y in (top..bottom)) && (when (stroke.shape) {
         ShapeType.RECTANGLE -> {
             if (stroke.filled) {
                 true
@@ -1238,8 +1254,8 @@ internal fun isPointNearStrokeOrShape(point: BrushPoint, stroke: BrushStroke, th
                 val maxX = maxOf(p1x, p2x)
                 val minY = minOf(p1y, p2y)
                 val maxY = maxOf(p1y, p2y)
-                val nearHoriz = ((kotlin.math.abs(point.y - minY) < threshold) || (kotlin.math.abs(point.y - maxY) < threshold)) && (point.x in (minX - threshold)..(maxX + threshold))
-                val nearVert = ((kotlin.math.abs(point.x - minX) < threshold) || (kotlin.math.abs(point.x - maxX) < threshold)) && (point.y in (minY - threshold)..(maxY + threshold))
+                val nearHoriz = ((kotlin.math.abs(point.y - minY) < threshold) || (kotlin.math.abs(point.y - maxY) < threshold)) && (point.x in ((minX - threshold)..(maxX + threshold)))
+                val nearVert = ((kotlin.math.abs(point.x - minX) < threshold) || (kotlin.math.abs(point.x - maxX) < threshold)) && (point.y in ((minY - threshold)..(maxY + threshold)))
                 nearHoriz || nearVert
             }
         }
@@ -1259,7 +1275,7 @@ internal fun isPointNearStrokeOrShape(point: BrushPoint, stroke: BrushStroke, th
         ShapeType.ARROW, ShapeType.LINE -> {
             distToSegment(point.x, point.y, p1x, p1y, p2x, p2y) < threshold
         }
-    }
+    })
 }
 
 private fun distToSegment(px: Float, py: Float, x1: Float, y1: Float, x2: Float, y2: Float): Float {

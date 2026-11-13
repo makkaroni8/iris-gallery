@@ -177,16 +177,16 @@ fun VideoPage(
     var isFirstFrameRendered by remember(media.id) { mutableStateOf(value = false) }
     var suppressTapUntil by remember { mutableLongStateOf(0L) }
     var displayAspect by remember(media.id) {
-        val quarterTurn = ((media.orientation % 360) + 360) % 360 in setOf(90, 270)
+        val quarterTurn = (((media.orientation % 360) + 360) % 360) in setOf(90, 270)
         val initialWidth = if (quarterTurn) media.height else media.width
         val initialHeight = if (quarterTurn) media.width else media.height
-        val ratio = (initialWidth.toFloat() / initialHeight.coerceAtLeast(1)).takeIf { it.isFinite() && it > 0f } ?: (16f / 9f)
+        val ratio = (initialWidth.toFloat() / initialHeight.coerceAtLeast(1)).takeIf { it.isFinite() && (it > 0f) } ?: (16f / 9f)
         mutableFloatStateOf(ratio)
     }
 
     fun duration() = engine.player.duration.takeIf { it > 0 } ?: media.durationMs
     fun clamp(candidate: Offset, zoom: Float): Offset {
-        if (zoom <= 1f || size.width <= 0 || size.height <= 0 || candidate.x.isNaN() || candidate.y.isNaN()) return Offset.Zero
+        if ((zoom <= 1f) || (size.width <= 0) || (size.height <= 0) || candidate.x.isNaN() || candidate.y.isNaN()) return Offset.Zero
         val containerAspect = size.width.toFloat() / size.height.coerceAtLeast(1)
         val displayedWidth: Float
         val displayedHeight: Float
@@ -197,8 +197,8 @@ fun VideoPage(
             displayedHeight = size.height.toFloat()
             displayedWidth = displayedHeight * displayAspect
         }
-        val maxX = (displayedWidth * zoom - size.width).coerceAtLeast(0f) / 2f
-        val maxY = (displayedHeight * zoom - size.height).coerceAtLeast(0f) / 2f
+        val maxX = ((displayedWidth * zoom) - size.width).coerceAtLeast(0f) / 2f
+        val maxY = ((displayedHeight * zoom) - size.height).coerceAtLeast(0f) / 2f
         val clampedX = candidate.x.coerceIn(-maxX, maxX)
         val clampedY = candidate.y.coerceIn(-maxY, maxY)
         if (clampedX.isNaN() || clampedY.isNaN()) return Offset.Zero
@@ -221,7 +221,7 @@ fun VideoPage(
         if (autoPlay) engine.player.play()
         try {
             while (true) {
-                if (!scrubbing && duration() > 0) progress = engine.player.currentPosition.toFloat() / duration()
+                if ((!scrubbing) && (duration() > 0)) progress = engine.player.currentPosition.toFloat() / duration()
                 delay(200.milliseconds)
             }
         } finally {
@@ -266,7 +266,7 @@ fun VideoPage(
                     ?.toIntOrNull()?.takeIf { it > 0 } ?: media.height
                 val rotation = retriever.extractMetadata(MediaMetadataRetriever.METADATA_KEY_VIDEO_ROTATION)
                     ?.toIntOrNull() ?: 0
-                val quarterTurn = ((rotation % 360) + 360) % 360 in setOf(90, 270)
+                val quarterTurn = (((rotation % 360) + 360) % 360) in setOf(90, 270)
                 val shownWidth = if (quarterTurn) encodedHeight else encodedWidth
                 val shownHeight = if (quarterTurn) encodedWidth else encodedHeight
                 shownWidth.toFloat() / shownHeight.coerceAtLeast(1)
@@ -275,7 +275,7 @@ fun VideoPage(
             } finally {
                 retriever.release()
             }
-        }.takeIf { it.isFinite() && it > 0f }
+        }.takeIf { it.isFinite() && (it > 0f) }
         fetched?.let { displayAspect = it }
     }
     LaunchedEffect(scrubbing, progress) {
@@ -293,7 +293,7 @@ fun VideoPage(
         }
     }
     LaunchedEffect(gestureFeedback) {
-        if (gestureFeedback != null && gestureFeedback != "2×") {
+        if ((gestureFeedback != null) && (gestureFeedback != "2×")) {
             delay(650.milliseconds); gestureFeedback = null
         }
     }
@@ -360,7 +360,7 @@ fun VideoPage(
                                         } else {
                                             size.height.toFloat() * displayAspect
                                         }
-                                        val quarterTurn = ((media.orientation % 360) + 360) % 360 in setOf(90, 270)
+                                        val quarterTurn = (((media.orientation % 360) + 360) % 360) in setOf(90, 270)
                                         val sourceWidth = (if (quarterTurn) media.height else media.width).coerceAtLeast(1).toFloat()
                                         val originalScale = (sourceWidth / displayedWidth).coerceIn(1f, 5f)
                                         val candidateStages = listOf(fillScale, originalScale, doubleTapZoomLevel)
@@ -379,7 +379,7 @@ fun VideoPage(
                                         }
                                         val stages = listOf(1f) + distinctStages
                                         val referenceScale = scale
-                                        val nextScale = stages.firstOrNull { it > referenceScale + 0.15f } ?: 1f
+                                        val nextScale = stages.firstOrNull { it > (referenceScale + 0.15f) } ?: 1f
                                         if (nextScale <= 1.05f) {
                                             scale = 1f
                                             offset = Offset.Zero
@@ -388,7 +388,7 @@ fun VideoPage(
                                             val center = Offset(size.width / 2f, size.height / 2f)
                                             val z = nextScale / scale
                                             val targetOffset = clamp(
-                                                offset + (position - center - offset) * (1f - z),
+                                                offset + (((position - center) - offset) * (1f - z)),
                                                 nextScale,
                                             )
                                             scale = nextScale
@@ -410,7 +410,7 @@ fun VideoPage(
                     onLongPress = { },
                     onPress = { position ->
                         coroutineScope {
-                        feedbackOnLeft = position.x < size.width / 2f
+                        feedbackOnLeft = position.x < (size.width / 2f)
                         var accelerated = false
                         val previousSpeed = engine.player.playbackParameters.speed
                         val speedJob = launch {
@@ -450,14 +450,14 @@ fun VideoPage(
                     do {
                         val event = awaitPointerEvent()
                         val pointers = event.changes.count { it.pressed }
-                        if (pointers == 1 && scale > 1f && !panStarted) {
+                        if ((pointers == 1) && (scale > 1f) && (!panStarted)) {
                             val panChange = event.calculatePan()
                             singleFingerPanDistance += panChange.getDistance()
                             if (singleFingerPanDistance >= touchSlop) {
                                 panStarted = true
                             }
                         }
-                        if (pointers >= 2 || (pointers == 1 && scale > 1f && panStarted)) {
+                        if ((pointers >= 2) || ((pointers == 1) && (scale > 1f) && panStarted)) {
                             if (gestureType == 4) {
                                 gestureType = 0
                                 onDismissRelease(0f)
@@ -466,18 +466,18 @@ fun VideoPage(
                             volumeHudVisible = false
                             val zoomChange = event.calculateZoom()
                             val panChange = event.calculatePan()
-                            val validZoom = if (!zoomChange.isNaN() && zoomChange > 0f) zoomChange else 1f
-                            val validPan = if (panChange.isSpecified && !panChange.x.isNaN() && !panChange.y.isNaN()) panChange else Offset.Zero
+                            val validZoom = if ((!zoomChange.isNaN()) && (zoomChange > 0f)) zoomChange else 1f
+                            val validPan = if (panChange.isSpecified && (!panChange.x.isNaN()) && (!panChange.y.isNaN())) panChange else Offset.Zero
 
                             val calculated = (scale * validZoom).coerceIn(1f, 5f)
                             val next = if (calculated < 1.02f) 1f else calculated
 
                             offset = if ((pointers >= 2) && (size != IntSize.Zero)) {
                                 val centroid = event.calculateCentroid(useCurrent = true)
-                                if (centroid.isSpecified && !centroid.x.isNaN() && !centroid.y.isNaN()) {
+                                if (centroid.isSpecified && (!centroid.x.isNaN()) && (!centroid.y.isNaN())) {
                                     val center = Offset(size.width / 2f, size.height / 2f)
                                     val effectiveZoom = next / scale
-                                    val focalOffset = (offset + validPan) + (centroid - center - offset) * (1f - effectiveZoom)
+                                    val focalOffset = (offset + validPan) + (((centroid - center) - offset) * (1f - effectiveZoom))
                                     clamp(focalOffset, next)
                                 } else {
                                     clamp(offset + validPan, next)
@@ -489,7 +489,7 @@ fun VideoPage(
                             scale = next
                             onZoomChanged(next > 1f)
                             event.changes.forEach { it.consume() }
-                        } else if (pointers == 1 && scale <= 1.02f) {
+                        } else if ((pointers == 1) && (scale <= 1.02f)) {
                             val panChange = event.calculatePan()
                             totalDragY += panChange.y
                             totalDragX += panChange.x
@@ -508,15 +508,15 @@ fun VideoPage(
                                 } else {
                                     val absX = kotlin.math.abs(totalDragX)
                                     val absY = kotlin.math.abs(totalDragY)
-                                    if (absX > 20f && absX > absY) {
+                                    if ((absX > 20f) && (absX > absY)) {
                                         gestureType = -1
-                                    } else if (absY > 16f && absY > absX * 1.2f) {
-                                        if (startX < w * 0.08f || startX > w * 0.92f) {
+                                    } else if ((absY > 16f) && (absY > (absX * 1.2f))) {
+                                        if ((startX < (w * 0.08f)) || (startX > (w * 0.92f))) {
                                             gestureType = -2
-                                        } else if (gestureControls && startX < w * 0.42f) {
+                                        } else if (gestureControls && (startX < (w * 0.42f))) {
                                             gestureType = 1
                                             val curWinBrightness = activity?.window?.attributes?.screenBrightness ?: -1f
-                                            dragStartBrightness = if (curWinBrightness in 0f..1f) {
+                                            dragStartBrightness = if (curWinBrightness in (0f..1f)) {
                                                 curWinBrightness
                                             } else {
                                                 try {
@@ -531,7 +531,7 @@ fun VideoPage(
                                             currentBrightness = dragStartBrightness
                                             brightnessHudVisible = true
                                             brightnessHudTimer = SystemClock.uptimeMillis()
-                                        } else if (gestureControls && startX > w * 0.58f) {
+                                        } else if (gestureControls && (startX > (w * 0.58f))) {
                                             gestureType = 2
                                             dragStartVolume = audioManager?.getStreamVolume(AudioManager.STREAM_MUSIC) ?: 0
                                             currentVolume = dragStartVolume
@@ -572,8 +572,8 @@ fun VideoPage(
                                     if (newVolume != currentVolume) {
                                         currentVolume = newVolume
                                         audioManager?.setStreamVolume(AudioManager.STREAM_MUSIC, newVolume, 0)
-                                        if (newVolume > 0 && engine.isMuted) {
-                                            engine.setMuted(false)
+                                        if ((newVolume > 0) && engine.isMuted) {
+                                            engine.setMuted(muted = false)
                                             isMuted = false
                                         }
                                     }
@@ -589,12 +589,12 @@ fun VideoPage(
                                     onDismissDrag(panChange.y)
                                 }
                                 0 -> {
-                                    if (startX in (w * 0.42f)..(w * 0.58f) || !gestureControls) {
-                                        if (totalDragY < -75f && kotlin.math.abs(totalDragY) > kotlin.math.abs(totalDragX) * 1.5f) {
+                                    if ((startX in ((w * 0.42f)..(w * 0.58f))) || (!gestureControls)) {
+                                        if ((totalDragY < -75f) && (kotlin.math.abs(totalDragY) > (kotlin.math.abs(totalDragX) * 1.5f))) {
                                             gestureType = 3
                                             event.changes.forEach { it.consume() }
                                             onSwipeUp()
-                                        } else if (totalDragY > 15f && totalDragY > kotlin.math.abs(totalDragX) * 1.3f) {
+                                        } else if ((totalDragY > 15f) && (totalDragY > (kotlin.math.abs(totalDragX) * 1.3f))) {
                                             gestureType = 4
                                             event.changes.forEach { it.consume() }
                                             onDismissDrag(panChange.y)
@@ -610,7 +610,7 @@ fun VideoPage(
                     if (gestureType == 4) {
                         onDismissRelease(releaseVelocityY)
                     }
-                    if (gestureType == 1 || gestureType == 2) {
+                    if ((gestureType == 1) || (gestureType == 2)) {
                         suppressTapUntil = SystemClock.uptimeMillis() + 150L
                     }
                 }
@@ -658,11 +658,11 @@ fun VideoPage(
                     modifier = Modifier.fillMaxSize()
                 )
             }
-            if (!active || !isFirstFrameRendered) {
+            if ((!active) || (!isFirstFrameRendered)) {
                 AsyncImage(
                     model = ImageRequest.Builder(context)
                         .data(media.uri)
-                        .crossfade(true)
+                        .crossfade(enable = true)
                         .build(),
                     contentDescription = null,
                     contentScale = ContentScale.Fit,
@@ -766,7 +766,7 @@ fun VideoPage(
         val volumePercent = ((currentVolume.toFloat() / maxVolume.coerceAtLeast(1)) * 100).roundToInt().coerceIn(0, 100)
         val volumeIcon = when {
             currentVolume == 0 -> Icons.AutoMirrored.Filled.VolumeOff
-            currentVolume < maxVolume / 2 -> Icons.AutoMirrored.Filled.VolumeDown
+            currentVolume < (maxVolume / 2) -> Icons.AutoMirrored.Filled.VolumeDown
             else -> Icons.AutoMirrored.Filled.VolumeUp
         }
         VideoGestureHud(
@@ -795,11 +795,13 @@ fun VideoPage(
         Column(
             modifier = Modifier.fillMaxWidth().widthIn(max = 720.dp).padding(horizontal = 24.dp)
                 .navigationBarsPadding()
-                .padding(top = if (compactLandscape) 4.dp else 128.dp,
-                    bottom = if (compactLandscape) 76.dp else 128.dp),
+                .padding(
+                    top = if (compactLandscape) 4.dp else 128.dp,
+                    bottom = if (compactLandscape) 76.dp else 128.dp
+                ),
             horizontalAlignment = Alignment.CenterHorizontally,
         ) {
-            AnimatedVisibility(scrubbing && preview != null) {
+            AnimatedVisibility(scrubbing && (preview != null)) {
                 preview?.let { Image(it.asImageBitmap(), null, Modifier.size(160.dp, 90.dp)
                     .background(Color.Black, RoundedCornerShape(12.dp)), contentScale = ContentScale.Crop) }
             }
@@ -902,7 +904,7 @@ fun VideoPage(
 
 private fun formatTime(ms: Long): String {
     val seconds = ms.coerceAtLeast(0) / 1_000
-    return if (seconds >= 3_600) "%d:%02d:%02d".format(seconds / 3_600, seconds % 3_600 / 60, seconds % 60)
+    return if (seconds >= 3_600) "%d:%02d:%02d".format(seconds / 3_600, (seconds % 3_600) / 60, seconds % 60)
     else "%d:%02d".format(seconds / 60, seconds % 60)
 }
 

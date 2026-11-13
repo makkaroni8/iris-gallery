@@ -1,3 +1,5 @@
+@file:Suppress("UnstableApiUsage")
+
 plugins {
     id("com.android.application")
     id("org.jetbrains.kotlin.plugin.compose")
@@ -16,6 +18,26 @@ android {
         targetSdk = 37
         versionCode = 19
         versionName = "0.9.0"
+        resValue("string", "library_map_title", "Map")
+        resValue("string", "library_map_subtitle", "Explore your photos on an offline map")
+        resValue("string", "settings_section_map", "Offline Map")
+        resValue("string", "settings_map_desc", "Offline vector map and GPS location index for photos")
+        resValue("string", "settings_map_custom_active", "Custom detail map active (.pmtiles)")
+        resValue("string", "settings_map_base_active", "Bundled global base map active")
+        resValue("string", "settings_map_import_btn", "Import PMTiles map")
+        resValue("string", "settings_map_reset_btn", "Reset to base map")
+        resValue("string", "settings_map_note", "100% offline. You can download and import any .pmtiles vector map (e.g. from Protomaps).")
+        resValue("string", "settings_map_importing", "Importing map&#8230;")
+        resValue("string", "settings_map_reindex_title", "Rebuild Map Index")
+        resValue("string", "settings_map_reindex_desc", "Re-analyze GPS locations and map preview thumbnails for all photos")
+        resValue("string", "settings_map_reindex_dialog_title", "Rebuild Map Index?")
+        resValue("string", "settings_map_reindex_dialog_msg", "The saved location cache and all generated preview markers will be deleted and rebuilt from scratch.")
+        resValue("string", "settings_map_reindex_success", "Map index successfully rebuilt (%1$" + "d locations)")
+        resValue("string", "settings_map_theme_title", "Map Appearance")
+        resValue("string", "settings_map_theme_desc", "Choose whether the offline map follows the app theme or uses light/dark mode")
+        resValue("string", "settings_map_theme_auto", "Auto (App)")
+        resValue("string", "settings_map_theme_light", "Light")
+        resValue("string", "settings_map_theme_dark", "Dark")
     }
 
     splits {
@@ -28,7 +50,7 @@ android {
     }
 
     androidResources {
-        noCompress += listOf("tflite")
+        noCompress += listOf("tflite", "pmtiles", "pbf")
         localeFilters += listOf(
             "en", "ar", "de", "es", "fr", "it", "ja", "pl", "pt", "pt-rBR", "ru", "tr", "zh", "zh-rCN",
         )
@@ -37,6 +59,7 @@ android {
     buildFeatures {
         compose = true
         buildConfig = true
+        resValues = true
     }
 
     signingConfigs {
@@ -73,7 +96,17 @@ android {
 
     lint {
         checkReleaseBuilds = false
-        disable += listOf("MissingTranslation", "ExtraTranslation", "TypographyDashes", "PluralsCandidate")
+        disable += listOf(
+            "MissingTranslation",
+            "ExtraTranslation",
+            "TypographyDashes",
+            "PluralsCandidate",
+            "LogNotTimber",
+            "NewerVersionAvailable",
+            "GradleDynamicVersion",
+            "AndroidGradlePluginVersion",
+            "GradleDependency",
+        )
     }
 
     packaging {
@@ -87,6 +120,10 @@ android {
             )
         }
     }
+}
+
+tasks.withType<org.jetbrains.kotlin.gradle.tasks.KotlinCompile>().configureEach {
+    compilerOptions.allWarningsAsErrors.set(true)
 }
 
 dependencies {
@@ -123,6 +160,11 @@ dependencies {
 
     // WorkManager
     implementation("androidx.work:work-runtime-ktx:2.12.0")
+
+    // MapLibre Offline Map SDK & Coroutines
+    //noinspection GradleDependency,NewerVersionAvailable
+    implementation("org.maplibre.gl:android-sdk:11.13.5")
+    implementation("org.jetbrains.kotlinx:kotlinx-coroutines-android:1.11.0")
 
     debugImplementation("androidx.compose.ui:ui-tooling")
     debugImplementation("androidx.compose.ui:ui-test-manifest")

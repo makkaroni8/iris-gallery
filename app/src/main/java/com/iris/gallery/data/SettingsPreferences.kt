@@ -180,6 +180,7 @@ data class SettingsState(
     val aiLabelingEnabled: Boolean = true,
     val aiConfidenceThreshold: Float = 0.65f,
     val aiInfoInDetailsEnabled: Boolean = true,
+    val mapThemeMode: ThemeMode = ThemeMode.SYSTEM,
 ) {
     val hasPin: Boolean get() = appLockPinHash.isNotEmpty()
 }
@@ -190,6 +191,7 @@ class SettingsPreferences(context: Context) {
     val state: StateFlow<SettingsState> = _state.asStateFlow()
 
     fun setThemeMode(mode: ThemeMode) = update { copy(themeMode = mode) }
+    fun setMapThemeMode(mode: ThemeMode) = update { copy(mapThemeMode = mode) }
     fun setLanguage(lang: String) = update { copy(language = lang) }
     fun setAmoledBlack(enabled: Boolean) = update { copy(amoledBlack = enabled) }
     fun setAccentColor(color: AccentColor) = update { copy(accentColor = color) }
@@ -462,6 +464,7 @@ class SettingsPreferences(context: Context) {
             aiLabelingEnabled = prefs.getBoolean("ai_labeling_enabled", true),
             aiConfidenceThreshold = prefs.getFloat("ai_confidence_threshold", 0.65f),
             aiInfoInDetailsEnabled = prefs.getBoolean("ai_info_in_details_enabled", true),
+            mapThemeMode = runCatching { ThemeMode.valueOf(prefs.getString("map_theme_mode", null).orEmpty()) }.getOrDefault(ThemeMode.SYSTEM),
         )
     }
 
@@ -532,6 +535,7 @@ class SettingsPreferences(context: Context) {
                 .putBoolean("ai_labeling_enabled", state.aiLabelingEnabled)
                 .putFloat("ai_confidence_threshold", state.aiConfidenceThreshold)
                 .putBoolean("ai_info_in_details_enabled", state.aiInfoInDetailsEnabled)
+                .putString("map_theme_mode", state.mapThemeMode.name)
         }
     }
 }

@@ -937,7 +937,7 @@ internal fun GalleryApp(
                                         }
                                     }
                                     if (externalItems.isNotEmpty()) {
-                                        if (Build.VERSION.SDK_INT >= 30 && !Environment.isExternalStorageManager()) {
+                                        if ((Build.VERSION.SDK_INT >= 30) && !Environment.isExternalStorageManager()) {
                                             runCatching {
                                                 val request = MediaStore.createDeleteRequest(
                                                     context.contentResolver,

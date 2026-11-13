@@ -202,7 +202,7 @@ internal fun PhotoGrid(
                 }
                 val photoCount = value.size
                 var photoInGroup = 0
-                while (photoInGroup < photoCount && itemIdx < totalCount) {
+                while ((photoInGroup < photoCount) && (itemIdx < totalCount)) {
                     rowToItem.add(itemIdx)
                     isRowHeaderList.add(false)
                     val inThisRow = minOf(cols, photoCount - photoInGroup)
@@ -229,7 +229,7 @@ internal fun PhotoGrid(
             }
         }
         val totalRows = maxOf(rowIdx, 1)
-        val isRowHeader = BooleanArray(totalRows) { it < isRowHeaderList.size && isRowHeaderList[it] }
+        val isRowHeader = BooleanArray(totalRows) { (it < isRowHeaderList.size) && isRowHeaderList[it] }
         Triple(totalRows, itemToRow, Pair(rowToItem.toIntArray(), isRowHeader))
     }
     val totalRows = rowLayout.first
@@ -285,11 +285,11 @@ internal fun PhotoGrid(
             } else {
                 val layoutInfo = gridState.layoutInfo
                 val visibleItems = layoutInfo.visibleItemsInfo
-                if (totalRows <= 1 || visibleItems.isEmpty()) {
+                if ((totalRows <= 1) || visibleItems.isEmpty()) {
                     0f
                 } else if (!gridState.canScrollForward) {
                     1f
-                } else if (!gridState.canScrollBackward && gridState.firstVisibleItemScrollOffset == 0) {
+                } else if (!gridState.canScrollBackward && (gridState.firstVisibleItemScrollOffset == 0)) {
                     0f
                 } else {
                     val viewportHeight = layoutInfo.viewportSize.height.toFloat()
@@ -389,9 +389,9 @@ internal fun PhotoGrid(
                 val edge = 72.dp.toPx()
                 val dragSlop = 16.dp.toPx()
                 fun mediaAt(position: Offset) = gridState.layoutInfo.visibleItemsInfo.firstOrNull { item ->
-                    item.key is Long &&
-                        position.x >= item.offset.x && position.x <= item.offset.x + item.size.width &&
-                        position.y >= item.offset.y && position.y <= item.offset.y + item.size.height
+                    (item.key is Long) &&
+                        (position.x >= item.offset.x) && (position.x <= (item.offset.x + item.size.width)) &&
+                        (position.y >= item.offset.y) && (position.y <= (item.offset.y + item.size.height))
                 }?.key as? Long
                 detectDragGesturesAfterLongPress(
                     onDragStart = { position ->
@@ -409,7 +409,7 @@ internal fun PhotoGrid(
                         val sId = startId
                         if (sId != null) {
                             val dist = (change.position - startPosition).getDistance()
-                            if (!hasDragged && dist < dragSlop) {
+                            if (!hasDragged && (dist < dragSlop)) {
                                 change.consume()
                                 return@detectDragGesturesAfterLongPress
                             }
@@ -419,7 +419,7 @@ internal fun PhotoGrid(
                                 val allImages = currentImages
                                 val startIndex = allImages.indexOfFirst { it.id == sId }
                                 val currIndex = allImages.indexOfFirst { it.id == currentId }
-                                if (startIndex >= 0 && currIndex >= 0) {
+                                if ((startIndex >= 0) && (currIndex >= 0)) {
                                     val minIdx = minOf(startIndex, currIndex)
                                     val maxIdx = maxOf(startIndex, currIndex)
                                     val currentRangeIds = allImages.subList(minIdx, maxIdx + 1).asSequence().map { it.id }.toSet()
@@ -434,10 +434,10 @@ internal fun PhotoGrid(
                             }
                             val scrollBy = when {
                                 change.position.y < edge -> -38f
-                                change.position.y > size.height - edge -> 38f
+                                change.position.y > (size.height - edge) -> 38f
                                 else -> 0f
                             }
-                            if (scrollBy != 0f && autoScrollJob?.isActive != true) {
+                            if ((scrollBy != 0f) && (autoScrollJob?.isActive != true)) {
                                 autoScrollJob = scrubberScope.launch { gridState.scrollBy(scrollBy) }
                             }
                         }
@@ -493,8 +493,13 @@ internal fun PhotoGrid(
                             .padding(start = 12.dp, end = 12.dp, top = 18.dp, bottom = 8.dp),
                         verticalAlignment = Alignment.CenterVertically
                     ) {
-                        Text(group.key, Modifier.weight(1f), style = MaterialTheme.typography.titleMedium,
-                            fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.primary)
+                        Text(
+                            text = group.key,
+                            modifier = Modifier.weight(1f),
+                            style = MaterialTheme.typography.titleMedium,
+                            fontWeight = FontWeight.Bold,
+                            color = MaterialTheme.colorScheme.primary,
+                        )
                         AnimatedVisibility(selectedIds.isNotEmpty()) {
                             Text(if (wholeDateSelected) stringResource(R.string.action_deselect_date) else stringResource(R.string.action_select_date),
                                 style = MaterialTheme.typography.labelMedium,
@@ -562,10 +567,10 @@ internal fun PhotoGrid(
                                 scrubberDragging = true
                                 val inset = 16.dp.toPx()
                                 val thumbHeight = 48.dp.toPx()
-                                val maxTravel = (size.height - inset * 2 - thumbHeight).coerceAtLeast(1f)
+                                val maxTravel = ((size.height - (inset * 2)) - thumbHeight).coerceAtLeast(1f)
 
                                 fun calculateFraction(y: Float): Float {
-                                    val topTarget = y - inset - (thumbHeight / 2f)
+                                    val topTarget = (y - inset) - (thumbHeight / 2f)
                                     return (topTarget / maxTravel).coerceIn(0f, 1f)
                                 }
 
@@ -594,7 +599,7 @@ internal fun PhotoGrid(
                                         thumbRow = (-thumbRow - 2).coerceIn(0, totalRows - 1)
                                     }
                                     scrubThumbIndex = rowToItem[thumbRow]
-                                    if (targetIndex != lastTargetIndex || kotlin.math.abs(remainder - lastOffset) > 8) {
+                                    if ((targetIndex != lastTargetIndex) || (kotlin.math.abs(remainder - lastOffset) > 8)) {
                                         lastTargetIndex = targetIndex
                                         lastOffset = remainder
                                         scrubScrollJob?.cancel()
@@ -634,17 +639,17 @@ internal fun PhotoGrid(
                     val inset = 16.dp.toPx()
                     val thumbWidth = 5.dp.toPx()
                     val thumbHeight = 48.dp.toPx()
-                    val maxTravel = (size.height - inset * 2 - thumbHeight).coerceAtLeast(0f)
-                    val thumbTop = inset + scrollFraction.coerceIn(0f, 1f) * maxTravel
-                    val thumbLeft = size.width - thumbWidth - 4.dp.toPx()
+                    val maxTravel = ((size.height - (inset * 2)) - thumbHeight).coerceAtLeast(0f)
+                    val thumbTop = inset + (scrollFraction.coerceIn(0f, 1f) * maxTravel)
+                    val thumbLeft = (size.width - thumbWidth) - 4.dp.toPx()
 
                     if (scrubberDragging) {
                         val trackWidth = 3.dp.toPx()
-                        val trackLeft = size.width - trackWidth - 5.dp.toPx()
+                        val trackLeft = (size.width - trackWidth) - 5.dp.toPx()
                         drawRoundRect(
                             color = trackColor,
                             topLeft = Offset(trackLeft, inset),
-                            size = Size(trackWidth, size.height - inset * 2),
+                            size = Size(trackWidth, size.height - (inset * 2)),
                             cornerRadius = CornerRadius(trackWidth / 2f, trackWidth / 2f)
                         )
                     }
@@ -659,7 +664,7 @@ internal fun PhotoGrid(
             }
 
             AnimatedVisibility(
-                visible = scrubberDragging && showDateBubble && visibleDate != null,
+                visible = scrubberDragging && showDateBubble && (visibleDate != null),
                 modifier = Modifier
                     .align(Alignment.TopEnd)
                     .padding(end = 42.dp, bottom = bottomPadding)
@@ -667,9 +672,9 @@ internal fun PhotoGrid(
                         val placeable = measurable.measure(constraints)
                         val insetPx = 16.dp.toPx()
                         val thumbHeightPx = 48.dp.toPx()
-                        val maxTravel = (constraints.maxHeight - insetPx * 2 - thumbHeightPx).coerceAtLeast(1f)
+                        val maxTravel = ((constraints.maxHeight - (insetPx * 2)) - thumbHeightPx).coerceAtLeast(1f)
                         val thumbCenterY = insetPx + (thumbHeightPx / 2f) + (scrollFraction.coerceIn(0f, 1f) * maxTravel)
-                        val targetY = (thumbCenterY - placeable.height / 2f).coerceIn(
+                        val targetY = (thumbCenterY - (placeable.height / 2f)).coerceIn(
                             insetPx,
                             (constraints.maxHeight - insetPx - placeable.height).coerceAtLeast(insetPx)
                         ).roundToInt()

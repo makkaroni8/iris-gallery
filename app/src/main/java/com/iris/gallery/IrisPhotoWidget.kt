@@ -299,13 +299,16 @@ class IrisPhotoWidget : AppWidgetProvider() {
                     inset + 1.5f,
                     inset + 1.5f,
                     outputWidth - inset - 1.5f,
-                    outputHeight - inset - 1.5f
+                    outputHeight - inset - 1.5f,
                 ),
-                corner - inset, corner - inset,
+                corner - inset,
+                corner - inset,
                 Paint(Paint.ANTI_ALIAS_FLAG).apply {
-                    color = Color.argb(55, 255, 255, 255); style = Paint.Style.STROKE; strokeWidth =
-                    3f
-                })
+                    color = Color.argb(55, 255, 255, 255)
+                    style = Paint.Style.STROKE
+                    strokeWidth = 3f
+                },
+            )
         }
         source.recycle()
         return output
@@ -343,9 +346,16 @@ class IrisPhotoWidget : AppWidgetProvider() {
             22f,
             Paint(Paint.ANTI_ALIAS_FLAG).apply { color = Color.rgb(218, 184, 255) },
         )
-        canvas.drawText("No memories from this day yet", 48f, (height / 2f) + 42f, Paint(Paint.ANTI_ALIAS_FLAG).apply {
-            color = Color.rgb(234, 221, 255); textSize = 34f; typeface = Typeface.DEFAULT_BOLD
-        })
+        canvas.drawText(
+            "No memories from this day yet",
+            48f,
+            (height / 2f) + 42f,
+            Paint(Paint.ANTI_ALIAS_FLAG).apply {
+                color = Color.rgb(234, 221, 255)
+                textSize = 34f
+                typeface = Typeface.DEFAULT_BOLD
+            },
+        )
         }
     }
 

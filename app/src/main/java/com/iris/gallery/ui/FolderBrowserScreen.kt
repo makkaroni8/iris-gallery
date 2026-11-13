@@ -195,7 +195,7 @@ fun FolderBrowserScreen(
                 ) {
                     items(storageRoots) { root ->
                         val isSelected = currentDirectory.absolutePath.startsWith(root.absolutePath)
-                        val isSd = root.absolutePath != "/storage/emulated/0" && !root.absolutePath.startsWith("/data")
+                        val isSd = (root.absolutePath != "/storage/emulated/0") && (!root.absolutePath.startsWith("/data"))
                         FilterChip(
                             selected = isSelected,
                             onClick = { currentDirectory = root },
@@ -433,7 +433,7 @@ fun FolderBrowserScreen(
                                                 style = MaterialTheme.typography.bodySmall,
                                                 color = MaterialTheme.colorScheme.onSurfaceVariant
                                             )
-                                            if (image.isVideo && image.durationMs > 0) {
+                                            if (image.isVideo && (image.durationMs > 0)) {
                                                 Text(
                                                     text = "•",
                                                     style = MaterialTheme.typography.bodySmall,
@@ -556,14 +556,14 @@ private fun computeBreadcrumbs(current: File, roots: List<File>): List<Breadcrum
     var curr: File? = current
     while (curr != null) {
         val name = when {
-            matchingRoot != null && curr.absolutePath == matchingRoot.absolutePath -> {
+            (matchingRoot != null) && (curr.absolutePath == matchingRoot.absolutePath) -> {
                 if (curr.absolutePath.startsWith("/storage/emulated/0")) "Internal" else "SD Card"
             }
             curr.name.isNotBlank() -> curr.name
             else -> curr.path
         }
         list.add(0, Breadcrumb(name, curr))
-        if (matchingRoot != null && curr.absolutePath == matchingRoot.absolutePath) {
+        if ((matchingRoot != null) && (curr.absolutePath == matchingRoot.absolutePath)) {
             break
         }
         curr = curr.parentFile
@@ -574,7 +574,7 @@ private fun computeBreadcrumbs(current: File, roots: List<File>): List<Breadcrum
 private fun getStorageRoots(context: Context): List<File> {
     val roots = mutableListOf<File>()
     val emulated = Environment.getExternalStorageDirectory()
-    if (emulated != null && emulated.exists()) {
+    if ((emulated != null) && emulated.exists()) {
         roots.add(emulated)
     } else {
         roots.add(File("/storage/emulated/0"))
@@ -584,9 +584,9 @@ private fun getStorageRoots(context: Context): List<File> {
             if (dir != null) {
                 val path = dir.absolutePath
                 val rootPath = path.substringBefore("/Android/data")
-                if (rootPath.isNotBlank() && rootPath != path) {
+                if (rootPath.isNotBlank() && (rootPath != path)) {
                     val root = File(rootPath)
-                    if (root.exists() && root !in roots) {
+                    if (root.exists() && (root !in roots)) {
                         roots.add(root)
                     }
                 }
@@ -645,7 +645,7 @@ private fun syntheticFileId(file: File): Long {
 
 private fun isMediaFile(file: File): Boolean {
     val ext = file.extension.lowercase(Locale.ROOT)
-    return ext in IMAGE_EXTENSIONS || ext in VIDEO_EXTENSIONS
+    return (ext in IMAGE_EXTENSIONS) || (ext in VIDEO_EXTENSIONS)
 }
 
 private fun formatBytes(bytes: Long): String {
